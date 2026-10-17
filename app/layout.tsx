@@ -35,7 +35,13 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="bg-slate-50">
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <div className="bg-slate-900 p-4 flex justify-end">
+          <KaraKataAuthBar />
+        </div>
         <div className="md:hidden">
           <MobileNav>{children}</MobileNav>
         </div>
@@ -45,7 +51,9 @@ export default function RootLayout({
             {children}
           </main>
         </div>
-      </body>
+            </div>
+    </div>
+  </body>
     </html>
   );
 }
