@@ -1,0 +1,19 @@
+name: Build & Release Kara Office
+on:
+  push:
+    tags: ['v*']
+jobs:
+  release:
+    runs-on: $matrix.os
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: cd kara-office-mvp/kara-office-ui && npm install && npm run build
+      - run: cp -r kara-office-mvp/kara-office-ui/dist kara-desktop/renderer
+      - run: cd kara-desktop && npm install && npx electron-builder --publish always
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

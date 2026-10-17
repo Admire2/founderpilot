@@ -1,0 +1,23 @@
+{
+  "llmPrimary": "openai/gpt-oss-120b",
+  "llmSecondary": "qwen/qwen3.8-27b",
+  "sttProvider": "groq",
+  "sttModel": "whisper-large-v3-turbo",
+  "ttsProvider": "elevenlabs",
+  "ttsModel": "canopylabs/orpheus-v1-english",
+  "ttsVoice": "autumn",
+  "lastCheck": "2026-10-04T03:03:06.908Z",
+  "lastActiveModels": [
+    "canopylabs/orpheus-v1-english",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-safeguard-20b",
+    "qwen/qwen3.8-27b",
+    "canopylabs/orpheus-arabic-saudi",
+    "allam-2-7b",
+    "meta-llama/llama-prompt-guard-2-22m",
+    "whisper-large-v3",
+    "meta-llama/llama-prompt-guard-2-86m",
+    "whisper-large-v3-turbo"
+  ]
+}

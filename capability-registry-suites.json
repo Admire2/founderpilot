@@ -1,0 +1,60 @@
+﻿{
+  "features": [
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Healthcare suite route live", "file": "app/suite/healthcare", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Ilera dashboard route live", "file": "app/suite/ilera", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Risk assessment module", "file": "app/suite/ilera/risk", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Medication module", "file": "app/suite/ilera/meds", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Labs module", "file": "app/suite/ilera/labs", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Foresight (predictive) module", "file": "app/suite/ilera/foresight", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Health Suite", "product": "Ilera", "feature": "Ilera API backbone", "file": "app/api/ilera", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Health Suite", "product": "Ounje", "feature": "Nutrition suite route live", "file": "app/suite/ounje", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Health Suite", "product": "Ounje", "feature": "Ounje meal-plan API", "file": "app/api/ounje", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+
+    { "suite": "Kara Business Suite", "product": "Advisor", "feature": "Business suite route live", "file": "app/suite/business", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Business Suite", "product": "Advisor", "feature": "AI advisor console", "file": "app/suite/advisor", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Business Suite", "product": "Advisor", "feature": "Advisor API", "file": "app/api/advisor", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Business Suite", "product": "Karakata Biz", "feature": "Launch planner module", "file": "app/suite/karakata/launch", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Business Suite", "product": "Karakata Biz", "feature": "Metrics dashboard module", "file": "app/suite/karakata/metrics", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Business Suite", "product": "Karakata Biz", "feature": "Trust scoring module", "file": "app/suite/karakata/trust", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Business Suite", "product": "Karakata Biz", "feature": "Business-model engine API", "file": "app/api/business-model", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+
+    { "suite": "Karakata Marketplace Suite", "product": "Marketplace", "feature": "Marketplace suite route live", "file": "app/suite/marketplace", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Marketplace Suite", "product": "Commerce", "feature": "Commerce engine (listing/price/quote)", "file": "app/suite/commerce/listing", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Marketplace Suite", "product": "Marketplace", "feature": "Sell flow (public)", "file": "app/karakata/sell", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Marketplace Suite", "product": "Marketplace", "feature": "Seller dashboard", "file": "app/karakata/seller", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Marketplace Suite", "product": "Marketplace", "feature": "Oja market API", "file": "app/api/oja", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Karakata Marketplace Suite", "product": "Marketplace", "feature": "Payments + payouts API", "file": "app/api/karakata/pay", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Marketplace Suite", "product": "Marketplace", "feature": "Seller payout API", "file": "app/api/karakata/payout", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+
+    { "suite": "Kara Engineering Suite", "product": "Engineering", "feature": "Engineering suite route live", "file": "app/suite/engineering", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Engineering Suite", "product": "Rivet", "feature": "Rivet module + API", "file": "app/suite/rivet", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Engineering Suite", "product": "Terra", "feature": "Terra module + API", "file": "app/suite/terra", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Engineering Suite", "product": "Volt", "feature": "Volt module + API", "file": "app/suite/volt", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Engineering Suite", "product": "Maxi", "feature": "Maxi sourcing + partners", "file": "app/suite/maxi/sourcing", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Engineering Suite", "product": "KAWS", "feature": "Contract module", "file": "app/kaws/contract", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Engineering Suite", "product": "KAWS", "feature": "Coordinator module", "file": "app/kaws/coordinator", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Engineering Suite", "product": "KAWS", "feature": "Sentinel monitoring module", "file": "app/kaws/sentinel", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Engineering Suite", "product": "KAWS", "feature": "Mobile DFD module", "file": "app/kaws/mobile-dfd", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+
+    { "suite": "Kara Office & Tools Suite", "product": "Office Web", "feature": "Office suite route live", "file": "app/suite/office", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Office & Tools Suite", "product": "Office Web", "feature": "Tasks + Vault modules", "file": "app/suite/office/tasks", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Office & Tools Suite", "product": "Tools", "feature": "PDF merge / converter / compress", "file": "app/suite/tools/merge", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Office & Tools Suite", "product": "Tools", "feature": "E-sign + Pilot-sign", "file": "app/suite/e-sign", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Office & Tools Suite", "product": "Tools", "feature": "Letter writer", "file": "app/suite/letter-writer", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+    { "suite": "Kara Office & Tools Suite", "product": "Tools", "feature": "Text checker", "file": "app/suite/text-checker", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Kara Office & Tools Suite", "product": "Tools", "feature": "QR generator + API", "file": "app/suite/qr-generator", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+
+    { "suite": "Karakata AI Engine", "product": "Kara Image", "feature": "Image generation engine", "file": "karakata-ai-engine/src/2-kara-image", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata AI Engine", "product": "Kara Video", "feature": "Video generation engine", "file": "karakata-ai-engine/src/3-kara-video", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata AI Engine", "product": "ImgGen API", "feature": "Image-gen API route", "file": "app/api/karakata/imggen", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata AI Engine", "product": "Voice", "feature": "Text-to-speech + speech-to-text APIs", "file": "app/api/suite/tts", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata AI Engine", "product": "Voice", "feature": "Audio-to-text / text-to-audio suites", "file": "app/suite/audio-to-text", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata AI Engine", "product": "Name Creator", "feature": "Business name creator + API", "file": "app/suite/name-creator", "pattern": "", "type": "route", "competitor": false, "exclusive": true },
+
+    { "suite": "Karakata Platform", "product": "Commerce Core", "feature": "Checkout + Stripe verify + webhooks", "file": "app/api/checkout", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Platform", "product": "Commerce Core", "feature": "Credits + billing portal", "file": "app/api/credits", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Platform", "product": "Growth", "feature": "Affiliate engine + tracking", "file": "app/api/affiliate", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Platform", "product": "Growth", "feature": "Leads + waitlist + geo", "file": "app/api/leads", "pattern": "", "type": "route", "competitor": true, "exclusive": false },
+    { "suite": "Karakata Platform", "product": "Trust & Safety", "feature": "Auth + validator + pricing pages", "file": "app/auth", "pattern": "", "type": "route", "competitor": true, "exclusive": false }
+  ]
+}

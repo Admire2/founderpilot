@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>KaraVerse City - Metaverse</title>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+body{margin:0;background:#0f172a;color:#fff;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}
+#header{padding:10px;background:#1e293b;display:flex;justify-content:space-between;align-items:center}
+#wrap{display:flex;flex:1;overflow:hidden}
+canvas{flex:1;background:#15803d}
+#side{width:320px;background:#1e293b;padding:10px;overflow-y:auto;border-left:1px solid #334155}
+.tabs{display:flex;gap:5px;margin-bottom:10px}
+.tab{flex:1;padding:8px;background:#334155;text-align:center;cursor:pointer;border-radius:4px;font-size:12px}
+.tab.active{background:#4f46e5}
+.panel{display:none}.panel.active{display:block}
+button{width:100%;margin:4px 0;padding:8px;background:#4f46e5;color:#fff;border:0;border-radius:6px;cursor:pointer}
+button:hover{background:#4338ca}
+.item{background:#334155;padding:8px;margin:4px 0;border-radius:6px;display:flex;justify-content:space-between;align-items:center}
+#chat{height:120px;overflow-y:auto;background:#0f172a;padding:6px;border-radius:6px;font-size:12px;margin-top:10px}
+input{width:70%;padding:6px;border-radius:4px;border:0}
+</style>
+</head>
+<body>
+<div id="header">
+  <h2 style="margin:0">🎮 KaraVerse City</h2>
+  <div id="wallet">💰 Loading...</div>
+</div>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="side">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('actions')">Actions</div>
+      <div class="tab" onclick="switchTab('shop')">Shop</div>
+      <div class="tab" onclick="switchTab('estate')">Real Estate</div>
+      <div class="tab" onclick="switchTab('top')">Top 10</div>
+    </div>
+    
+    <div id="actions" class="panel active">
+      <button onclick="doMilestone('Worked a shift',500)">💼 Work Shift (+500)</button>
+      <button onclick="doMilestone('Ate amala',-50)">🍛 Eat Amala (-50)</button>
+      <button onclick="doMilestone('Paid rent',-200)">🏠 Pay Rent (-200)</button>
+      <button onclick="doMilestone('Partied',-150)">🎉 Party (-150)</button>
+    </div>
+    
+    <div id="shop" class="panel"><div id="shopList"></div></div>
+    <div id="estate" class="panel"><div id="estateList"></div></div>
+    <div id="top" class="panel"><div id="lbList"></div></div>
+
+    <div id="chat"></div>
+    <div style="display:flex;gap:5px;margin-top:5px">
+      <input id="msg" placeholder="Chat...">
+      <button style="width:auto;margin:0" onclick="sendChat()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API='http://localhost:3041';
+var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+function resize(){canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;}
+window.onresize=resize; resize();
+var me=null,players={},wallet=0;
+var username=prompt('Enter KaraVerse City:')||('Player'+Math.floor(Math.random()*999));
+var socket=io(API);
+
+fetch(API+'/api/v1/game/player',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})})
+ .then(r=>r.json()).then(d=>{
+   me=d.player;wallet=d.wallet.balance;
+   players[me.id]={id:me.id,username:username,x:canvas.width/2,y:canvas.height/2};
+   socket.emit('join',{playerId:me.id,username:username});
+   updateWallet();loadShop();loadEstate();loadLB();loop();
+ });
+
+socket.on('player_joined',p=>{players[p.playerId]={id:p.playerId,username:p.username,x:200,y:200};addChat('📢 '+p.username+' entered the city');});
+socket.on('player_moved',p=>{if(players[p.playerId]){players[p.playerId].x=p.x;players[p.playerId].y=p.y;}});
+socket.on('player_left',p=>{delete players[p.playerId];});
+socket.on('chat_message',m=>{addChat(m.username+': '+m.message);});
+
+document.addEventListener('keydown',e=>{
+  if(!me)return;var s=15;var p=players[me.id];var x=p.x,y=p.y;
+  if(e.key==='ArrowUp'||e.key==='w')y-=s; if(e.key==='ArrowDown'||e.key==='s')y+=s; 
+  if(e.key==='ArrowLeft'||e.key==='a')x-=s; if(e.key==='ArrowRight'||e.key==='d')x+=s;
+  x=Math.max(20,Math.min(canvas.width-20,x));y=Math.max(20,Math.min(canvas.height-20,y));
+  p.x=x;p.y=y;socket.emit('move',{playerId:me.id,x:x,y:y});
+});
+
+function doMilestone(desc,amount){
+  fetch(API+'/api/v1/game/milestone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({player_id:me.id,description:desc,amount:amount})})
+  .then(r=>r.json()).then(d=>{if(d.success){wallet=d.new_balance;updateWallet();addChat('✅ '+desc+' ('+(amount>0?'+':'')+amount+' KARA)');}else{addChat('❌ '+d.error);}});
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function loadShop(){
+  fetch(API+'/api/v1/game/shop').then(r=>r.json()).then(d=>{
+    document.getElementById('shopList').innerHTML = d.items.map(i=>`
+      <div class="item"><span>${i.icon} ${i.name} <small>(${i.type})</small></span>
+      <button style="width:auto;margin:0;padding:4px 10px" onclick="buyItem('${i.id}',${i.price})">${i.price} K</button></div>`).join('');
+  });
+}
+function buyItem(id,price){
+  if(wallet<price){addChat('❌ Not enough KARA!');return;}
+  fetch(API+'/api/v1/game/buy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({player_id:me.id,item_id:id})})
+  .then(r=>r.json()).then(d=>{if(d.success){wallet=d.new_balance;updateWallet();addChat('🛍️ '+d.message);}else{addChat('❌ '+d.error);}});
+}
+
+function loadEstate(){
+  fetch(API+'/api/v1/game/real-estate').then(r=>r.json()).then(d=>{
+    document.getElementById('estateList').innerHTML = d.properties.map(p=>{
+      let owner = p.game_players ? `<small>🔒 Owned by ${p.game_players.username}</small>` : `<button style="width:auto;margin:0;padding:4px 10px" onclick="buyEstate('${p.id}',${p.price})">${p.price} K</button>`;
+      return `<div class="item" style="flex-direction:column;align-items:flex-start"><b>🏠 ${p.name}</b><div style="display:flex;justify-content:space-between;width:100%;margin-top:4px">${owner}</div></div>`;
+    }).join('');
+  });
+}
+function buyEstate(id,price){
+  if(wallet<price){addChat('❌ Need more KARA for real estate!');return;}
+  fetch(API+'/api/v1/game/buy-estate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({player_id:me.id,estate_id:id})})
+  .then(r=>r.json()).then(d=>{if(d.success){wallet=d.new_balance;updateWallet();addChat('🏡 '+d.message);loadEstate();}else{addChat('❌ '+d.error);}});
+}
+
+function loadLB(){
+  fetch(API+'/api/v1/game/leaderboard').then(r=>r.json()).then(d=>{
+    document.getElementById('lbList').innerHTML = '<h3>🏆 Richest Players</h3>' + d.leaderboard.map((p,i)=>`<div class="item"><b>#${i+1} ${p.game_players.username}</b><span>${p.balance} K</span></div>`).join('');
+  });
+}
+
+function sendChat(){var m=document.getElementById('msg').value;if(m){socket.emit('chat',{username:username,message:m});document.getElementById('msg').value='';}}
+function addChat(t){var c=document.getElementById('chat');c.innerHTML+='<div>'+t+'</div>';c.scrollTop=c.scrollHeight;}
+function updateWallet(){document.getElementById('wallet').innerHTML='💰 KARA: <b>'+wallet+'</b> | 👤 '+username;}
+
+function loop(){
+  ctx.fillStyle='#15803d';ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Draw Roads
+  ctx.fillStyle='#475569';
+  ctx.fillRect(0,canvas.height/2-20,canvas.width,40);
+  ctx.fillRect(canvas.width/2-20,0,40,canvas.height);
+  
+  for(var id in players){
+    var p=players[id];
+    ctx.fillStyle=(id===me.id)?'#2563eb':'#f59e0b';
+    ctx.beginPath();ctx.arc(p.x,p.y,16,0,7);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.fillText(p.username,p.x-20,p.y-22);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

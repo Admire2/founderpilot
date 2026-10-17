@@ -1,0 +1,7 @@
+﻿# Karakata Backlog & Parking Lot
+# Format: STATUS | DATE | NAME | NOTE
+# Statuses: IDEA, ROADMAP, PARKED, PACKED, DONE
+IDEA | 2026-10-09 | Kara Slides | Slide builder - next deep build candidate
+IDEA | 2026-10-09 | Kara Mail | Mail client - next deep build candidate
+IDEA | 2026-10-09 | Kara PDF | PDF viewer/annotator for Office Suite
+IDEA | 2026-10-09 | Kara Base / Design / Connect / Drive / Flow | Remaining Office Suite apps

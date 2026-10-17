@@ -1,0 +1,13 @@
+﻿version: '3.8'
+services:
+  karasearch:
+    image: searxng/searxng:latest
+    container_name: kara-search-node
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - BASE_URL=http://localhost:8888/
+      - INSTANCE_NAME=Kara Search Engine
+    restart: unless-stopped

@@ -1,0 +1,16 @@
+﻿services:
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: kara-onlyoffice
+    ports:
+      - "8080:80"
+    environment:
+      - JWT_ENABLED=false
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_logs:/var/log/onlyoffice
+    restart: always
+
+volumes:
+  onlyoffice_data:
+  onlyoffice_logs:

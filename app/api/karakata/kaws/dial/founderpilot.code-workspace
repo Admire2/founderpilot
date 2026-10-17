@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../../../.."
+		}
+	],
+	"settings": {
+		"workbench.activityBar.location": "left",
+		"workbench.sideBar.location": "left"
+	}
+}

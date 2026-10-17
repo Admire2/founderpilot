@@ -1,0 +1,983 @@
+﻿[
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Classic menu bar (File..Help)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "34 font families + preview picker",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Point sizes 8pt-72pt",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Bold / Italic / Underline / Strike",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Highlight + text colors",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Lists, indents, alignment, justify",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Tables (insert/rows/cols)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Find \u0026 Replace",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Save .doc / .html / .txt + Open",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Copy Rich (email-ready formatting)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Kara Letterhead template",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Zoom / Full-screen / Status bar / Word count",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Print / Save-as-PDF clean view",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Offline grammar engine (red underlines + fix menus)",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Punctuation choice fixes (stop/comma/semicolon)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "AI ghost auto-completion (local, free)",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "AI context-aware phrase fixes",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "AI whole-sentence rewrite",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "AI translation of selection",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "RTL direction (Arabic/Hebrew)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Kara Seek live-research inside documents",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Grid + formula bar + cell navigation",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "SUM / AVERAGE / MIN / MAX / COUNT / PRODUCT",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "NOT FOUND",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Cell references \u0026 live recalculation",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "NOT FOUND",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Circular reference guard (#CYCLE)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Math engine (+ - * / ^ sqrt abs round)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Unicode operators accepted",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Ghost-space / dirty-paste proof parsing",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "CSV export + import",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "One-click sample data book",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Global country dropdown (user-set market)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Kara Seek missions on sheet data + live web",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Local AI sheet analyzer",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "fx Help function library",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "NOT FOUND",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Notes",
+        "Feature":  "Multi-note workspace with autosave",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Seek Engine",
+        "Feature":  "Homegrown meta-search node (SearXNG, port 8888)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Seek Engine",
+        "Feature":  "Anti-hallucination protocol",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Seek Engine",
+        "Feature":  "Agent self-awareness",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Seek Engine",
+        "Feature":  "Context/Task split (clean search queries)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Seek Engine",
+        "Feature":  "Sheet-math ground-truth rules",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Seek Engine",
+        "Feature":  "Irrelevant-results rejection",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Search Node",
+        "Feature":  "Dockerized meta-search (multi-engine aggregation)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Search Node",
+        "Feature":  "Port mapping 8888",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Search Node",
+        "Feature":  "White-label branding (Kara Search)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Native .docx round-trip",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "ROADMAP",
+        "Proof":  "-"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Track changes \u0026 comments",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "ROADMAP",
+        "Proof":  "-"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Word",
+        "Feature":  "Mail merge / citations / macros",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "ROADMAP",
+        "Proof":  "-"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "IF / VLOOKUP / SUMIF / COUNTIF - Kara Formula Engine v2",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Quant Mode: Black-Scholes + Greeks + Trade Analyzer",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Virtualized grid (10k rows) + add rows/cols",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Pivot tables / charts / conditional formatting",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "ROADMAP",
+        "Proof":  "-"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Multi-sheet workbooks + native .xlsx",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "ROADMAP",
+        "Proof":  "-"
+    },
+    {
+        "Suite":  "Platform",
+        "Product":  "Kara Slides",
+        "Feature":  "Slide rail: add/duplicate/delete/reorder",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Platform",
+        "Product":  "Kara Slides",
+        "Feature":  "Layouts + 5 themes + Present mode",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Platform",
+        "Product":  "Kara Slides",
+        "Feature":  "Standalone HTML deck export (offline player)",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Platform",
+        "Product":  "Kara Slides",
+        "Feature":  "AI Deck Builder (local AI writes 6-slide decks)",
+        "Competitor":  true,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Platform",
+        "Product":  "Kara Slides",
+        "Feature":  "Seek-to-Slides bridge (report becomes deck)",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Platform",
+        "Product":  "Kara Slides",
+        "Feature":  "Global sample deck chips",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Office Suite",
+        "Product":  "Kara Sheets",
+        "Feature":  "Opt-in sovereign Insights analytics",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "NOT FOUND",
+        "Proof":  "code"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Healthcare suite route live",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Ilera dashboard route live",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Risk assessment module",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Medication module",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Labs module",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Foresight (predictive) module",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ilera",
+        "Feature":  "Ilera API backbone",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ounje",
+        "Feature":  "Nutrition suite route live",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Health Suite",
+        "Product":  "Ounje",
+        "Feature":  "Ounje meal-plan API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Advisor",
+        "Feature":  "Business suite route live",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Advisor",
+        "Feature":  "AI advisor console",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Advisor",
+        "Feature":  "Advisor API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Karakata Biz",
+        "Feature":  "Launch planner module",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Karakata Biz",
+        "Feature":  "Metrics dashboard module",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Karakata Biz",
+        "Feature":  "Trust scoring module",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Business Suite",
+        "Product":  "Karakata Biz",
+        "Feature":  "Business-model engine API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Marketplace",
+        "Feature":  "Marketplace suite route live",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Commerce",
+        "Feature":  "Commerce engine (listing/price/quote)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Marketplace",
+        "Feature":  "Sell flow (public)",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Marketplace",
+        "Feature":  "Seller dashboard",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Marketplace",
+        "Feature":  "Oja market API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Marketplace",
+        "Feature":  "Payments + payouts API",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Marketplace Suite",
+        "Product":  "Marketplace",
+        "Feature":  "Seller payout API",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "Engineering",
+        "Feature":  "Engineering suite route live",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "Rivet",
+        "Feature":  "Rivet module + API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "Terra",
+        "Feature":  "Terra module + API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "Volt",
+        "Feature":  "Volt module + API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "Maxi",
+        "Feature":  "Maxi sourcing + partners",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "KAWS",
+        "Feature":  "Contract module",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "KAWS",
+        "Feature":  "Coordinator module",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "KAWS",
+        "Feature":  "Sentinel monitoring module",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Engineering Suite",
+        "Product":  "KAWS",
+        "Feature":  "Mobile DFD module",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Office Web",
+        "Feature":  "Office suite route live",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Office Web",
+        "Feature":  "Tasks + Vault modules",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Tools",
+        "Feature":  "PDF merge / converter / compress",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Tools",
+        "Feature":  "E-sign + Pilot-sign",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Tools",
+        "Feature":  "Letter writer",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Tools",
+        "Feature":  "Text checker",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Kara Office \u0026 Tools Suite",
+        "Product":  "Tools",
+        "Feature":  "QR generator + API",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata AI Engine",
+        "Product":  "Kara Image",
+        "Feature":  "Image generation engine",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata AI Engine",
+        "Product":  "Kara Video",
+        "Feature":  "Video generation engine",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata AI Engine",
+        "Product":  "ImgGen API",
+        "Feature":  "Image-gen API route",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata AI Engine",
+        "Product":  "Voice",
+        "Feature":  "Text-to-speech + speech-to-text APIs",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata AI Engine",
+        "Product":  "Voice",
+        "Feature":  "Audio-to-text / text-to-audio suites",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata AI Engine",
+        "Product":  "Name Creator",
+        "Feature":  "Business name creator + API",
+        "Competitor":  false,
+        "Exclusive":  true,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Platform",
+        "Product":  "Commerce Core",
+        "Feature":  "Checkout + Stripe verify + webhooks",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Platform",
+        "Product":  "Commerce Core",
+        "Feature":  "Credits + billing portal",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Platform",
+        "Product":  "Growth",
+        "Feature":  "Affiliate engine + tracking",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Platform",
+        "Product":  "Growth",
+        "Feature":  "Leads + waitlist + geo",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    },
+    {
+        "Suite":  "Karakata Platform",
+        "Product":  "Trust \u0026 Safety",
+        "Feature":  "Auth + validator + pricing pages",
+        "Competitor":  true,
+        "Exclusive":  false,
+        "Status":  "VERIFIED",
+        "Proof":  "route"
+    }
+]

@@ -1,0 +1,17 @@
+﻿
+Name               Length
+----               ------
+aje-analysis.ps1     2466
+set-meta.mjs         1061
+affiliateadmin.ps1   5144
+creditadmin.ps1      9596
+erroradmin.ps1       3040
+growthadmin.ps1      3915
+hub.ps1              1204
+partneradmin.ps1     2158
+scoutadmin.ps1       2791
+stripeadmin.ps1      4347
+taskadmin.ps1        3026
+
+
+

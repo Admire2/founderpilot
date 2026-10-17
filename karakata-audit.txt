@@ -1,0 +1,1287 @@
+﻿KARAKATA MARKETPLACE AUDIT LOG
+Generated: 10/14/2026 18:18:56
+========================================
+
+=== 1. MAIN PAGE (app/karakata/page.tsx) ===
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+
+const TAXONOMY: any[] = [
+  { name: "Fashion & Clothing", icon: "ðŸ‘—", subs: ["Men", "Women", "Unisex", "Children", "Teenagers"] },
+  { name: "Jewelry & Gems", icon: "ðŸ’", subs: ["Cufflinks", "Rings", "Necklaces", "Bracelets", "Earrings", "Beads", "Custom pieces"] },
+  { name: "Fabrics & Textiles", icon: "ðŸ§µ", subs: ["Aso Oke", "Adire", "Ankara", "Lace", "Plain weaves"] },
+  { name: "Art & Crafts", icon: "ðŸŽ¨", subs: ["Wall art", "Sculpture", "Beadwork", "Pottery", "Handmade"] },
+  { name: "Home & Living", icon: "ðŸ ", subs: ["Decor", "Kitchen", "Bedding", "Furniture"] },
+  { name: "Beauty & Care", icon: "ðŸ§´", subs: ["Skincare", "Hair", "Fragrance", "Makeup"] },
+  { name: "Electronics", icon: "ðŸ“±", subs: ["Phones", "Accessories", "Audio", "Gadgets"] },
+  { name: "Food & Groceries", icon: "ðŸ²", subs: ["Pantry", "Spices", "Snacks", "Drinks"] },
+  { name: "Books & Media", icon: "ðŸ“š", subs: ["Fiction", "Non-fiction", "Audiobooks"] },
+  { name: "Toys & Games", icon: "ðŸ§¸", subs: ["Kids", "Board games", "Puzzles"] },
+  { name: "Sports & Outdoors", icon: "âš½", subs: ["Fitness", "Camping", "Team sports"] },
+  { name: "Automotive", icon: "ðŸš—", subs: ["Cars for sale - New", "Cars for sale - Fairly used", "Sell your car (Instant offer)", "VIN Check", "Pre-purchase inspection", "Certification", "Auto financing", "Accessories", "Parts", "Tools"] }, { name: "Power & Heavy Machinery", icon: "ðŸšœ", subs: ["Generators", "Tractors", "Excavators", "Forklifts", "Cranes", "Industrial tools"] },
+  { name: "Health & Wellness", icon: "ðŸŒ¿", subs: ["Supplements", "Fitness", "Self-care"] },
+  { name: "Services", icon: "ðŸ› ï¸", subs: ["Tailoring", "Repairs", "Custom orders", "Vehicle inspection"] },
+];
+
+function useCountdown() {
+  const [left, setLeft] = useState("00:00:00");
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const end = new Date(now);
+      end.setHours(24, 0, 0, 0);
+      const s = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
+      setLeft(String(Math.floor(s / 3600)).padStart(2, "0") + ":" + String(Math.floor((s % 3600) / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"));
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, []);
+  return left;
+}
+
+export default function Market() {
+  const [items, setItems] = useState<any[]>([]);
+  const [cat, setCat] = useState<string | null>(null);
+  const [sub, setSub] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [term, setTerm] = useState("");
+  const [cartCount, setCartCount] = useState(0);
+  const [email, setEmail] = useState("");
+  const left = useCountdown();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+        const { data } = await sb.from("kara_listings").select("*");
+        const live = (data || []).filter((l: any) => !l.status || l.status === "active");
+        const seen = new Set<string>();
+        const uniq = live.filter((l: any) => {
+          const k = String(l.title || "").toLowerCase() + "|" + String(l.seller_id || 0);
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        setItems(uniq);
+      } catch (e) {}
+      try { setCartCount(JSON.parse(localStorage.getItem("kara_cart") || "[]").reduce((a: number, c: any) => a + (c.qty || 1), 0)); } catch (e) {}
+      try { const k = localStorage.getItem("sb-auth-email"); if (k) setEmail(k); } catch (e) {}
+    })();
+  }, []);
+
+  const priceOf = (l: any) => Number(l.price_usd != null ? l.price_usd : l.price) || 0;
+  const imgFor = (l: any) => l.image_url ? l.image_url : ("https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"); const norm = (s: any) => String(s || "").toLowerCase();
+  const filtered = items.filter((l: any) =>
+    (!cat || l.category === cat) &&
+    (!sub || l.subcategory === sub) &&
+    (!term || norm(l.title).includes(norm(term)) || norm(l.description).includes(norm(term)) || norm(l.category).includes(norm(term)) || norm(l.subcategory).includes(norm(term)))
+  );
+  const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
+  const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
+
+  const add = (l: any) => {
+    const p = priceOf(l);
+    const item = { id: l.id, listing_id: l.id, title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id, qty: 1, it: { title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id } };
+    const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
+    const ex = cart.find((c: any) => String(c.id) === String(l.id));
+    if (ex) ex.qty = (ex.qty || 1) + 1; else cart.push(item);
+    localStorage.setItem("kara_cart", JSON.stringify(cart));
+    setCartCount(cart.reduce((a: number, c: any) => a + (c.qty || 1), 0));
+  };
+
+  return (
+    <main className="min-h-screen bg-white text-slate-900">
+      <header className="bg-slate-900 px-4 py-3 text-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3">
+          <Link href="/karakata" className="text-xl font-bold">KaraKata</Link>
+          <form className="flex min-w-[220px] flex-1" onSubmit={(e) => { e.preventDefault(); setTerm(q.trim()); }}>
+            <input value={q} onChange={(e) => { setQ(e.target.value); if (e.target.value === "") setTerm(""); }} placeholder="Search KaraKata - products & services" className="w-full rounded-l-lg bg-white px-4 py-2 text-sm text-slate-900 outline-none" />
+            <button type="submit" className="rounded-r-lg bg-amber-400 px-4 text-slate-900 hover:bg-amber-300" aria-label="Search">ðŸ”</button>
+          </form>
+          <nav className="flex items-center gap-4 text-sm">
+            <Link href="/karakata/sellers" className="hover:text-amber-300">Sellers</Link>
+            <Link href="/karakata/build" className="font-bold text-amber-400 hover:text-amber-300">ðŸ—ï¸ Build my store free</Link>
+            <Link href="/auth" className="text-center leading-tight hover:text-amber-300">
+              <span className="block text-[10px] text-slate-300">{email ? "Hello," : "Hello, sign in"}</span>
+              <span className="block text-sm font-bold">{email ? email.split("@")[0] : "Account & Lists"}</span>
+            </Link>
+            <Link href="/karakata/checkout" className="rounded bg-amber-400 px-4 py-2 font-bold text-slate-900 hover:bg-amber-300">ðŸ›’ Cart ({cartCount})</Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2">
+          <button onClick={() => { setCat(null); setSub(null); }} className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (!cat ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}>All</button>
+          {TAXONOMY.map((t: any) => (
+            <button key={t.name} onClick={() => { setCat(cat === t.name ? null : t.name); setSub(null); }} className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (cat === t.name ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}>{t.icon} {t.name}</button>
+          ))}
+        </div>
+      </div>
+
+      {cat && activeSubs.length > 0 && (
+        <div className="border-b border-slate-200 bg-slate-50">
+          <div className="mx-auto flex max-w-7xl flex-wrap gap-2 px-4 py-2">
+            <button onClick={() => setSub(null)} className={"rounded-full px-3 py-1 text-xs font-bold " + (!sub ? "bg-amber-400 text-slate-900" : "bg-white border border-slate-300 hover:border-amber-400")}>All in {cat}</button>
+            {activeSubs.map((s: string) => (
+              <button key={s} onClick={() => setSub(sub === s ? null : s)} className={"rounded-full px-3 py-1 text-xs font-bold " + (sub === s ? "bg-amber-400 text-slate-900" : "bg-white border border-slate-300 hover:border-amber-400")}>{s}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mt-4 rounded-lg bg-gradient-to-r from-amber-500 to-red-600 p-4 text-white">
+          <p className="text-lg font-bold">KaraKata Haul â€” Today only! Ends in <span className="font-mono">{left}</span></p>
+          <p className="text-sm">Escrow-protected payments Â· Verified-purchase reviews Â· Free AI storefront builder</p>
+        </div>
+
+        {deals.length > 0 && (
+          <section className="mt-6">
+            <h2 className="text-lg font-bold">âš¡ Rolling deals â€” ends in {left}</h2>
+            <div className="mt-3 flex gap-4 overflow-x-auto pb-3">
+              {deals.map((l: any) => {
+                const p = priceOf(l);
+                const pct = Math.round((1 - p / Number(l.compare_at_usd)) * 100);
+                return (
+                  <div key={l.id} className="w-56 shrink-0 rounded-lg border border-slate-200 p-3 shadow-sm">
+                    <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-32 w-full rounded object-cover" />
+                    <p className="mt-2 text-xs font-bold text-red-600">{pct}% off <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Limited time deal</span></p>
+                    <p className="mt-1 text-lg font-bold">${p.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500">Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span></p>
+                    <p className="mt-1 line-clamp-2 text-xs">{l.title}</p>
+                    <button onClick={() => add(l)} className="mt-2 w-full rounded-full bg-amber-400 py-1 text-xs font-bold hover:bg-amber-300">Add to cart</button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <section className="mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold">{cat ? cat : "All products & services"}{sub ? " Â· " + sub : ""}{term ? " Â· search: â€œ" + term + "â€" : ""} <span className="text-sm font-normal text-slate-500">({filtered.length} results)</span></h2>
+            {(cat || sub || term) && (
+              <button onClick={() => { setCat(null); setSub(null); setTerm(""); setQ(""); }} className="rounded-full border border-slate-300 px-3 py-1 text-xs font-bold hover:border-red-400 hover:text-red-600">âœ• Clear filters</button>
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {filtered.map((l: any) => (
+              <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md">
+                <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-40 w-full rounded object-cover" />
+                <p className="mt-2 text-lg font-bold">${priceOf(l).toFixed(2)}</p>
+                <p className="mt-1 line-clamp-2 text-sm">{l.title}</p>
+                <p className="mt-1 text-xs text-slate-500">{l.category || "Uncategorized"}{l.subcategory ? " Â· " + l.subcategory : ""}</p>
+                <button onClick={() => add(l)} className="mt-2 w-full rounded-full bg-amber-400 py-1.5 text-sm font-bold hover:bg-amber-300">Add to cart</button>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4">
+                <p className="font-bold">Nothing matches yet.</p>
+                <p className="mt-1 text-sm text-slate-500">{term ? "No products or services match â€œ" + term + "â€." : "Be the first seller here."}</p>
+                <Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">ðŸ—ï¸ Build my store free</Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <footer className="mt-10 border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+          <p>Selling on Amazon, Etsy or Shopify? <Link className="text-emerald-600 underline" href="/karakata/build">Photograph your shop - KaraKata builds your storefront free</Link></p>
+        </footer>
+      </div>
+    </main>
+  );
+}
+
+
+=== FOLDER: AUTO ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+export default function AutoDesk() {
+  const [f, setF] = useState<any>({ confirmed: false });
+  const [rep, setRep] = useState("");
+  const [ai, setAi] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (k: string, v: any) => setF({ ...f, [k]: v });
+  const emailOf = () => { let e = ""; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); e = (j && j.user && j.user.email) || ""; if (e) break; } } } catch (err) {} return e; };
+  const analyze = async () => {
+    if (!rep.trim()) { setMsg("Paste the history or inspection report text first."); return; }
+    setBusy(true); setMsg("");
+    const r = await fetch("/api/karakata", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "autoreport", email: emailOf(), brief: rep }) });
+    const j = await r.json();
+    if (j.ok) setAi(j.answer || ""); else setMsg(j.error || "Analysis failed.");
+    setBusy(false);
+  };
+  const publish = async () => {
+    setBusy(true); setMsg("");
+    const r = await fetch("/api/karakata/auto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...f, email: emailOf() }) });
+    const j = await r.json();
+    if (j.ok) setMsg("Listed! Listing #" + j.id + " is live under Vehicles & Auto Parts.");
+    else setMsg(j.error || "Publish failed.");
+    setBusy(false);
+  };
+  const inp = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
+  return (
+    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <Link href="/karakata/sell" className="text-sm font-bold text-emerald-700 underline">← Seller Center</Link>
+      <h1 className="mt-3 text-3xl font-bold">🚗 Auto Desk — vehicles & parts with proof</h1>
+      <div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-xs">
+        <p className="font-bold text-emerald-800">The KaraKata trust stack for high-ticket sales:</p>
+        <p className="mt-1">1️⃣ <b>Escrow</b> - buyer's money is held until delivery is confirmed. 2️⃣ <b>History</b> - VIN report link visible to every buyer. 3️⃣ <b>Inspection</b> - a declared grade: self-declared, mechanic-inspected, or history-checked.</p>
+        <p className="mt-1 font-bold text-emerald-800">Privacy: the full VIN is masked at publish and never stored on our servers.</p>
+        <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs">
+          <p className="font-bold text-amber-900">🔧 Certified mechanic or inspector? Claim your city's Auto Desk franchise.</p>
+          <p className="mt-1 text-amber-800">KaraKata routes every inspection and history request in your city to you. You keep 80%; the desk keeps 20% for escrow, demand flow and dispute cover. <a className="font-bold underline" href="/partners/join">Apply as an Auto Desk partner →</a></p>
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-bold">Vehicle or part details</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <input className={inp} placeholder="Year (2016)" value={f.year || ""} onChange={(e) => set("year", e.target.value)} />
+            <input className={inp} placeholder="Make (Toyota)" value={f.make || ""} onChange={(e) => set("make", e.target.value)} />
+            <input className={inp} placeholder="Model (Camry)" value={f.model || ""} onChange={(e) => set("model", e.target.value)} />
+            <input className={inp} placeholder="Mileage (84000)" value={f.mileage || ""} onChange={(e) => set("mileage", e.target.value)} />
+            <select className={inp} value={f.condition || "Used"} onChange={(e) => set("condition", e.target.value)}><option>New</option><option>Used</option><option>Certified</option></select>
+            <select className={inp} value={f.grade || "Self-declared"} onChange={(e) => set("grade", e.target.value)}><option>Self-declared</option><option>Mechanic-inspected</option><option>History-checked</option></select>
+          </div>
+          <input className={inp + " mt-2"} placeholder="VIN (masked at publish)" value={f.vin || ""} onChange={(e) => set("vin", e.target.value)} />
+          <input className={inp + " mt-2"} placeholder="Listing title" value={f.title || ""} onChange={(e) => set("title", e.target.value)} />
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <input className={inp} placeholder="Price (USD)" value={f.price || ""} onChange={(e) => set("price", e.target.value)} />
+            <input className={inp} placeholder="Image URL (optional)" value={f.image_url || ""} onChange={(e) => set("image_url", e.target.value)} />
+          </div>
+          <input className={inp + " mt-2"} placeholder="History report URL (Carfax / AutoCheck / NMVTIS)" value={f.history_url || ""} onChange={(e) => set("history_url", e.target.value)} />
+          <input className={inp + " mt-2"} placeholder="Pre-purchase inspection report URL (optional)" value={f.inspection_url || ""} onChange={(e) => set("inspection_url", e.target.value)} />
+          <textarea className={inp + " mt-2"} rows={3} placeholder="Notes: service history, tyres, warranty..." value={f.notes || ""} onChange={(e) => set("notes", e.target.value)} />
+          <label className="mt-3 flex items-start gap-2 text-xs font-bold"><input type="checkbox" checked={!!f.confirmed} onChange={(e) => set("confirmed", e.target.checked)} /> I confirm the VIN and mileage are accurate and the history link is genuine.</label>
+          <button onClick={publish} disabled={busy} className="mt-3 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">Publish vehicle listing (free)</button>
+          {msg && (<p className="mt-2 text-xs font-bold text-emerald-700">{msg}</p>)}
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-bold">🔎 AI report analyst (10 cr)</p>
+          <p className="mt-1 text-xs text-slate-600">Paste a Carfax / AutoCheck / mechanic report. The analyst returns a plain-language verdict: CLEAN, CAUTION or RED - attach it to your listing so buyers see you have nothing to hide.</p>
+          <textarea className={inp + " mt-2"} rows={8} placeholder="Paste report text here..." value={rep} onChange={(e) => setRep(e.target.value)} />
+          <button onClick={analyze} disabled={busy} className="mt-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-amber-400 disabled:opacity-50">Analyze report (10 cr)</button>
+          {ai && (
+            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <pre className="whitespace-pre-wrap text-xs">{ai}</pre>
+              <button onClick={() => set("notes", (f.notes || "") + "\nAI SUMMARY:\n" + ai)} className="mt-2 rounded bg-emerald-600 px-3 py-1.5 text-[10px] font-bold text-white">Attach summary to listing</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+
+
+=== FOLDER: BI ===
+
+--- File: page.tsx ---
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+export default function SellerBI() {
+  const [rep, setRep] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+  const [cInv, setCInv] = useState(false);
+  const [cFun, setCFun] = useState(false);
+  const [cBi, setCBi] = useState(false);
+  const emailOf = () => { let e = ""; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); e = (j && j.user && j.user.email) || ""; if (e) break; } } } catch (err) {} return e; };
+  const load = async () => {
+    const r = await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report", email: emailOf() }) });
+    const j = await r.json();
+    if (j.ok) { setRep(j); if (j.consent) { setCInv(!!j.consent.consent_inventory); setCFun(!!j.consent.consent_funding); setCBi(!!j.consent.consent_bi); } }
+    else setMsg(j.error || "Load failed.");
+  };
+  useEffect(() => { if (emailOf()) load(); }, []);
+  const saveConsent = async () => {
+    const r = await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email: emailOf(), consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
+    const j = await r.json();
+    setMsg(j.ok ? "Consent saved - optional and revocable anytime." : (j.error || "Failed."));
+  };
+  return (
+    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline">← KaraKata Market</Link>
+      <h1 className="mt-3 text-3xl font-bold">📈 Aje - Your Business Intelligence Desk</h1>
+      <p className="mt-1 text-sm text-slate-600">Free analytics for your storefront: velocity, stock alerts, buyer demand in your category, and your funding-eligibility tier. Data sharing is optional - you control every checkbox.</p>
+      {msg && <p className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-800">{msg}</p>}
+      {!rep ? (
+        <div className="mt-6 rounded-xl border-2 border-dashed border-slate-300 bg-white p-10 text-center">
+          <p className="font-bold">No seller profile found for this browser</p>
+          <Link href="/karakata/sell" className="mt-3 inline-block rounded-lg bg-emerald-500 px-5 py-2 text-sm font-bold text-slate-950">Register your storefront first</Link>
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold text-slate-500">LIVE LISTINGS</p><p className="mt-1 text-3xl font-bold">{rep.listings.length}</p></div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold text-slate-500">UNITS IN STOCK</p><p className="mt-1 text-3xl font-bold">{rep.inventory.reduce((a: number, r: any) => a + (Number(r.stock_qty) || 0), 0)}</p></div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold text-slate-500">STOCK ALERTS</p><p className={"mt-1 text-3xl font-bold " + (rep.stockouts.length ? "text-rose-600" : "text-emerald-600")}>{rep.stockouts.length}</p></div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold text-slate-500">FUNDING TIER</p><p className={"mt-1 text-xl font-bold " + (rep.score && rep.score.tier === "Fund-ready" ? "text-emerald-600" : rep.score && rep.score.tier === "Emerging" ? "text-amber-600" : "text-slate-600")}>{rep.score ? rep.score.tier : "Watchlist"}</p></div>
+        </div>
+      )}
+      {rep && rep.score && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm">
+          <p className="font-bold">Aje scores (0-100):</p>
+          <p className="mt-1 text-slate-600">Velocity {String(rep.score.velocity_score)} · Reliability {String(rep.score.reliability_score)} · Growth {String(rep.score.growth_score)}</p>
+          <p className="mt-2 text-xs text-slate-500">Fund-ready sellers receive OPTIONAL expansion-capital introductions (FounderPilot capital or vetted lending / VC / angel partners). Declining never affects your storefront.</p>
+        </div>
+      )}
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+        <p className="font-bold">Your data consent (optional - tick what you allow)</p>
+        <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={cInv} onChange={(e) => setCInv(e.target.checked)} /> Share inventory & sales data so Aje can compute my business intelligence</label>
+        <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={cBi} onChange={(e) => setCBi(e.target.checked)} /> Send me free monthly BI reports & profit optimisation tips</label>
+        <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={cFun} onChange={(e) => setCFun(e.target.checked)} /> Consider me for OPTIONAL expansion-funding offers when I qualify</label>
+        <button onClick={saveConsent} className="mt-4 rounded-lg bg-slate-900 px-5 py-2 text-sm font-bold text-white hover:bg-slate-700">Save My Consent</button>
+      </div>
+    </main>
+  );
+}
+
+
+
+=== FOLDER: BUILD ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function BuildPage() {
+  const router = useRouter();
+  const [sells, setSells] = useState("");
+  const [vibe, setVibe] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("Nigeria");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+
+  const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white";
+
+  const generate = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await fetch("/api/karakata/storebuild", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "generate", sells, vibe, city, country }) });
+      const j = await r.json();
+      if (j.ok) setDraft(j.draft); else setMsg(j.error || "Generation failed");
+    } catch (e) { setMsg("Network error"); }
+    setBusy(false);
+  };
+
+  const publish = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await fetch("/api/karakata/storebuild", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish", draft, email }) });
+      const j = await r.json();
+      if (j.ok && j.seller_id) router.push("/karakata/seller/" + j.seller_id);
+      else setMsg(j.error || "Publish failed");
+    } catch (e) { setMsg("Network error"); }
+    setBusy(false);
+  };
+
+  return (
+    <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <Link href="/karakata" className="text-sm text-cyan-400 hover:underline">â† Back to market</Link>
+      <h1 className="mt-3 text-3xl font-bold">ðŸ—ï¸ KaraKata StoreBuilder</h1>
+      <p className="mt-1 text-sm text-slate-400">Describe your business - our AI designs your storefront, writes your copy, and stocks 5 starter products.</p>
+
+      {!draft && (
+        <div className="mt-6 max-w-xl space-y-3">
+          <input className={inp} value={sells} onChange={(e) => setSells(e.target.value)} placeholder="What do you sell? e.g. handwoven aso oke belts and adire scarves" />
+          <input className={inp} value={vibe} onChange={(e) => setVibe(e.target.value)} placeholder="Store vibe? e.g. royal, earthy, luxury, playful" />
+          <div className="grid grid-cols-2 gap-2">
+            <input className={inp} value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
+            <input className={inp} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" />
+          </div>
+          <input className={inp} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email (for store ownership)" />
+          <button onClick={generate} disabled={busy} className="w-full rounded-lg bg-emerald-600 py-3 font-bold hover:bg-emerald-500 disabled:opacity-50">{busy ? "Designing your store..." : "âœ¨ Design my store with AI"}</button>
+          {msg && <p className="text-sm text-red-400">{msg}</p>}
+        </div>
+      )}
+
+      {draft && (
+        <div className="mt-6 max-w-3xl">
+          <div className="rounded-2xl p-6" style={{ background: draft.theme_color || "#0f766e" }}>
+            <p className="text-2xl font-bold text-white">{draft.banner_headline}</p>
+            <p className="mt-1 text-white/90">{draft.tagline}</p>
+            <p className="mt-2 text-sm text-white/70">{draft.shop_name} Â· {city}, {country}</p>
+          </div>
+          <p className="mt-4 text-sm text-slate-300">{draft.about_text}</p>
+          <div className="mt-3 flex gap-2">{(draft.categories || []).map((c: string) => (<span key={c} className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300">{c}</span>))}</div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {(draft.products || []).map((p: any, i: number) => (
+              <div key={i} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+                <p className="font-bold">{p.title}</p>
+                <p className="mt-1 text-xs text-slate-400">{p.description}</p>
+                <p className="mt-2 font-bold text-emerald-400">${Number(p.price_usd || 0).toFixed(2)}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button onClick={() => setDraft(null)} className="rounded-lg border border-slate-700 px-5 py-3 text-sm hover:border-slate-500">â†º Redesign</button>
+            <button onClick={publish} disabled={busy} className="flex-1 rounded-lg bg-emerald-600 py-3 font-bold hover:bg-emerald-500 disabled:opacity-50">{busy ? "Publishing..." : "ðŸš€ Publish my store live"}</button>
+          </div>
+          {msg && <p className="mt-2 text-sm text-red-400">{msg}</p>}
+        </div>
+      )}
+    </main>
+  );
+}
+
+
+=== FOLDER: CHECKOUT ===
+
+--- File: page.tsx ---
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+const COD_MARKETS = ["Nigeria", "Kenya", "Ghana", "India", "UAE", "Saudi Arabia"];
+const brandOf = (n: string) => /^4/.test(n) ? "VISA" : /^(5[1-5]|2[2-7])/.test(n) ? "Mastercard" : /^3[47]/.test(n) ? "Amex" : /^(6011|65)/.test(n) ? "Discover" : "";
+const luhn = (n: string) => { let s = 0, d = false; for (let i = n.length - 1; i >= 0; i--) { let x = Number(n[i]); if (d) { x *= 2; if (x > 9) x -= 9; } s += x; d = !d; } return n.length >= 13 && s % 10 === 0; };
+export default function Checkout() {
+  const [cart, setCart] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
+  const [name, setName] = useState(""); const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState(""); const [addr1, setAddr1] = useState(""); const [addr2, setAddr2] = useState(""); const [city, setCity] = useState(""); const [stateP, setStateP] = useState(""); const [zip, setZip] = useState(""); const [country, setCountry] = useState("Nigeria"); useEffect(() => { try { if (new URLSearchParams(window.location.search).get("success") === "1") { localStorage.setItem("kara_cart", "[]"); setCart([]); } } catch (e) {} }, []); useEffect(() => { const z = (zip || "").trim(); const st = (stateP || "").trim(); const US = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"]; const su = st.toUpperCase(); let d = ""; if (/^\d{5}(-\d{4})?$/.test(z) && (US.includes(su) || /georgia|california|texas|florida|new york|illinois|ohio|arizona|washington|virginia|maryland|jersey|michigan|pennsylvania|carolina|tennessee|indiana|missouri|wisconsin|minnesota|colorado|alabama|louisiana|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|mississippi|kansas|nebraska|idaho|hawaii|maine|hampshire|montana|rhode island|delaware|dakota|alaska|vermont|wyoming/i.test(st))) d = "United States"; else if (/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i.test(z)) d = "United Kingdom"; else if (/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(z)) d = "Canada"; else if (/^\d{6}$/.test(z)) d = "Nigeria"; if (d) setCountry(d); }, [zip, stateP]); // AUTO-DETECT country
+  const [method, setMethod] = useState("card");
+  const [cnum, setCnum] = useState(""); const [cname, setCname] = useState(""); const [cexp, setCexp] = useState(""); const [ccvc, setCcvc] = useState("");
+  const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false); const [done, setDone] = useState("");
+  useEffect(() => {
+    try { const raw = localStorage.getItem("kara_cart") || "[]"; const arr = JSON.parse(raw); setCart(Array.isArray(arr) ? (() => { const mm: Record<string, any> = {}; arr.forEach((x: any) => { const rid = x.id != null ? x.id : (x.listing_id != null ? x.listing_id : (x.slug || x.key || x.title)); const k = String(rid); const price = x.price_usd != null ? x.price_usd : (x.price != null ? x.price : (x.it && x.it.price_usd)); const it = x.it || { id: rid, title: x.title, price_usd: price, seller_id: x.seller_id, category: x.category, image_url: x.image_url }; if (mm[k]) { mm[k].qty = (mm[k].qty || 1) + (x.qty || 1); } else { mm[k] = { ...x, id: rid, qty: x.qty || 1, it: { ...x.it, title: it.title, price_usd: price, price: price, seller_id: it.seller_id }, title: it.title, price_usd: price, price: price }; } }); return Object.values(mm); })() : []); } catch (e) {}
+    
+    try { localStorage.removeItem("karakata_cart"); } catch (e) {}
+    fetch("/api/karakata/list").then((r) => r.json()).then((j) => setListings(j.items || [])).catch(() => {});
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); if (j && j.user && j.user.email) setEmail(j.user.email); } } } catch (e) {}
+  }, []);
+  const items = cart.map((c) => ({ ...c, it: listings.find((l: any) => String(l.id) === String(c.id)) || c.it })).filter((x) => x.it);
+  const total = items.reduce((a, x) => a + Number(x.it.price_usd || 0) * x.qty, 0);
+  const setQty = (id: any, q: number) => { const nx = q < 1 ? cart.filter((c) => String(c.id) !== String(id)) : cart.map((c) => (String(c.id) === String(id) ? { ...c, qty: q } : c)); setCart(nx); localStorage.setItem("kara_cart", JSON.stringify(nx)); };
+  const rm = (id: any) => { const i = cart.findIndex((c) => String(c.id) === String(id)); if (i < 0) return; const nx = [...cart]; nx.splice(i, 1); setCart(nx); localStorage.setItem("kara_cart", JSON.stringify(nx)); };
+  const digits = cnum.replace(/\D/g, "");
+  const brand = brandOf(digits);
+  const pay = async () => {
+    setMsg(""); setBusy(true);
+    if (!name.trim() || !email.trim() || !addr1.trim() || !city.trim()) { setMsg(!name.trim() ? "Full name is required." : !email.trim() ? "Email is required." : !addr1.trim() ? "Street address is required." : "City is required."); setBusy(false); return; }
+    if (items.length === 0) { setMsg("Your cart is empty."); setBusy(false); return; }
+    if (method === "card") {
+      if (!luhn(digits)) { setMsg("That card number fails validation - check the digits (Visa/Mastercard/Amex/Discover)."); setBusy(false); return; }
+      if (!/^\d{2}\/\d{2}$/.test(cexp)) { setMsg("Expiry must be MM/YY."); setBusy(false); return; }
+      const mm = Number(cexp.slice(0, 2)); const yy = Number(cexp.slice(3));
+      if (mm < 1 || mm > 12 || yy < 26 || (yy === 26 && mm < 9)) { setMsg("Card looks expired."); setBusy(false); return; }
+      if (ccvc.replace(/\D/g, "").length < 3) { setMsg("CVC must be 3-4 digits."); setBusy(false); return; }
+    }
+    if (method === "cod" && COD_MARKETS.indexOf(country) < 0) { setMsg("Pay-on-delivery is available in: " + COD_MARKETS.join(", ") + ". Choose card or PayPal for " + country + "."); setBusy(false); return; }
+    const pstat = method === "cod" || method === "bank" ? "pay_at_fulfillment" : "pending_gateway";
+    try {
+      const first = items[0];
+      if (method === "card") { const pr = await fetch("/api/karakata/pay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items, email: email, name: name, phone: phone, address: [addr1, addr2, city, stateP, zip, country].filter((x) => String(x).trim()).join(", "), origin: window.location.origin }) }); const pj = await pr.json(); if (pj && pj.url) { window.location.href = pj.url; return; } setMsg(pj && pj.error ? String(pj.error) : "Stripe session failed - use Pay now with Stripe above."); return; } const r = await fetch("/api/karakata/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items.map((x) => ({ id: x.id, listing_id: x.id, seller_id: x.it.seller_id, qty: x.qty, unit_price: x.it.price_usd, price_usd: x.it.price_usd, title: x.it.title })), listing_id: first.id, seller_id: first.it.seller_id, qty: first.qty, unit_price: first.it.price_usd, total: total, buyer_email: email, buyer_name: name, buyer_phone: phone, address: [addr1, addr2, city, stateP, zip, country].filter((x) => String(x).trim()).join(", "), payment_method: method === "card" ? ("card:" + brand + ":" + digits.slice(-4)) : method, payment_status: pstat, note: "Items: " + items.map((x) => x.it.title + " x" + x.qty).join("; ") + " | Payment: " + method + " (" + pstat + ")" }) });
+      const j = await r.json();
+      if (j.ok) { localStorage.setItem("kara_cart", "[]"); setCart([]); setDone(String(j.id || j.order_id || "")); }
+      else setMsg(j.error || "Order failed.");
+    } catch (e) { setMsg("Connection error."); }
+    setBusy(false);
+  };
+  const inp = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
+  const lbl = "text-[11px] font-bold text-slate-600";
+  return (
+    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline">â† Continue shopping</Link>
+      <h1 className="mt-3 text-3xl font-bold"> Checkout</h1>{done && (<div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900"><p className="text-base font-bold">âœ… Order #{done} placed successfully.</p><p className="mt-1">Payment: {method === "card" ? "reserved - card rails charge at launch, held in escrow on activation" : method}. Tunde will email every update (accepted, shipped, delivered) to {email}.</p><p className="mt-1 text-xs text-emerald-800">Want the live charge right now? Use the green Pay-with-Stripe-Escrow button above before the 24h reservation expires.</p></div>)}
+      <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-800">ðŸ”’ Card & PayPal payments are held in ESCROW until you confirm delivery. Sellers see the money, never touch it early. <Link href="/karakata/express" className="ml-2 inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500">Pay now with Stripe â†’</Link></div>
+      {done ? (
+        <div className="mt-6 rounded-xl border border-emerald-300 bg-emerald-50 p-8 text-center">
+          <p className="text-2xl font-bold text-emerald-700">Order placed{done ? " #" + done : ""}!</p>
+          <p className="mt-2 text-sm text-slate-600">Tunde (your order agent) will email every update: accepted â†’ shipped â†’ delivered. The seller has been notified now.</p>
+          <Link href="/karakata" className="mt-4 inline-block rounded-lg bg-emerald-600 px-5 py-2 text-sm font-bold text-white">Back to market</Link>
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <p className="font-bold"><span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white align-middle">1</span>Your items <button type="button" onClick={() => { setCart([]); localStorage.setItem("kara_cart", "[]"); }} className="ml-3 text-xs font-bold text-rose-600 underline">Empty cart</button></p>
+            {typeof window !== "undefined" && new URLSearchParams(window.location.search).get("success") === "1" && (<div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4"><p className="font-bold text-emerald-900">âœ… Payment received - order #{new URLSearchParams(window.location.search).get("order")}</p><p className="mt-1 text-sm text-emerald-800">Your money is held in ESCROW. Tunde will email you when the seller accepts, ships and delivers. After you confirm delivery, the payout lands in the seller&apos;s bank.</p></div>)} {items.length === 0 && <p className="mt-3 text-sm text-slate-500">Cart is empty - <Link className="text-emerald-700 underline" href="/karakata">browse the market</Link>.</p>}
+            {items.map((x) => (
+              <div key={x.id} className="mt-3 flex items-center gap-3 border-b border-slate-100 pb-3">
+                <div className="h-12 w-12 rounded bg-slate-100 text-center text-2xl leading-12">{x.it.image_url ? <img src={x.it.image_url} className="h-12 w-12 rounded object-cover" alt="" /> : "ðŸ“¦"}</div>
+                <div className="flex-1"><p className="text-sm font-bold">{x.it.title}</p><p className="text-[10px] uppercase text-slate-400">{x.it.category}</p></div>
+                <div className="flex items-center gap-2"><button onClick={() => setQty(x.id, x.qty - 1)} className="h-6 w-6 rounded bg-slate-200 font-bold">-</button><span className="text-sm font-bold">{x.qty}</span><button onClick={() => setQty(x.id, x.qty + 1)} className="h-6 w-6 rounded bg-slate-200 font-bold">+</button></div>
+                <p className="w-20 text-right text-sm font-bold">${(Number(x.it.price_usd) * x.qty).toFixed(2)}</p>
+                <button onClick={() => rm(x.id)} className="text-xs text-rose-500 underline">remove</button>
+              </div>
+            ))}
+            <div className="mt-4 flex justify-between text-lg font-bold"><span>Total</span><span className="text-amber-700">${total.toFixed(2)}</span></div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <p className="font-bold"><span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white align-middle">2</span>Delivery address</p>
+            <p className={"mt-3 " + lbl}>Full name</p><input value={name} onChange={(e) => setName(e.target.value)} className={"mt-1 " + inp} />
+            <p className={"mt-2 " + lbl}>Email</p><input value={email} onChange={(e) => setEmail(e.target.value)} className={"mt-1 " + inp} />
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div><p className={lbl}>Phone / WhatsApp</p><input value={phone} onChange={(e) => setPhone(e.target.value)} className={"mt-1 " + inp} /></div>
+              <div><p className={lbl}>Country</p><select value={country} onChange={(e) => setCountry(e.target.value)} className={"mt-1 " + inp}>
+<option>Nigeria</option>
+<option>Ghana</option>
+<option>Kenya</option>
+<option>South Africa</option>
+<option>United States</option>
+<option>United Kingdom</option>
+<option>Canada</option>
+<option>Australia</option>
+<option>Ireland</option>
+<option>Germany</option>
+<option>France</option>
+<option>Netherlands</option>
+<option>Spain</option>
+<option>Italy</option>
+<option>Portugal</option>
+<option>Sweden</option>
+<option>Norway</option>
+<option>Denmark</option>
+<option>Finland</option>
+<option>Poland</option>
+<option>Ukraine</option>
+<option>Turkey</option>
+<option>United Arab Emirates</option>
+<option>Saudi Arabia</option>
+<option>Qatar</option>
+<option>Kuwait</option>
+<option>Bahrain</option>
+<option>Oman</option>
+<option>Jordan</option>
+<option>Lebanon</option>
+<option>Egypt</option>
+<option>Morocco</option>
+<option>Algeria</option>
+<option>Tunisia</option>
+<option>Libya</option>
+<option>Sudan</option>
+<option>Ethiopia</option>
+<option>Uganda</option>
+<option>Tanzania</option>
+<option>Rwanda</option>
+<option>Senegal</option>
+<option>Cote d'Ivoire</option>
+<option>Cameroon</option>
+<option>Zambia</option>
+<option>Zimbabwe</option>
+<option>Botswana</option>
+<option>Namibia</option>
+<option>Mozambique</option>
+<option>Angola</option>
+<option>Malawi</option>
+<option>Lesotho</option>
+<option>Eswatini</option>
+<option>Mauritius</option>
+<option>Seychelles</option>
+<option>Gambia</option>
+<option>Sierra Leone</option>
+<option>Liberia</option>
+<option>Togo</option>
+<option>Benin</option>
+<option>Burkina Faso</option>
+<option>Mali</option>
+<option>Niger</option>
+<option>Chad</option>
+<option>Guinea</option>
+<option>Gabon</option>
+<option>Congo</option>
+<option>DR Congo</option>
+<option>Madagascar</option>
+<option>India</option>
+<option>Pakistan</option>
+<option>Bangladesh</option>
+<option>China</option>
+<option>Japan</option>
+<option>South Korea</option>
+<option>Singapore</option>
+<option>Malaysia</option>
+<option>Philippines</option>
+<option>Indonesia</option>
+<option>Vietnam</option>
+<option>Thailand</option>
+<option>Brazil</option>
+<option>Mexico</option>
+<option>Argentina</option>
+<option>Chile</option>
+<option>Colombia</option>
+<option>Peru</option>
+<option>New Zealand</option>
+<option>Other</option>
+</select></div>
+            </div>
+            <p className={"mt-2 " + lbl}>Street address</p><input value={addr1} onChange={(e) => setAddr1(e.target.value)} className={"mt-1 " + inp} placeholder="123 Market St" /><p className={"mt-2 " + lbl}>Apt, suite, unit (optional)</p><input value={addr2} onChange={(e) => setAddr2(e.target.value)} className={"mt-1 " + inp} /><div className="mt-2 grid grid-cols-2 gap-3"><div><p className={lbl}>City</p><input value={city} onChange={(e) => setCity(e.target.value)} className={"mt-1 " + inp} /></div><div><p className={lbl}>State / Province</p><input value={stateP} onChange={(e) => setStateP(e.target.value)} className={"mt-1 " + inp} /></div></div><p className={"mt-2 " + lbl}>Postal code</p><input value={zip} onChange={(e) => setZip(e.target.value)} className={"mt-1 " + inp} />
+            <p className={"mt-3 " + lbl}><span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white align-middle">3</span>Payment</p><div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-3"><p className="text-sm font-bold text-emerald-900">Recommended - Pay now with Stripe (live escrow)</p><p className="mt-1 text-[11px] text-emerald-800">Amazon/Shopify-grade hosted checkout: cards, wallets, 3-D Secure. Money held in escrow until you confirm delivery.</p><Link href="/karakata/express" className="mt-2 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500">Pay securely with Stripe â†’</Link></div>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {[{ k: "card", t: "ðŸ’³ Card", s: "Visa Â· Mastercard Â· Amex Â· Discover" }, { k: "paypal", t: "ðŸ…¿ï¸ PayPal", s: "Buyer protection included" }, { k: "cod", t: "ðŸšš Pay on delivery", s: "Select markets only" }, { k: "bank", t: "ðŸ¦ Bank transfer", s: "Orders $500+ / B2B" }].map((m) => (
+                <button key={m.k} onClick={() => setMethod(m.k)} className={"rounded-lg border-2 p-2 text-left text-xs font-bold " + (method === m.k ? "border-emerald-500 bg-emerald-50" : "border-slate-200 hover:border-emerald-300")}>
+                  <p>{m.t}</p><p className="font-normal text-slate-500">{m.s}</p>
+                </button>
+              ))}
+            </div>
+            {method === "card" && (
+              <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className={lbl}>Card number {brand && <span className="ml-1 rounded bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold text-white">{brand}</span>}</p>
+                <input value={cnum} onChange={(e) => setCnum(e.target.value.replace(/[^\d ]/g, "").replace(/(\d{4})(?=\d)/g, "$1 ").slice(0, 19))} className={"mt-1 " + inp} placeholder="4242 4242 4242 4242" inputMode="numeric" />
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <div className="col-span-3"><p className={lbl}>Name on card</p><input value={cname} onChange={(e) => setCname(e.target.value)} className={"mt-1 " + inp} /></div>
+                  <div><p className={lbl}>Expiry</p><input value={cexp} onChange={(e) => setCexp(e.target.value.replace(/[^\d]/g, "").slice(0, 4).replace(/(\d{2})(?=\d)/, "$1/"))} className={"mt-1 " + inp} placeholder="MM/YY" /></div>
+                  <div><p className={lbl}>CVC</p><input value={ccvc} onChange={(e) => setCcvc(e.target.value.replace(/[^\d]/g, "").slice(0, 4))} className={"mt-1 " + inp} placeholder="123" /></div>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-500">Card rails activate with Stripe at launch; until then card orders are reserved 24h as payment-pending and held in escrow on activation. Test with 4242 4242 4242 4242.</p>
+              </div>
+            )}
+            {method === "paypal" && (<p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600">PayPal Smart Button activates when the gateway client-ID lands; your order is placed as payment-pending and PayPal completes it on activation.</p>)}
+            {method === "cod" && (<p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">Available in: {COD_MARKETS.join(", ")}. Cash or POS on delivery - exactly how Amazon runs India/UAE and Jumia runs Africa.</p>)}
+            {method === "bank" && (<p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600">For orders $500+ and B2B. Account details are emailed immediately after ordering; goods ship on cleared funds.</p>)}
+            <button onClick={pay} disabled={busy} className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">{busy ? "Placing order..." : "Place Order - $" + total.toFixed(2)}</button>
+            {msg && <p className="mt-2 text-xs font-bold text-rose-600">{msg}</p>}
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+
+
+=== FOLDER: EXPRESS ===
+
+--- File: page.tsx ---
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+export default function Express() {
+  const [items, setItems] = useState<any[]>([]);
+  const [name, setName] = useState(""); const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [addr1, setAddr1] = useState("");
+  const [addr2, setAddr2] = useState("");
+  const [city, setCity] = useState("");
+  const [stateP, setStateP] = useState("");
+  const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("Nigeria");
+
+  useEffect(() => {
+    const z = (zip || "").trim();
+    const st = (stateP || "").trim();
+    const US = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+    const su = st.toUpperCase();
+    let d = "";
+    if (/^\d{5}(-\d{4})?$/.test(z) && (US.includes(su) || /georgia|california|texas|florida|new york|illinois|ohio|arizona|washington|virginia|maryland|jersey|michigan|pennsylvania|carolina|tennessee|indiana|missouri|wisconsin|minnesota|colorado|alabama|louisiana|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|mississippi|kansas|nebraska|idaho|hawaii|maine|hampshire|montana|rhode island|delaware|dakota|alaska|vermont|wyoming/i.test(st))) d = "United States";
+    else if (/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i.test(z)) d = "United Kingdom";
+    else if (/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(z)) d = "Canada";
+    else if (/^\d{6}$/.test(z)) d = "Nigeria";
+    if (d) setCountry(d);
+  }, [zip, stateP]);
+
+  const address = [addr1, addr2, city, stateP, zip, country].filter((x) => String(x).trim()).join(", ");
+  const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
+  useEffect(() => { try { setItems(((JSON.parse(localStorage.getItem("kara_cart") || "[]")) as any[]).map((c: any) => ({ ...c, id: c.id != null ? c.id : (c.listing_id != null ? c.listing_id : (c.slug || c.key || c.title)), price_usd: (c.price_usd != null ? c.price_usd : (c.price != null ? c.price : (c.it && (c.it.price_usd != null ? c.it.price_usd : c.it.price)))), price: (c.price_usd != null ? c.price_usd : (c.price != null ? c.price : (c.it && (c.it.price_usd != null ? c.it.price_usd : c.it.price)))), title: c.title || (c.it && c.it.title), it: { title: c.title || (c.it && c.it.title), price_usd: (c.price_usd != null ? c.price_usd : (c.price != null ? c.price : (c.it && (c.it.price_usd != null ? c.it.price_usd : c.it.price)))), price: (c.price_usd != null ? c.price_usd : (c.price != null ? c.price : (c.it && (c.it.price_usd != null ? c.it.price_usd : c.it.price)))), seller_id: c.seller_id || (c.it && c.it.seller_id) }, seller_id: c.seller_id || (c.it && c.it.seller_id) }))); const k = localStorage.getItem("sb-auth-email"); if (k) setEmail(k); } catch (e) {} }, []);
+  const total = items.reduce((a, it) => a + Number(it.price || 0) * Number(it.qty || 1), 0);
+  const pay = async () => {
+    if (!items.length) { setMsg("Cart is empty - add items from the market first."); return; }
+    if (!email || !name || !address) { setMsg("Fill name, email and delivery address."); return; }
+    setBusy(true); setMsg("");
+    try {
+      const r = await fetch("/api/karakata/pay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: items, email: email, name: name, phone: phone, address: address, origin: window.location.origin }) });
+      const j = await r.json();
+      if (j.ok && j.url) { window.location.href = j.url; } else { setMsg(j.error || "Payment session failed."); setBusy(false); }
+    } catch (e) { setMsg("Network error - try again."); setBusy(false); }
+  };
+  const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white";
+  return (
+    <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <Link href="/karakata" className="text-sm font-bold text-cyan-400 hover:underline">â† Back to market</Link>
+      <h1 className="mt-3 text-3xl font-bold">ðŸ’³ Stripe Express Checkout</h1>
+      <p className="mt-1 text-sm text-slate-400">Card payments are held in ESCROW until you confirm delivery. Founding sellers keep 100% - KaraKata's 8% begins after their 6-month founding window.</p>
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm font-bold text-cyan-200">Your order ({items.length} lines)</p>
+          {items.length === 0 && (<p className="mt-2 text-xs text-slate-500">Cart empty - <Link className="text-cyan-300 underline" href="/karakata">browse the market</Link>.</p>)}
+          <div className="mt-3 space-y-2">
+            {items.map((it, i) => (<div key={i} className="flex justify-between text-xs text-slate-300"><span>{it.qty} Ã— {it.title}</span><span>${(Number(it.price || 0) * Number(it.qty || 1)).toFixed(2)}</span></div>))}
+          </div>
+          <p className="mt-3 border-t border-white/10 pt-2 text-sm font-bold text-emerald-300">Total ${total.toFixed(2)}</p>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p className="mb-2 text-sm font-bold text-cyan-200">Delivery details</p>
+          <input value={name} onChange={(e) => setName(e.target.value)} className={inp} placeholder="Full name" />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} className={inp + " mt-2"} placeholder="Email" />
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inp + " mt-2"} placeholder="Phone / WhatsApp" />
+          <input value={addr1} onChange={(e) => setAddr1(e.target.value)} className={inp + " mt-2"} placeholder="Street address" /><input value={addr2} onChange={(e) => setAddr2(e.target.value)} className={inp + " mt-2"} placeholder="Apt, suite, unit (optional)" /><div className="mt-2 grid grid-cols-2 gap-2"><input value={city} onChange={(e) => setCity(e.target.value)} className={inp} placeholder="City" /><input value={stateP} onChange={(e) => setStateP(e.target.value)} className={inp} placeholder="State / Province" /></div><div className="mt-2 grid grid-cols-2 gap-2"><input value={zip} onChange={(e) => setZip(e.target.value)} className={inp} placeholder="Postal code" /><select value={country} onChange={(e) => setCountry(e.target.value)} className={inp}><option>Nigeria</option><option>Ghana</option><option>Kenya</option><option>South Africa</option><option>United Kingdom</option><option>United States</option><option>Canada</option><option>Ireland</option><option>Germany</option><option>France</option><option>Netherlands</option><option>Spain</option><option>Italy</option><option>Portugal</option><option>Sweden</option><option>Poland</option><option>Turkey</option><option>United Arab Emirates</option><option>Saudi Arabia</option><option>Qatar</option><option>Kuwait</option><option>Egypt</option><option>Morocco</option><option>Algeria</option><option>Tunisia</option><option>Libya</option><option>Sudan</option><option>Ethiopia</option><option>Uganda</option><option>Tanzania</option><option>Rwanda</option><option>Senegal</option><option>Cameroon</option><option>Zambia</option><option>Zimbabwe</option><option>Botswana</option><option>Namibia</option><option>Mozambique</option><option>Angola</option><option>Malawi</option><option>Mauritius</option><option>Seychelles</option><option>Gambia</option><option>Sierra Leone</option><option>Liberia</option><option>Togo</option><option>Benin</option><option>Mali</option><option>Niger</option><option>Chad</option><option>Guinea</option><option>Gabon</option><option>Congo</option><option>DR Congo</option><option>Madagascar</option><option>India</option><option>Pakistan</option><option>Bangladesh</option><option>China</option><option>Japan</option><option>South Korea</option><option>Singapore</option><option>Malaysia</option><option>Philippines</option><option>Indonesia</option><option>Vietnam</option><option>Thailand</option><option>Brazil</option><option>Mexico</option><option>Argentina</option><option>Chile</option><option>Colombia</option><option>Peru</option><option>Australia</option><option>New Zealand</option><option>Other</option></select></div>
+          <button onClick={pay} disabled={busy} className="mt-3 w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400 disabled:opacity-50">{busy ? "Opening Stripe..." : "Pay securely with Stripe â†’"}</button>
+          {msg && (<p className="mt-2 text-xs font-bold text-amber-300">{msg}</p>)}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+
+
+=== FOLDER: LIST ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services"];
+export default function ManualList() {
+  const [title, setTitle] = useState("");
+  const [cat, setCat] = useState(CATS[0]);
+  const [desc, setDesc] = useState("");
+  const [price, setPrice] = useState("");
+  const [lead, setLead] = useState("7");
+  const [occ, setOcc] = useState("Everyday");
+  const [file, setFile] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const emailOf = () => { let e = ""; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); e = (j && j.user && j.user.email) || ""; if (e) break; } } } catch (err) {} return e; };
+  const publish = async () => {
+    if (!title.trim() || !desc.trim() || !price.trim()) { setMsg("Title, description, and price are required."); return; }
+    setBusy(true); setMsg("");
+    let url = "";
+    try { if (file) { const path = "list-" + Date.now() + "-" + file.name; const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; } } catch (e) {}
+    try {
+      const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailOf(), title, category: cat, description: desc, price_usd: price, lead_time_days: lead, image_url: url, occasion: occ }) });
+      const j = await r.json();
+      setMsg(j.ok ? "LIVE on KaraKata Market! Your product is now visible to buyers." : (j.error || "Publish failed."));
+    } catch (e) { setMsg("Connection error."); }
+    setBusy(false);
+  };
+  const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm";
+  return (
+    <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <Link href="/suite/marketplace" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">â† Marketplace Suite</Link>
+      <h1 className="text-3xl font-bold text-amber-300">ðŸ“ List Your Product (Free)</h1>
+      <p className="mt-1 text-sm text-slate-400">Upload a photo, write your own title/description, set your price. Publish live instantly. Zero cost, zero credits. Want AI to write it for you? Use Seller Studio (2 cr).</p>
+      <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
+        <p className="text-sm font-bold text-amber-200">YOUR PRODUCT DETAILS</p>
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Photo (recommended)</p>
+        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-500 file:px-3 file:py-2 file:text-sm file:font-bold file:text-slate-950" />
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Product title</p>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className={"mt-1 " + inp} placeholder="Handmade Adire Scarf - Indigo Cotton" />
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div><p className="text-[11px] font-bold text-slate-300">Category</p><select value={cat} onChange={(e) => setCat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+          <div><p className="text-[11px] font-bold text-slate-300">Price (USD)</p><input value={price} onChange={(e) => setPrice(e.target.value)} className={"mt-1 " + inp} placeholder="45" /></div>
+          <div><p className="text-[11px] font-bold text-slate-300">Lead time (days)</p><input value={lead} onChange={(e) => setLead(e.target.value)} className={"mt-1 " + inp} placeholder="7" /></div>
+        </div>
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Season / occasion</p>
+        <select value={occ} onChange={(e) => setOcc(e.target.value)} className={"mt-1 " + inp}>{["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"].map((o) => (<option key={o}>{o}</option>))}</select>
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Description</p>
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} className={"mt-1 " + inp} placeholder="Handwoven indigo cotton scarf, 2 meters long, perfect for gifts or personal wear..." />
+        <button onClick={publish} disabled={busy} className="mt-4 w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400 disabled:opacity-50">{busy ? "Publishing..." : "Publish My Listing (Free)"}</button>
+        {msg && <p className="mt-2 text-xs font-bold text-emerald-300">{msg}</p>}
+        <Link href="/karakata/studio" className="mt-3 block text-center text-xs text-cyan-400 hover:underline">Prefer AI to write it? Open Seller Studio (2 cr) â†’</Link>
+      </div>
+    </main>
+  );
+}
+
+
+
+=== FOLDER: P ===
+
+--- File: page.tsx ---
+
+
+=== FOLDER: REQUEST ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+const CATS = ["Jewelry & Gems", "Shoes & Leather", "Clothing & Textiles", "Luxury Consumables", "Artisan Services"];
+export default function KaraRequest() {
+  const [title, setTitle] = useState(""); const [cat, setCat] = useState(CATS[0]);
+  const [desc, setDesc] = useState(""); const [budget, setBudget] = useState(""); const [deadline, setDeadline] = useState("");
+  const [email, setEmail] = useState(""); const [file, setFile] = useState<any>(null);
+  const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (!title.trim() || !desc.trim()) { setMsg("Add a title and a description of what you want built."); return; }
+    setBusy(true); setMsg("");
+    let url = "";
+    try {
+      if (file) {
+        const path = "req-" + Date.now() + "-" + file.name;
+        const up = await sb.storage.from("kara").upload(path, file, { upsert: true });
+        if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl;
+      }
+    } catch (e) {}
+    try {
+      const r = await fetch("/api/karakata/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, title, category: cat, description: desc, budget, deadline, image_url: url }) });
+      const j = await r.json();
+      setMsg(j.ok ? "Request is live. Matched sellers will quote - our concierge verifies the first quotes personally." : (j.error || "Failed."));
+    } catch (e) { setMsg("Connection error."); }
+    setBusy(false);
+  };
+  const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm";
+  return (
+    <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <Link href="/karakata" className="text-sm text-cyan-400 hover:underline">â† KaraKata Market</Link>
+      <h1 className="mt-3 text-3xl font-bold text-amber-300">ðŸ“¸ Build-It-For-Me</h1>
+      <p className="mt-1 text-sm text-slate-400">Post a photo or description of the product you want. Verified sellers quote price and lead time. You accept - it gets built for you.</p>
+      <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
+        <p className="text-[11px] font-bold text-slate-300">What do you want built?</p>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className={"mt-1 " + inp} placeholder="e.g. Gold-plated cufflinks with my family crest" />
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div><p className="text-[11px] font-bold text-slate-300">Category</p><select value={cat} onChange={(e) => setCat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+          <div><p className="text-[11px] font-bold text-slate-300">Your email</p><input value={email} onChange={(e) => setEmail(e.target.value)} className={"mt-1 " + inp} placeholder="you@email.com" /></div>
+          <div><p className="text-[11px] font-bold text-slate-300">Budget (USD, optional)</p><input value={budget} onChange={(e) => setBudget(e.target.value)} className={"mt-1 " + inp} placeholder="250" /></div>
+          <div><p className="text-[11px] font-bold text-slate-300">Needed by (optional)</p><input value={deadline} onChange={(e) => setDeadline(e.target.value)} className={"mt-1 " + inp} placeholder="Dec 20, 2026" /></div>
+        </div>
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Describe it (materials, sizes, colors, references)</p>
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} className={"mt-1 " + inp} placeholder="Sterling silver base, 18k gold plating, engraving on the back..." />
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Photo / reference image (optional)</p>
+        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-500 file:px-3 file:py-2 file:text-sm file:font-bold file:text-slate-950" />
+        <button onClick={submit} disabled={busy} className="mt-4 w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{busy ? "Posting..." : "Post My Custom Request"}</button>
+        {msg && <p className="mt-2 text-xs font-bold text-emerald-300">{msg}</p>}
+      </div>
+    </main>
+  );
+}
+
+
+
+=== FOLDER: REVIEW ===
+
+--- File: page.tsx ---
+"use client";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+
+function ReviewContent() {
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("order");
+  const [rating, setRating] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  const submit = async (stars: number) => {
+    setRating(stars);
+    try {
+      await fetch(`/api/karakata/review?order=${orderId}&stars=${stars}`);
+      setSubmitted(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
+        <h1 className="text-4xl font-bold text-emerald-400 mb-4">Thank You!</h1>
+        <div className="text-5xl mb-4">{"â­".repeat(rating)}</div>
+        <p className="text-slate-300">Your feedback helps the KaraKata community thrive.</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
+      <h1 className="text-3xl font-bold mb-2">How was your order?</h1>
+      <p className="text-slate-400 mb-8">Click a star to rate your seller instantly:</p>
+      <div className="flex gap-4">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <button
+            key={s}
+            onClick={() => submit(s)}
+            className="text-5xl hover:scale-125 transition-transform cursor-pointer bg-transparent border-none p-2"
+          >
+            â­
+          </button>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">Loading...</div>}>
+      <ReviewContent />
+    </Suspense>
+  );
+}
+
+
+=== FOLDER: SELL ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services", "Vehicles & Auto Parts"];
+const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"];
+export default function SellerCenter() {
+  const [shop, setShop] = useState(""); const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState(""); const [wa, setWa] = useState("");
+  const [city, setCity] = useState(""); const [country, setCountry] = useState("");
+  const [cat, setCat] = useState(CATS[0]); const [craft, setCraft] = useState("");
+  const [pMsg, setPMsg] = useState(""); const [pBusy, setPBusy] = useState(false);
+  const [title, setTitle] = useState(""); const [pcat, setPcat] = useState(CATS[0]);
+  const [price, setPrice] = useState(""); const [lead, setLead] = useState("7");
+  const [occ, setOcc] = useState("Everyday"); const [desc, setDesc] = useState("");
+  const [file, setFile] = useState<any>(null);
+  const [lMsg, setLMsg] = useState(""); const [lBusy, setLBusy] = useState(false);
+  const [cInv, setCInv] = useState(false);
+  const [sales, setSales] = useState("1000"); const [cFun, setCFun] = useState(false); const [cBi, setCBi] = useState(false);
+  const saveProfile = async () => {
+    if (!shop.trim() || !email.trim()) { setPMsg("Shop name and email are required."); return; }
+    setPBusy(true); setPMsg("");
+    try {
+      const r = await fetch("/api/karakata/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, shop_name: shop, category: cat, country, city, craft, phone, whatsapp: wa }) });
+      await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
+      const j = await r.json();
+      setPMsg(j.ok ? "Seller profile saved - Kara, your onboarding agent, just queued your welcome email and will nudge you until your first product is live." : (j.error || "Failed."));
+    } catch (e) { setPMsg("Connection error."); }
+    setPBusy(false);
+  };
+  const addProduct = async () => {
+    if (!title.trim() || !desc.trim() || !price.trim()) { setLMsg("Title, description and price are required."); return; }
+    setLBusy(true); setLMsg("");
+    let url = "";
+    try { if (file) { const path = "list-" + Date.now() + "-" + file.name; const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; } } catch (e) {}
+    try {
+      const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, title, category: pcat, description: desc, price_usd: price, lead_time_days: lead, image_url: url, occasion: occ }) });
+      const j = await r.json();
+      setLMsg(j.ok ? "Product LIVE on KaraKata Market! Add another below or view the market." : (j.error || "Failed."));
+    } catch (e) { setLMsg("Connection error."); }
+    setLBusy(false);
+  };
+  const inp = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
+  const lbl = "text-[11px] font-bold text-slate-600";
+  return (
+    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline">â† Back to KaraKata Market</Link>
+      <h1 className="mt-3 text-3xl font-bold">ðŸ§‘â€ðŸ’¼ Seller Center</h1>
+      <p className="mt-1 text-sm text-slate-600">Register your contact, upload pictures, link your products and services - Amazon-style, but free to start and AI-empowered.</p>
+      <p className="mt-2 inline-block rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold text-cyan-700">ðŸ¤– Kara - onboarding agent: automatic welcome email + day-2 nudge for every new seller</p>
+            <div className="mt-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5">
+        <p className="text-lg font-bold text-slate-900">âš”ï¸ Fee War Calculator â€” what your monthly sales cost elsewhere</p>
+        <p className="mt-1 text-xs text-slate-600">My monthly sales (USD): <input value={sales} onChange={(e) => setSales(e.target.value)} className="ml-1 w-24 rounded border border-slate-300 px-2 py-1 text-sm" /> </p>
+        {(() => {
+          const S = Number(sales) || 1000;
+          const rows = [
+            { n: "Amazon", lo: 0.30 * S, hi: 0.45 * S, note: "15% referral + $39.99/mo + FBA + ads (30-45% all-in)" },
+            { n: "Etsy", lo: 0.12 * S, hi: 0.20 * S, note: "$0.20 listing + 6.5% + processing + offsite ads" },
+            { n: "eBay", lo: 0.13 * S, hi: 0.15 * S, note: "~13.25% final value + per-order fees" },
+            { n: "Shopify", lo: 39 + 0.029 * S, hi: 39 + 0.049 * S, note: "$39+ rent + 2.9% + 30c - and you bring your own traffic" },
+            { n: "TikTok Shop", lo: 0.06 * S, hi: 0.08 * S, note: "6% referral; promos & affiliates can triple it" },
+            { n: "KaraKata", lo: 0, hi: 0.10 * S, note: "0% first 6 months (founding), then 8-10% - BI desk included", us: true }
+          ];
+          const max = Math.max.apply(null, rows.map((r) => r.hi)) || 1;
+          return (
+            <div className="mt-3 space-y-2">
+              {rows.map((r: any) => (
+                <div key={r.n}>
+                  <div className="flex justify-between text-xs font-bold text-slate-700"><span>{r.n}{r.us ? " ðŸ›’" : ""}</span><span>{r.us && r.lo === 0 ? "$0 now â†’ $" + Math.round(r.hi) + "/mo later" : "$" + Math.round(r.lo) + " - $" + Math.round(r.hi) + "/mo"}</span></div>
+                  <div className="h-3 w-full rounded bg-slate-200"><div className={"h-3 rounded " + (r.us ? "bg-emerald-500" : "bg-rose-400")} style={{ width: Math.max(2, (r.hi / max) * 100) + "%" }} /></div>
+                  <p className="text-[10px] text-slate-500">{r.note}</p>
+                </div>
+              ))}
+              <p className="pt-1 text-xs font-bold text-emerald-700">On ${S}/mo you keep up to ${S - Math.round(0.10 * S)} with KaraKata vs ${S - Math.round(0.45 * S)}-${S - Math.round(0.30 * S)} on Amazon.</p>
+            </div>
+          );
+        })()}
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-lg font-bold">1 Â· Your seller profile & contact</p>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div><p className={lbl}>Shop / business name</p><input value={shop} onChange={(e) => setShop(e.target.value)} className={"mt-1 " + inp} placeholder="Adire & Gold Atelier" /></div>
+            <div><p className={lbl}>Email</p><input value={email} onChange={(e) => setEmail(e.target.value)} className={"mt-1 " + inp} placeholder="you@shop.com" /></div>
+            <div><p className={lbl}>Phone</p><input value={phone} onChange={(e) => setPhone(e.target.value)} className={"mt-1 " + inp} placeholder="+234..." /></div>
+            <div><p className={lbl}>WhatsApp (private - support & payouts only)</p><input value={wa} onChange={(e) => setWa(e.target.value)} className={"mt-1 " + inp} placeholder="+234..." /></div>
+            <div><p className={lbl}>City</p><input value={city} onChange={(e) => setCity(e.target.value)} className={"mt-1 " + inp} placeholder="Lagos" /></div>
+            <div><p className={lbl}>Country</p><input value={country} onChange={(e) => setCountry(e.target.value)} className={"mt-1 " + inp} placeholder="Nigeria" /></div>
+            <div><p className={lbl}>Main category</p><select value={cat} onChange={(e) => setCat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+          </div>
+          <p className={"mt-3 " + lbl}>What you sell / your craft</p>
+          <textarea value={craft} onChange={(e) => setCraft(e.target.value)} rows={2} className={"mt-1 " + inp} placeholder="Handwoven adire, beaded jewelry, event photography..." />
+          <p className="mt-4 text-[11px] font-bold text-slate-600"><p className="mb-3 text-[11px] font-bold text-emerald-700">Buyer messages reach you through the KaraKata relay form on your listings - your phone and email are never shown to buyers.</p>
+Optional growth program (tick only what you allow - revocable anytime)</p>
+        <label className="mt-1 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={cInv} onChange={(e) => setCInv(e.target.checked)} /> Share inventory & sales data for my free BI dashboard</label>
+        <label className="mt-1 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={cBi} onChange={(e) => setCBi(e.target.checked)} /> Email me monthly BI reports & profit tips</label>
+        <label className="mt-1 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={cFun} onChange={(e) => setCFun(e.target.checked)} /> Consider me for OPTIONAL expansion-funding offers</label>
+        <button onClick={saveProfile} disabled={pBusy} className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">{pBusy ? "Saving..." : "Save My Seller Profile (free)"}</button>
+          {pMsg && <p className="mt-2 text-xs font-bold text-emerald-700">{pMsg}</p>}
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-lg font-bold">2 Â· Link your products & services</p>
+          <p className="mt-1 text-xs text-slate-500">Upload pictures, set your price, publish live. Repeat for every item.</p>
+          <p className={"mt-3 " + lbl}>Photo</p>
+          <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-500 file:px-3 file:py-2 file:text-sm file:font-bold file:text-slate-950" />
+          <p className={"mt-3 " + lbl}>Title</p>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className={"mt-1 " + inp} placeholder="Handmade Adire Scarf - Indigo" />
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div><p className={lbl}>Category</p><select value={pcat} onChange={(e) => setPcat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+            <div><p className={lbl}>Season / occasion</p><select value={occ} onChange={(e) => setOcc(e.target.value)} className={"mt-1 " + inp}>{OCC.map((o) => (<option key={o}>{o}</option>))}</select></div>
+            <div><p className={lbl}>Price (USD)</p><input value={price} onChange={(e) => setPrice(e.target.value)} className={"mt-1 " + inp} placeholder="45" /></div>
+            <div><p className={lbl}>Lead time (days)</p><input value={lead} onChange={(e) => setLead(e.target.value)} className={"mt-1 " + inp} placeholder="7" /></div>
+          </div>
+          <p className={"mt-3 " + lbl}>Description</p>
+          <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} className={"mt-1 " + inp} placeholder="Materials, sizes, colors, what makes it special..." />
+          <button onClick={addProduct} disabled={lBusy} className="mt-4 w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{lBusy ? "Publishing..." : "Publish This Product (free)"}</button>
+          {lMsg && <p className="mt-2 text-xs font-bold text-emerald-700">{lMsg}</p>}
+          <Link href="/karakata/studio" className="mt-3 block text-center text-xs font-bold text-cyan-700 hover:underline"><a href="/karakata/auto" className="mt-2 block text-center text-xs font-bold text-emerald-700 underline">ðŸš— Selling a vehicle or parts? Open the Auto Desk - VIN, history report & inspection badges â†’</a>
+Prefer AI to write listings? Seller Studio (2 cr) â†’</Link>
+        </div>
+      </div>
+            <div className="mt-6 rounded-xl border-2 border-emerald-300 bg-white p-5 shadow-sm">
+        <p className="text-lg font-bold">ðŸ’³ Stripe Connect â€” receive real money</p>
+        <p className="mt-1 text-xs text-slate-600">Link your bank account to Stripe. Once enabled, delivered orders auto-pay into your bank. Founding sellers: 0% fee for 6 months, then 8%.</p>
+        <div id="stripe_connect" className="mt-3" />
+        <button onClick={async () => {
+          const el = document.getElementById("stripe_connect");
+          if (el) el.innerHTML = "<p class='text-xs text-slate-500'>Creating your Connect account...</p>";
+          try {
+            const r = await fetch("/api/karakata/connect/onboard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+            const j = await r.json();
+            if (j.ok && j.url) { window.location.href = j.url; }
+            else if (el) el.innerHTML = "<p class='text-xs font-bold text-rose-600'>" + (j.error || "Failed") + "</p>";
+          } catch (e) { if (el) el.innerHTML = "<p class='text-xs font-bold text-rose-600'>Connection error</p>"; }
+        }} className="mt-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500">Connect your bank (Stripe-hosted) â†’</button>
+        <div id="connect_status" className="mt-2 text-xs text-slate-500" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          (async () => {
+            try {
+              const email = (() => { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); if (j && j.user && j.user.email) return j.user.email; } } } catch (e) {} return ""; })();
+              if (!email) return;
+              const r = await fetch("/api/karakata/connect/account?email=" + encodeURIComponent(email));
+              const j = await r.json();
+              const el = document.getElementById("connect_status");
+              if (!j.ok || !j.stripe_account) { if (el) el.innerHTML = "Connect status: not connected"; return; }
+              const chips = [];
+              if (j.charges_enabled) chips.push("<span class='rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold'>Charges âœ…</span>");
+              if (j.payouts_enabled) chips.push("<span class='rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold'>Payouts âœ…</span>");
+              if (chips.length === 0) chips.push("<span class='rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-bold'>KYC pending</span>");
+              if (el) el.innerHTML = "Connect (" + j.stripe_account + "): " + chips.join(" ");
+            } catch (e) {}
+          })();
+        `}} />
+      </div>
+      <p className="mt-6 text-center text-xs text-slate-500">Founding sellers: 0% commission for 6 months, then 8-10% only when you sell. No subscriptions, no listing fees.</p>
+    </main>
+  );
+}
+
+
+
+=== FOLDER: SELL-CAR ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+
+export default function SellCar() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const submit = async (e: any) => {
+    e.preventDefault();
+    setBusy(true);
+    setResult(null);
+    const fd = new FormData(e.currentTarget);
+    const body = {
+      year: fd.get("year"),
+      make: fd.get("make"),
+      model: fd.get("model"),
+      vin: fd.get("vin"),
+      price_usd: fd.get("price_usd"),
+      condition: fd.get("condition")
+    };
+    try {
+      const r = await fetch("/api/karakata/autos/manual-entry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const j = await r.json();
+      setResult(j);
+    } catch (err) {
+      setResult({ ok: false, error: String(err) });
+    }
+    setBusy(false);
+  };
+
+  return (
+    <main className="min-h-screen bg-slate-950 p-8 text-white">
+      <div className="mx-auto max-w-2xl">
+        <Link href="/karakata" className="text-sm text-emerald-400 hover:underline">â† Back to market</Link>
+        <h1 className="mt-4 text-3xl font-bold text-emerald-400">ðŸš— Sell Your Car (CarMax-style)</h1>
+        <p className="mt-2 text-slate-400">Enter the details from your insurance card or registration. We generate a professional photo and your listing goes live instantly â€” escrow-protected.</p>
+
+        <form onSubmit={submit} className="mt-8 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <input name="year" type="number" required placeholder="Year (e.g. 2018)" className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white outline-none focus:border-emerald-500" />
+            <input name="make" type="text" required placeholder="Make (e.g. Toyota)" className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white outline-none focus:border-emerald-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <input name="model" type="text" required placeholder="Model (e.g. Camry)" className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white outline-none focus:border-emerald-500" />
+            <select name="condition" className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white outline-none focus:border-emerald-500">
+              <option value="fairly_used">Fairly used</option>
+              <option value="new">Brand new</option>
+            </select>
+          </div>
+          <input name="vin" type="text" required maxLength={17} placeholder="VIN - 17 characters from your insurance card" className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 font-mono text-white outline-none focus:border-emerald-500" />
+          <input name="price_usd" type="number" required placeholder="Asking price (USD)" className="w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white outline-none focus:border-emerald-500" />
+          <button type="submit" disabled={busy} className="w-full rounded-lg bg-emerald-600 py-4 font-bold hover:bg-emerald-500 disabled:bg-slate-700">
+            {busy ? "ðŸ”„ Creating your listing..." : "ðŸš— List My Car Now"}
+          </button>
+        </form>
+
+        {result && result.ok && (
+          <div className="mt-6 rounded-lg border border-emerald-500 bg-emerald-900/30 p-4">
+            <p className="font-bold text-emerald-400">âœ… {result.message}</p>
+            <p className="mt-2 text-sm text-slate-400">
+              Listing ID: {result.listing?.id} Â·{" "}
+              <Link href={"/karakata/p/" + result.listing?.id} className="text-emerald-400 underline">View your car on the market â†’</Link>
+            </p>
+          </div>
+        )}
+        {result && !result.ok && (
+          <div className="mt-6 rounded-lg border border-red-500 bg-red-900/30 p-4">
+            <p className="font-bold text-red-400">âŒ {result.error}</p>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+
+=== FOLDER: SELLER ===
+
+--- File: page.tsx ---
+
+
+=== FOLDER: SELLERS ===
+
+--- File: page.tsx ---
+import { createClient } from "@supabase/supabase-js";
+import Link from "next/link";
+export const dynamic = "force-dynamic";
+
+function stars(n: number) { const f = Math.round(n); return "â˜…".repeat(f) + "â˜†".repeat(5 - f); }
+
+export default async function SellersPage() {
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const { data: sellers } = await sb.from("kara_sellers").select("*").order("avg_rating", { ascending: false });
+  const list = sellers || [];
+  return (
+    <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <Link href="/karakata" className="text-sm text-cyan-400 hover:underline">â† Back to market</Link>
+      <h1 className="mt-3 text-3xl font-bold">KaraKata Sellers</h1>
+      <p className="mt-1 text-sm text-slate-400">Ranked by verified-purchase ratings.</p><p className="mt-2 text-sm"><a className="text-emerald-400 underline" href="/karakata/build">ðŸ—ï¸ Open your own store free with AI StoreBuilder â†’</a></p>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {list.map((s: any, i: number) => (
+          <Link key={s.id} href={"/karakata/seller/" + s.id} className="rounded-xl border border-slate-800 bg-slate-900 p-4 hover:border-emerald-500">
+            <p className="font-bold">{i + 1}. {s.shop_name}</p>
+            <p className="mt-1 text-yellow-400">{stars(Number(s.avg_rating || 0))} <span className="text-sm text-slate-300">{Number(s.avg_rating || 0).toFixed(1)} Â· {s.review_count || 0} reviews</span></p>
+          </Link>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+
+=== FOLDER: STUDIO ===
+
+--- File: page.tsx ---
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import WalletBar from "@/app/components/WalletBar";
+import { createClient } from "@supabase/supabase-js";
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services"];
+export default function Studio() {
+  const [words, setWords] = useState("");
+  const [cat, setCat] = useState(CATS[0]);
+  const [cost, setCost] = useState("");
+  const [occ, setOcc] = useState("Everyday");
+  const [file, setFile] = useState<any>(null);
+  const [img, setImg] = useState("");
+  const [draft, setDraft] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const emailOf = () => { let e = ""; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); e = (j && j.user && j.user.email) || ""; if (e) break; } } } catch (err) {} return e; };
+  const parse = (t: string) => {
+    const g = (p: string) => { const m = t.split("\n").find((l) => l.toUpperCase().indexOf(p + ":") === 0); return m ? m.slice(p.length + 1).trim() : ""; };
+    return { title: g("TITLE"), price: g("PRICE_USD"), compare: g("COMPARE_AT"), tags: g("TAGS"), category: g("CATEGORY") || cat, desc: g("DESCRIPTION"), lead: g("LEAD_DAYS") || "7" };
+  };
+  const build = async () => {
+    if (!words.trim()) { setMsg("Describe your product roughly first - one photo and rough words is all it takes."); return; }
+    setBusy(true); setMsg(""); setDraft(null);
+    let url = "";
+    try { if (file) { const path = "list-" + Date.now() + "-" + file.name; const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; } } catch (e) {}
+    setImg(url);
+    try {
+      const r = await fetch("/api/karakata/studio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailOf(), words: words, category: cat, cost: cost, image: url }) });
+      const j = await r.json();
+      if (j.ok) { setDraft(parse(j.answer)); try { window.dispatchEvent(new Event("wallet-refresh")); } catch (e) {} } else setMsg(j.error || "Build failed.");
+    } catch (e) { setMsg("Connection error."); }
+    setBusy(false);
+  };
+  const publish = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailOf(), title: draft.title, category: draft.category, description: draft.desc, price_usd: draft.price, lead_time_days: draft.lead, image_url: img, tags: draft.tags, occasion: occ }) });
+      const j = await r.json();
+      setMsg(j.ok ? "LIVE on KaraKata Market! Buyers can see it right now." : (j.error || "Publish failed."));
+    } catch (e) { setMsg("Connection error."); }
+    setBusy(false);
+  };
+  const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm";
+  return (
+    <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <Link href="/suite/marketplace" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">â† Marketplace Suite</Link>
+      <WalletBar />
+      <h1 className="text-3xl font-bold text-amber-300">ðŸ§‘â€ðŸ³ Seller Studio (AI Listing Generator)</h1>
+      <p className="mt-1 text-sm text-slate-400">AI writes your listing for you: title, description, tags, benchmarked price. 2 credits. Prefer to write it yourself for free? Use manual listing instead. New to KaraKata? Build your WHOLE storefront free with AI: <a href="/karakata/build" style={{ color: "#fbbf24", fontWeight: 700 }}>Build my store free â†’</a></p>
+      <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
+        <p className="text-sm font-bold text-amber-200">01 Â· YOUR PRODUCT, ROUGHLY</p>
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Photo (recommended)</p>
+        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-500 file:px-3 file:py-2 file:text-sm file:font-bold file:text-slate-950" />
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Rough words</p>
+        <textarea value={words} onChange={(e) => setWords(e.target.value)} rows={3} className={"mt-1 " + inp} placeholder="handmade adire scarf, indigo cotton, about 2 metres, gift box..." />
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div><p className="text-[11px] font-bold text-slate-300">Category</p><select value={cat} onChange={(e) => setCat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+          <div><p className="text-[11px] font-bold text-slate-300">Your cost per unit (USD, optional - sets price floor)</p><input value={cost} onChange={(e) => setCost(e.target.value)} className={"mt-1 " + inp} placeholder="18" /></div>
+        </div>
+        <p className="mt-3 text-[11px] font-bold text-slate-300">Season / occasion</p>
+        <select value={occ} onChange={(e) => setOcc(e.target.value)} className={"mt-1 " + inp}>{["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"].map((o) => (<option key={o}>{o}</option>))}</select>
+        <button onClick={build} disabled={busy} className="mt-4 w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{busy ? "AI is writing your listing..." : "Build My Listing (2 credits)"}</button>
+        {msg && <p className="mt-2 text-xs font-bold text-emerald-300">{msg}</p>}
+      </div>
+      {draft && (
+        <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
+          <p className="text-sm font-bold text-amber-200">02 Â· LISTING PREVIEW</p>
+          {img && <img src={img} alt="product" className="mt-3 h-48 w-full rounded-lg object-cover" />}
+          <p className="mt-3 text-lg font-bold text-white">{draft.title}</p>
+          <p className="text-sm text-emerald-300">${draft.price} {draft.compare && <span className="text-slate-500 line-through">${draft.compare}</span>} Â· {draft.category} Â· {draft.lead}-day lead</p>
+          <p className="mt-2 text-sm text-slate-300">{draft.desc}</p>
+          <p className="mt-2 text-[11px] text-slate-500">Tags: {draft.tags}</p>
+          <button onClick={publish} disabled={busy} className="mt-4 w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400 disabled:opacity-50">Publish to KaraKata Market (free)</button>
+          <Link href="/karakata" className="mt-2 block text-center text-xs text-cyan-400 hover:underline">View it live on the market â†’</Link>
+          <Link href="/karakata/list" className="mt-2 block text-center text-xs text-cyan-400 hover:underline">â† Or write listings yourself for free</Link>
+        </div>
+      )}
+    </main>
+  );
+}
+

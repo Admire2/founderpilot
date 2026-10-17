@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  game-server:
+    build: ./game-server
+    ports:
+      - "4001:4001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=4001
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:

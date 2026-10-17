@@ -1,0 +1,5 @@
+{
+    "id":  1,
+    "title":  "iLera - AI Health Suite (Phase 1)",
+    "desc":  "Symptom Triage Chat (10cr), Lab Result Interpreter (10cr - Lp(a)/CBC/HbA1c/eGFR/PSA panel), Health Risk Radar (15cr), Meds Checker (5cr), Doctor Referral Pack (10cr). Compliance: disclaimer on every output, red-flag ER escalation, NDPR/GDPR consent, audit log. Phase 2: camera vitals (rPPG). Phase 3: Kiosk Mode B2B + remote doctor approval. Partners: lab kits, telehealth, pharmacies."
+}

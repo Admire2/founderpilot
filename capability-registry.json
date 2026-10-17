@@ -1,0 +1,481 @@
+﻿{
+    "features":  [
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Classic menu bar (File..Help)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "name: \u0027File\u0027",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "34 font families + preview picker",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "const FONTS =",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Point sizes 8pt-72pt",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "72pt",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Bold / Italic / Underline / Strike",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "toggleStrike",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Highlight + text colors",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "toggleHighlight",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Lists, indents, alignment, justify",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "setTextAlign",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Tables (insert/rows/cols)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "insertTable",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Find \u0026 Replace",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "replaceTerm",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Save .doc / .html / .txt + Open",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "application/msword",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Copy Rich (email-ready formatting)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "ClipboardItem",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Kara Letterhead template",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "insertLetterhead",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Zoom / Full-screen / Status bar / Word count",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "setZoom",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Print / Save-as-PDF clean view",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "@media print",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Offline grammar engine (red underlines + fix menus)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "kara-err",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Punctuation choice fixes (stop/comma/semicolon)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "Full stop to comma",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "AI ghost auto-completion (local, free)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "kara-ghost",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "AI context-aware phrase fixes",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "aiSuggestFor",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "AI whole-sentence rewrite",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "aiSentenceFor",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "AI translation of selection",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "aiTranslateSelection",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "RTL direction (Arabic/Hebrew)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "dom.dir",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Kara Seek live-research inside documents",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "api/seek",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Grid + formula bar + cell navigation",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "barValue",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "SUM / AVERAGE / MIN / MAX / COUNT / PRODUCT",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "fn === \u0027SUM\u0027",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Cell references \u0026 live recalculation",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "computeAll",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Circular reference guard (#CYCLE)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "#CYCLE",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Math engine (+ - * / ^ sqrt abs round)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "mathjs",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Unicode operators accepted",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "÷",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Ghost-space / dirty-paste proof parsing",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "u1680",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "CSV export + import",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "importCSV",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "One-click sample data book",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "loadSampleData",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Global country dropdown (user-set market)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "const COUNTRIES =",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Kara Seek missions on sheet data + live web",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "runSeek",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Local AI sheet analyzer",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "analyzeSheet",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "fx Help function library",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "Function Library",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Notes",
+                         "feature":  "Multi-note workspace with autosave",
+                         "file":  "kara-office-mvp/kara-office-ui/src/App.tsx",
+                         "pattern":  "karaNotes",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Seek Engine",
+                         "feature":  "Homegrown meta-search node (SearXNG, port 8888)",
+                         "file":  "kara-seek-engine/server.js",
+                         "pattern":  "localhost:8888",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Seek Engine",
+                         "feature":  "Anti-hallucination protocol",
+                         "file":  "kara-seek-engine/server.js",
+                         "pattern":  "NO LAZY ANSWERS",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Seek Engine",
+                         "feature":  "Agent self-awareness",
+                         "file":  "kara-seek-engine/server.js",
+                         "pattern":  "SELF-AWARENESS",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Seek Engine",
+                         "feature":  "Context/Task split (clean search queries)",
+                         "file":  "kara-seek-engine/server.js",
+                         "pattern":  "searchQuery",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Seek Engine",
+                         "feature":  "Sheet-math ground-truth rules",
+                         "file":  "kara-seek-engine/server.js",
+                         "pattern":  "SHEET MISSIONS",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Seek Engine",
+                         "feature":  "Irrelevant-results rejection",
+                         "file":  "kara-seek-engine/server.js",
+                         "pattern":  "RELEVANCE",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Search Node",
+                         "feature":  "Dockerized meta-search (multi-engine aggregation)",
+                         "file":  "kara-search-engine/docker-compose.yml",
+                         "pattern":  "searxng/searxng",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Search Node",
+                         "feature":  "Port mapping 8888",
+                         "file":  "kara-search-engine/docker-compose.yml",
+                         "pattern":  "8888:8080",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Search Node",
+                         "feature":  "White-label branding (Kara Search)",
+                         "file":  "kara-search-engine/searxng/settings.yml",
+                         "pattern":  "Kara Search",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Native .docx round-trip",
+                         "file":  "-",
+                         "pattern":  "",
+                         "status":  "roadmap",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Track changes \u0026 comments",
+                         "file":  "-",
+                         "pattern":  "",
+                         "status":  "roadmap",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Word",
+                         "feature":  "Mail merge / citations / macros",
+                         "file":  "-",
+                         "pattern":  "",
+                         "status":  "roadmap",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "IF / VLOOKUP / SUMIF / COUNTIF - Kara Formula Engine v2",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "vlookup:",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Quant Mode: Black-Scholes + Greeks + Trade Analyzer",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "bscall:",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Virtualized grid (10k rows) + add rows/cols",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "ROW_H",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Pivot tables / charts / conditional formatting",
+                         "file":  "-",
+                         "pattern":  "",
+                         "status":  "roadmap",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Multi-sheet workbooks + native .xlsx",
+                         "file":  "-",
+                         "pattern":  "",
+                         "status":  "roadmap",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Slides",
+                         "feature":  "Slide rail: add/duplicate/delete/reorder",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSlides.tsx",
+                         "pattern":  "dupSlide",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Slides",
+                         "feature":  "Layouts + 5 themes + Present mode",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSlides.tsx",
+                         "pattern":  "presenting",
+                         "competitor":  true,
+                         "exclusive":  false
+                     },
+                     {
+                         "product":  "Kara Slides",
+                         "feature":  "Standalone HTML deck export (offline player)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSlides.tsx",
+                         "pattern":  "exportHTML",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Slides",
+                         "feature":  "AI Deck Builder (local AI writes 6-slide decks)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSlides.tsx",
+                         "pattern":  "buildDeck",
+                         "competitor":  true,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Slides",
+                         "feature":  "Seek-to-Slides bridge (report becomes deck)",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSlides.tsx",
+                         "pattern":  "buildFromReport",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Slides",
+                         "feature":  "Global sample deck chips",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSlides.tsx",
+                         "pattern":  "DECK_CHIPS",
+                         "competitor":  false,
+                         "exclusive":  true
+                     },
+                     {
+                         "product":  "Kara Sheets",
+                         "feature":  "Opt-in sovereign Insights analytics",
+                         "file":  "kara-office-mvp/kara-office-ui/src/components/KaraSheets.tsx",
+                         "pattern":  "trackEvent",
+                         "competitor":  false,
+                         "exclusive":  true
+                     }
+                 ]
+}

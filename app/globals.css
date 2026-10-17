@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+html, body {
+  background-color: #020617;
+  color: #f8fafc;
+  color-scheme: dark;
+}
+/* FounderPilot layout guard: nothing may overflow its card */
+form, input, button, select, textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+button { transition: transform .08s ease, filter .08s ease; }
+button:active:not(:disabled) { transform: scale(.97); filter: brightness(1.2); }

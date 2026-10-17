@@ -1,0 +1,18 @@
+KARAKATA SELLER FOLDERS AUDIT REPORT
+======================================
+
+=== FOLDER: SELL ===
+
+  [FILE: page.tsx]
+  Preview: "use client"; import { useState } from "react"; import Link from "next/link"; import { createClient } from "@supabase/supabase-js"; const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!); const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services", "Vehicles & Auto Parts"]; const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding",...
+  Size: 15541 bytes
+
+=== FOLDER: SELLER ===
+  (No .tsx or .ts files found)
+
+=== FOLDER: SELLERS ===
+
+  [FILE: page.tsx]
+  Preview: import { createClient } from "@supabase/supabase-js"; import Link from "next/link"; export const dynamic = "force-dynamic"; function stars(n: number) { const f = Math.round(n); return "★".repeat(f) + "☆".repeat(5 - f); } export default async function SellersPage() { const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!); const { data: sellers } = await sb.from("kara_sellers").select("*").order("avg_rating", { ascending: false }); const list = sellers || []; return ( <main className="min-h-screen bg-slate-950 p-6 text-white"> <...
+  Size: 1586 bytes
+

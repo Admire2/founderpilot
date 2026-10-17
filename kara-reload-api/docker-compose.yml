@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  reload-db:
+    image: postgres:15-alpine
+    container_name: kara-reload-db
+    environment:
+      POSTGRES_USER: kara_admin
+      POSTGRES_PASSWORD: sovereign_secure_password
+      POSTGRES_DB: kara_reload_ledger
+    ports:
+      - "5432:5432"
+    volumes:
+      - reload_data:/var/lib/postgresql/data
+
+  reload-cache:
+    image: redis:7-alpine
+    container_name: kara-reload-cache
+    ports:
+      - "6379:6379"
+
+volumes:
+  reload_data:
