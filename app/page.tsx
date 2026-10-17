@@ -1,9 +1,5 @@
-import KaraKataPage from "./karakata/page";
+import { redirect } from 'next/navigation';
 
-export default function Home() {
-  return (
-    <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
-      <KaraKataPage />
-    </div>
-  );
+export default function RootPage() {
+  redirect('/karakata');
 }
