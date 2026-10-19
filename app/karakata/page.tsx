@@ -14,7 +14,7 @@ const CURRENCY_MAP: Record<string, { symbol: string; rate: number; name: string;
   "Taiwan": { symbol: "NT$", rate: 32, name: "Dollar", locale: "zh-TW" },
   "Sweden": { symbol: "kr", rate: 10.5, name: "Krona", locale: "sv-SE" },
   "United States": { symbol: "$", rate: 1, name: "USD", locale: "en-US" },
-  "United Kingdom": { symbol: "�", rate: 0.79, name: "GBP", locale: "en-GB" },
+  "United Kingdom": { symbol: "", rate: 0.79, name: "GBP", locale: "en-GB" },
 };
 
 const convertToLocalCurrency = (usdAmount: number, countryCode: string) => {
@@ -30,19 +30,19 @@ const convertToLocalCurrency = (usdAmount: number, countryCode: string) => {
 
 
 const TAXONOMY: any[] = [
-  { name: "Fashion & Clothing", icon: "👗", subs: ["Men", "Women", "Unisex", "Children", "Teenagers"] },
+  { name: "Fashion & Clothing", icon: "", subs: ["Men", "Women", "Unisex", "Children", "Teenagers"] },
   { name: "Jewelry & Gems", icon: "💍", subs: ["Cufflinks", "Rings", "Necklaces", "Bracelets", "Earrings", "Beads", "Custom pieces"] },
-  { name: "Fabrics & Textiles", icon: "🧵", subs: ["Aso Oke", "Adire", "Ankara", "Lace", "Plain weaves"] },
-  { name: "Art & Crafts", icon: "🎨", subs: ["Wall art", "Sculpture", "Beadwork", "Pottery", "Handmade"] },
+  { name: "Fabrics & Textiles", icon: "", subs: ["Aso Oke", "Adire", "Ankara", "Lace", "Plain weaves"] },
+  { name: "Art & Crafts", icon: "", subs: ["Wall art", "Sculpture", "Beadwork", "Pottery", "Handmade"] },
   { name: "Home & Living", icon: "🏠", subs: ["Decor", "Kitchen", "Bedding", "Furniture"] },
-  { name: "Beauty & Care", icon: "🧴", subs: ["Skincare", "Hair", "Fragrance", "Makeup"] },
-  { name: "Electronics", icon: "📱", subs: ["Phones", "Accessories", "Audio", "Gadgets"] },
+  { name: "Beauty & Care", icon: "", subs: ["Skincare", "Hair", "Fragrance", "Makeup"] },
+  { name: "Electronics", icon: "", subs: ["Phones", "Accessories", "Audio", "Gadgets"] },
   { name: "Food & Groceries", icon: "🍲", subs: ["Pantry", "Spices", "Snacks", "Drinks"] },
-  { name: "Books & Media", icon: "📚", subs: ["Fiction", "Non-fiction", "Audiobooks"] },
-  { name: "Toys & Games", icon: "🧸", subs: ["Kids", "Board games", "Puzzles"] },
-  { name: "Sports & Outdoors", icon: "⚽", subs: ["Fitness", "Camping", "Team sports"] },
-  { name: "Automotive", icon: "🚗", subs: ["Cars for sale - New", "Cars for sale - Fairly used", "Sell your car (Instant offer)", "VIN Check", "Pre-purchase inspection", "Certification", "Auto financing", "Accessories", "Parts", "Tools"] }, { name: "Power & Heavy Machinery", icon: "🚜", subs: ["Generators", "Tractors", "Excavators", "Forklifts", "Cranes", "Industrial tools"] },
-  { name: "Health & Wellness", icon: "🌿", subs: ["Supplements", "Fitness", "Self-care"] },
+  { name: "Books & Media", icon: "", subs: ["Fiction", "Non-fiction", "Audiobooks"] },
+  { name: "Toys & Games", icon: "", subs: ["Kids", "Board games", "Puzzles"] },
+  { name: "Sports & Outdoors", icon: "?", subs: ["Fitness", "Camping", "Team sports"] },
+  { name: "Automotive", icon: "", subs: ["Cars for sale - New", "Cars for sale - Fairly used", "Sell your car (Instant offer)", "VIN Check", "Pre-purchase inspection", "Certification", "Auto financing", "Accessories", "Parts", "Tools"] }, { name: "Power & Heavy Machinery", icon: "", subs: ["Generators", "Tractors", "Excavators", "Forklifts", "Cranes", "Industrial tools"] },
+  { name: "Health & Wellness", icon: "", subs: ["Supplements", "Fitness", "Self-care"] },
   { name: "Services", icon: "🛠️", subs: ["Tailoring", "Repairs", "Custom orders", "Vehicle inspection"] },
 ];
 

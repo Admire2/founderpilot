@@ -1,7 +1,9 @@
+import KarakataTopHeader from "@/components/KarakataTopHeader";
+import KaraKataAuthBar from "@/components/KaraKataAuthBar";
+import Sidebar from "@/components/Sidebar";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import MobileNav from "@/components/MobileNav";
-import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,14 +41,14 @@ export default function RootLayout({
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
+      <KarakataTopHeader />
         <div className="bg-slate-900 p-4 flex justify-end">
           <KaraKataAuthBar />
-        </div>
+          </div>
         <div className="md:hidden">
           <MobileNav>{children}</MobileNav>
         </div>
         <div className="hidden md:flex h-screen">
-          <Sidebar />
           <main className="flex-1 overflow-y-auto">
             {children}
           </main>
