@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +10,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState("signin");
@@ -26,7 +27,6 @@ export default function AuthPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsSignedIn(true);
-        // Redirect to where they came from, or default to /karakata
         const callbackUrl = searchParams.get('callbackUrl') || '/karakata';
         router.push(callbackUrl);
       }
@@ -34,7 +34,7 @@ export default function AuthPage() {
     checkSession();
   }, [router, searchParams]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -46,7 +46,6 @@ export default function AuthPage() {
         setError(error.message);
       } else {
         setMessage("Signed in successfully! Redirecting...");
-        // Wait a moment for user to see message, then redirect
         setTimeout(() => {
           const callbackUrl = searchParams.get('callbackUrl') || '/karakata';
           router.push(callbackUrl);
@@ -56,7 +55,7 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin + "/auth" },
+        options: { emailRedirectTo: typeof window !== 'undefined' ? window.location.origin + "/auth" : "" },
       });
       if (error) {
         setError(error.message);
@@ -71,11 +70,11 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 max-w-md w-full shadow-2xl text-center">
-          <div className="text-3xl mb-4">?</div>
+          <div className="text-3xl mb-4">🔒</div>
           <h2 className="text-2xl font-bold text-white mb-2">Already Signed In</h2>
           <p className="text-slate-400 mb-4">Redirecting you to the marketplace...</p>
           <Link href="/karakata" className="text-cyan-400 hover:text-cyan-300">
-            Go to KaraKata ?
+            Go to KaraKata →
           </Link>
         </div>
       </div>
@@ -87,12 +86,12 @@ export default function AuthPage() {
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 max-w-md w-full shadow-2xl">
         <div className="mb-6">
           <Link href="/" className="text-sm text-cyan-400 hover:text-cyan-300">
-            ? Back
+            ← Back
           </Link>
         </div>
 
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">??</span>
+          <span className="text-3xl">🚀</span>
           <h2 className="text-2xl font-bold text-white">FounderPilot Account</h2>
         </div>
         <p className="text-slate-400 mb-6 text-sm">
@@ -172,10 +171,22 @@ export default function AuthPage() {
 
         {mode === "signup" && (
           <p className="mt-4 text-xs text-slate-400 text-center">
-            We email a confirmation link to verify you own this address � the same standard Amazon, eBay and Shopify use. Your credits, listings and orders attach to this account.
+            We email a confirmation link to verify you own this address — the same standard Amazon, eBay and Shopify use. Your credits, listings and orders attach to this account.
           </p>
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="text-white animate-pulse">Loading authentication...</div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }

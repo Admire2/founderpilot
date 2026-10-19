@@ -54,12 +54,12 @@ export default function Foresight() {
     <main className="min-h-screen bg-slate-950 p-6 text-white">
       <Link href="/suite/healthcare" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">? Healthcare Suite</Link>
       <WalletBar />
-      <h1 className="text-3xl font-bold text-rose-300">?? iLera Foresight — 20-Year Trajectory Map</h1>
+      <h1 className="text-3xl font-bold text-rose-300">?? iLera Foresight ï¿½ 20-Year Trajectory Map</h1>
       <p className="mt-1 text-sm text-slate-400">Where your current numbers are leaning over the next two decades - and the three changes that bend the curves. 20 credits.</p>
       <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] font-bold text-rose-200">?? Statistical tendencies from YOUR data - not a diagnosis. Cannot predict sudden events or rare genetic conditions. Your clinician confirms everything.</div>
 
       <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
-        <p className="text-sm font-bold text-rose-200">01 · YOUR BASELINE</p>
+        <p className="text-sm font-bold text-rose-200">01 ï¿½ YOUR BASELINE</p>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div><p className={lbl}>Age</p><input value={age} onChange={(e) => setAge(e.target.value)} className={"mt-1 " + inp} placeholder="42" /></div>
           <div><p className={lbl}>Gender</p><select value={gender} onChange={(e) => setGender(e.target.value)} className={"mt-1 " + inp}><option>Male</option><option>Female</option><option>Intersex</option><option>Prefer not to say</option></select></div>
@@ -85,7 +85,7 @@ export default function Foresight() {
 
       {out && (
         <div className="mt-5 rounded-xl border border-rose-500/30 bg-rose-500/5 p-5">
-          <p className="text-sm font-bold text-rose-200">03 · YOUR 20-YEAR TRAJECTORY MAP</p>
+          <p className="text-sm font-bold text-rose-200">03 ï¿½ YOUR 20-YEAR TRAJECTORY MAP</p>
           <pre className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{out}</pre>
           <button onClick={() => downloadPdf("iLERA FORESIGHT - 20-YEAR TRAJECTORY MAP\n" + new Date().toLocaleString() + "\nAge: " + age + " | Gender: " + gender + " | BMI: " + bmi() + " | BP: " + bp + "\nSmoking: " + smoke + " | Alcohol: " + drink + " | Activity: " + active + "\nFamily: " + family + "\nLabs: " + labs + "\nResearch-grade: " + research + "\n\n" + out, "iLera-foresight-20yr.pdf")} className="mt-4 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400">Download PDF</button>
         </div>

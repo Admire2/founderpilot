@@ -29,15 +29,24 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}>
         <div className="flex min-h-screen">
+          
+          {/* 1. SIDEBAR: This makes it appear on EVERY page */}
           <Sidebar />
+          
+          {/* 2. MAIN CONTENT AREA */}
           <div className="flex-1 flex flex-col">
+            
+            {/* Top Header Bar (Search, Sellers, Cart, and Auth) */}
             <div className="bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 py-2 gap-4">
               <KarakataTopHeader />
               <KaraKataAuthBar />
             </div>
+            
+            {/* 3. THE ACTUAL PAGE CONTENT (KaraKata, Suites, etc. render here) */}
             <main className="flex-1 p-4 md:p-6 overflow-y-auto">
               {children}
             </main>
+            
           </div>
         </div>
       </body>
