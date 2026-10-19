@@ -35,10 +35,10 @@ export default function KarakataTopHeader() {
         </button>
       </form>
 
-      {/* Right Links - Compact */}
+      {/* Right Links - Clean Emojis */}
       <div className="flex items-center gap-3 text-xs font-bold text-white">
         <Link href="/karakata/sellers" className="hover:text-amber-400 transition whitespace-nowrap">
-          ?? Sellers
+           Sellers
         </Link>
         <Link href="/karakata/build" className="hover:text-amber-400 transition text-amber-400 whitespace-nowrap">
           ??? Build my store free
@@ -50,4 +50,3 @@ export default function KarakataTopHeader() {
     </header>
   );
 }
-
