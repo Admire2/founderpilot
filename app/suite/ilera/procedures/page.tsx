@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import Link from "next/link";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { downloadPdf } from "@/lib/pdf";
 
 const QUICK = [
@@ -34,14 +34,14 @@ export default function Procedures() {
   const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm";
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-white">
-      <Link href="/suite/healthcare" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">← Healthcare Suite</Link>
+      <Link href="/suite/healthcare" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">? Healthcare Suite</Link>
       <WalletBar />
-      <h1 className="text-3xl font-bold text-rose-300">🏥 Procedure Explainer</h1>
-      <p className="mt-1 text-sm text-slate-400">Paste any procedure your doctor ordered — iLera returns cost ranges, insurance rules, risks, prep steps and 5 questions to ask. Walk in informed. 10 credits per procedure.</p>
-      <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] font-bold text-rose-200">⚕️ Educational preparation only — never a recommendation or discouragement. Your clinician confirms necessity, timing and suitability.</div>
+      <h1 className="text-3xl font-bold text-rose-300">?? Procedure Explainer</h1>
+      <p className="mt-1 text-sm text-slate-400">Paste any procedure your doctor ordered � iLera returns cost ranges, insurance rules, risks, prep steps and 5 questions to ask. Walk in informed. 10 credits per procedure.</p>
+      <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] font-bold text-rose-200">?? Educational preparation only � never a recommendation or discouragement. Your clinician confirms necessity, timing and suitability.</div>
 
       <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
-        <p className="text-sm font-bold text-rose-200">01 · YOUR PROCEDURE</p>
+        <p className="text-sm font-bold text-rose-200">01 � YOUR PROCEDURE</p>
         <p className="mt-2 text-[11px] font-bold text-slate-300">Procedure name</p>
         <input value={proc} onChange={(e) => setProc(e.target.value)} className={"mt-1 " + inp} placeholder="e.g. capsule endoscopy, colonoscopy, MRI..." />
         <p className="mt-3 text-[11px] font-bold text-slate-300">Quick pick</p>
@@ -66,3 +66,4 @@ export default function Procedures() {
     </main>
   );
 }
+

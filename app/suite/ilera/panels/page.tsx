@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { downloadPdf } from "@/lib/pdf";
 
 const MEN = [
@@ -102,3 +102,4 @@ export default function Panels() {
     </main>
   );
 }
+

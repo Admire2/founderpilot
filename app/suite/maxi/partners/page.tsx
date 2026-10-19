@@ -1,5 +1,5 @@
 "use client";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { useEffect, useState } from "react";
 
 const AFRICA = ["Nigeria","Kenya","South Africa","Ghana","Egypt","Ethiopia","Tanzania","Uganda","Rwanda","Senegal"];
@@ -138,3 +138,4 @@ export default function PartnersPage() {
     </main>
   );
 }
+

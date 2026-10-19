@@ -12,8 +12,9 @@ const SUITES = [
 
 export default function EngineeringSuite() {
   return (
-    <div className="flex justify-end p-4 bg-slate-900 border-b border-slate-800"><KaraKataAuthBar /></div>
-    <main className="min-h-screen bg-slate-950 text-white p-8">
+    <>
+      <div className="flex justify-end p-4 bg-slate-900 border-b border-slate-800"><KaraKataAuthBar /></div>
+      <main className="min-h-screen bg-slate-950 text-white p-8">
       <WalletBar />
       <div className="max-w-5xl mx-auto">
         <Link href="/suite" className="text-cyan-400 hover:underline text-sm">&larr; Back to Suite</Link>
@@ -37,5 +38,6 @@ export default function EngineeringSuite() {
         <p className="mt-6 text-xs text-slate-500">More engineering disciplines join as they are hired. Your waitlist votes decide the hiring order.</p>
       </div>
     </main>
+    </>
   );
 }

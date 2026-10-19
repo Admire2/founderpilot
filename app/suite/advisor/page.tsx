@@ -1,5 +1,5 @@
 "use client";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 

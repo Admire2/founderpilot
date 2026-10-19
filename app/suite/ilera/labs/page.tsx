@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { jsPDF } from "jspdf";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { useState } from "react";
 export default function ILeraLabs() {
   const [main, setMain] = useState("");

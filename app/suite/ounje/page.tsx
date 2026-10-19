@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { jsPDF } from "jspdf";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { useState, useEffect } from "react";
 export default function Ounje() {
   const [cond, setCond] = useState("");
@@ -73,3 +73,4 @@ export default function Ounje() {
     </main>
   );
 }
+

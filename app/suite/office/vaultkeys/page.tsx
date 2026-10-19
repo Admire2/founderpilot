@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { downloadPdf } from "@/lib/pdf";
 const WORDS = ["anchor","basil","cactus","dune","ember","falcon","glacier","harbor","iris","juniper","kite","lantern","mango","nebula","orchid","pine","quartz","river","saffron","tundra","umbra","velvet","willow","xenon","yarrow","zephyr","amber","bramble","cinder","drift"];
 export default function VaultKeys() {
@@ -56,3 +56,4 @@ export default function VaultKeys() {
     </main>
   );
 }
+

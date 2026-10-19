@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import Link from "next/link";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { downloadPdf } from "@/lib/pdf";
 
 export default function Foresight() {
@@ -52,21 +52,21 @@ export default function Foresight() {
 
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-white">
-      <Link href="/suite/healthcare" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">← Healthcare Suite</Link>
+      <Link href="/suite/healthcare" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">? Healthcare Suite</Link>
       <WalletBar />
-      <h1 className="text-3xl font-bold text-rose-300">🔮 iLera Foresight — 20-Year Trajectory Map</h1>
+      <h1 className="text-3xl font-bold text-rose-300">?? iLera Foresight � 20-Year Trajectory Map</h1>
       <p className="mt-1 text-sm text-slate-400">Where your current numbers are leaning over the next two decades - and the three changes that bend the curves. 20 credits.</p>
-      <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] font-bold text-rose-200">⚕️ Statistical tendencies from YOUR data - not a diagnosis. Cannot predict sudden events or rare genetic conditions. Your clinician confirms everything.</div>
+      <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] font-bold text-rose-200">?? Statistical tendencies from YOUR data - not a diagnosis. Cannot predict sudden events or rare genetic conditions. Your clinician confirms everything.</div>
 
       <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
-        <p className="text-sm font-bold text-rose-200">01 · YOUR BASELINE</p>
+        <p className="text-sm font-bold text-rose-200">01 � YOUR BASELINE</p>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div><p className={lbl}>Age</p><input value={age} onChange={(e) => setAge(e.target.value)} className={"mt-1 " + inp} placeholder="42" /></div>
           <div><p className={lbl}>Gender</p><select value={gender} onChange={(e) => setGender(e.target.value)} className={"mt-1 " + inp}><option>Male</option><option>Female</option><option>Intersex</option><option>Prefer not to say</option></select></div>
           <div><p className={lbl}>Race / ethnicity</p><select value={race} onChange={(e) => setRace(e.target.value)} className={"mt-1 " + inp}><option>Prefer not to say</option><option>Black / African</option><option>White / European</option><option>Asian</option><option>Hispanic / Latino</option><option>Middle Eastern</option><option>Other</option></select></div>
           <div><p className={lbl}>BP (if known)</p><input value={bp} onChange={(e) => setBp(e.target.value)} className={"mt-1 " + inp} placeholder="138/88" /></div>
-          <div><p className={lbl}>Height ({hUnit})</p><div className="mt-1 flex gap-1"><input value={height} onChange={(e) => setHeight(e.target.value)} className={inp} /><button onClick={() => setHUnit(hUnit === "cm" ? "in" : "cm")} className="rounded-lg bg-slate-800 px-2 text-[10px] font-bold">{hUnit === "cm" ? "cm→in" : "in→cm"}</button></div></div>
-          <div><p className={lbl}>Weight ({wUnit})</p><div className="mt-1 flex gap-1"><input value={weight} onChange={(e) => setWeight(e.target.value)} className={inp} /><button onClick={() => setWUnit(wUnit === "kg" ? "lb" : "kg")} className="rounded-lg bg-slate-800 px-2 text-[10px] font-bold">{wUnit === "kg" ? "kg→lb" : "lb→kg"}</button></div></div>
+          <div><p className={lbl}>Height ({hUnit})</p><div className="mt-1 flex gap-1"><input value={height} onChange={(e) => setHeight(e.target.value)} className={inp} /><button onClick={() => setHUnit(hUnit === "cm" ? "in" : "cm")} className="rounded-lg bg-slate-800 px-2 text-[10px] font-bold">{hUnit === "cm" ? "cm?in" : "in?cm"}</button></div></div>
+          <div><p className={lbl}>Weight ({wUnit})</p><div className="mt-1 flex gap-1"><input value={weight} onChange={(e) => setWeight(e.target.value)} className={inp} /><button onClick={() => setWUnit(wUnit === "kg" ? "lb" : "kg")} className="rounded-lg bg-slate-800 px-2 text-[10px] font-bold">{wUnit === "kg" ? "kg?lb" : "lb?kg"}</button></div></div>
           <div><p className={lbl}>BMI (auto)</p><p className="mt-2 rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-bold text-cyan-300">{bmi() || "--"}</p></div>
           <div><p className={lbl}>Smoking</p><select value={smoke} onChange={(e) => setSmoke(e.target.value)} className={"mt-1 " + inp}><option>Never</option><option>Former</option><option>Current</option></select></div>
           <div><p className={lbl}>Alcohol</p><select value={drink} onChange={(e) => setDrink(e.target.value)} className={"mt-1 " + inp}><option>None</option><option>Light</option><option>Moderate</option><option>Heavy</option></select></div>
@@ -85,7 +85,7 @@ export default function Foresight() {
 
       {out && (
         <div className="mt-5 rounded-xl border border-rose-500/30 bg-rose-500/5 p-5">
-          <p className="text-sm font-bold text-rose-200">03 · YOUR 20-YEAR TRAJECTORY MAP</p>
+          <p className="text-sm font-bold text-rose-200">03 � YOUR 20-YEAR TRAJECTORY MAP</p>
           <pre className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{out}</pre>
           <button onClick={() => downloadPdf("iLERA FORESIGHT - 20-YEAR TRAJECTORY MAP\n" + new Date().toLocaleString() + "\nAge: " + age + " | Gender: " + gender + " | BMI: " + bmi() + " | BP: " + bp + "\nSmoking: " + smoke + " | Alcohol: " + drink + " | Activity: " + active + "\nFamily: " + family + "\nLabs: " + labs + "\nResearch-grade: " + research + "\n\n" + out, "iLera-foresight-20yr.pdf")} className="mt-4 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400">Download PDF</button>
         </div>
@@ -93,3 +93,4 @@ export default function Foresight() {
     </main>
   );
 }
+

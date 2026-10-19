@@ -1,5 +1,5 @@
 "use client";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import Link from "next/link";

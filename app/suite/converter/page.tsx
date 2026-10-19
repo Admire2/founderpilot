@@ -1,5 +1,5 @@
 "use client";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { useState, useRef } from "react";
 import { jsPDF } from "jspdf";
 import JSZip from "jszip";

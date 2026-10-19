@@ -12,8 +12,9 @@ const SERVICES = [
 ];
 export default function HealthcareSuite() {
   return (
-    <div className="flex justify-end p-4 bg-slate-900 border-b border-slate-800"><KaraKataAuthBar /></div>
-    <main className="min-h-screen bg-slate-950 p-6 text-white">
+    <>
+      <div className="flex justify-end p-4 bg-slate-900 border-b border-slate-800"><KaraKataAuthBar /></div>
+      <main className="min-h-screen bg-slate-950 p-6 text-white">
       <Link href="/suite" className="text-cyan-400 hover:underline text-sm">← Back to Suite</Link>
       <h1 className="mt-3 text-4xl font-bold">🩺 Healthcare Suite</h1>
       <p className="mt-1 text-sm text-slate-400">Your AI healthcare department. Ten specialist services collaborating as equals - educational screening that prepares you for the doctor, never replaces one.</p>
@@ -41,5 +42,6 @@ export default function HealthcareSuite() {
         </div>
       </div>
     </main>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { downloadPdf } from "@/lib/pdf";
 const CHECKS = ["Camera framed + lit", "Mic peaking -6dB", "Overlay/branding loaded", "Stream key verified", "First-60-sec hook rehearsed"];
 export default function Broadcast() {
@@ -53,3 +53,4 @@ export default function Broadcast() {
     </main>
   );
 }
+

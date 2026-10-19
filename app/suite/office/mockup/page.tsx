@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import WalletBar from "@/app/components/WalletBar";
+import WalletBar from "@/components/WalletBar";
 import { downloadPdf } from "@/lib/pdf";
 const PRESETS: Record<string, string> = { studio: "clean studio lighting, seamless backdrop", lifestyle: "candid lifestyle scene, natural light", festive: "festive celebration setting, warm bokeh", minimalist: "minimalist composition, soft shadows" };
 export default function Mockup() {
@@ -52,3 +52,4 @@ export default function Mockup() {
     </main>
   );
 }
+
