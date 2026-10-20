@@ -39,9 +39,9 @@ export default function KarakataTopHeader() {
         <Link href="/karakata/sellers" className="hover:text-amber-400 transition whitespace-nowrap">
           Sellers
         </Link>
-        
+
         <Link href="/karakata/build" className="hover:text-amber-400 transition text-amber-400 whitespace-nowrap">
-          Build my store free
+          Build your Store 
         </Link>
         <Link href="/karakata/checkout" className="hover:text-amber-400 transition flex items-center gap-1 whitespace-nowrap">
           Cart
