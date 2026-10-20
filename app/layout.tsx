@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import KaraKataAuthBar from "@/components/KaraKataAuthBar";
 import KarakataTopHeader from "@/components/KarakataTopHeader";
+import FloatingAskWidget from "@/components/FloatingAskWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,10 @@ export default function RootLayout({
             
           </div>
         </div>
+
+
+        <FloatingAskWidget />
+        
       </body>
     </html>
   );
