@@ -47,10 +47,10 @@ export async function POST(req: Request) {
     ).join("\n\n");
 
     // --- LAYER 2: SYNTHESIS (Qwen AI) ---
-    // Using dedicated Kara Search API keys for isolation and quota tracking
+    // PRIMARY: 3.75 (Stable). FALLBACK: 3.8 or generic Qwen model.
     const qUrl = process.env.KARA_SEARCH_QWEN_API_URL || process.env.QWEN_API_URL;
     const qKey = process.env.KARA_SEARCH_QWEN_API_KEY || process.env.QWEN_API_KEY;
-    const qModel = process.env.KARA_SEARCH_QWEN_MODEL || process.env.QWEN_MODEL || "qwen-plus";
+    const qModel = process.env.KARA_SEARCH_QWEN_MODEL || process.env.QWEN_MODEL || "3.75";
 
     if (!qUrl || !qKey) {
       return NextResponse.json({ error: "AI configuration missing. Please add KARA_SEARCH_QWEN_API_KEY and KARA_SEARCH_QWEN_API_URL to Vercel Environment Variables." }, { status: 500 });
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: qModel,
+        model: qModel, // <-- Locked to 3.75 by default
         messages: [
           { role: "system", content: SEARCH_SYSTEM_PROMPT },
           { role: "user", content: `Query: ${query}\n\nSources:\n${contextSources}` }
