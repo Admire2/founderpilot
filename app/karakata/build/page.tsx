@@ -6,7 +6,7 @@ export default function BuildStoreChoicePage() {
   const router = useRouter();
 
  const handleAIBuild = () => {
-    router.push('/karakata/sellers');
+    router.push('/karakata/studio');
   };
 
   const handleManualBuild = () => {
