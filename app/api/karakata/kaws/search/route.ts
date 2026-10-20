@@ -18,8 +18,7 @@ export async function POST(req: Request) {
     const { query, focus } = await req.json(); // focus could be 'all', 'academic', 'news'
 
     // --- LAYER 1: RETRIEVAL (SearXNG) ---
-    // UPDATED: Using a public SearXNG instance so Vercel can reach it. 
-    // (Later, we can point this to your private kara-seek-engine server)
+    // Using a public SearXNG instance so Vercel can reach it. 
     const searxngUrl = process.env.SEARXNG_URL || "https://searx.be/search"; 
     
     const searchResponse = await fetch(`${searxngUrl}?q=${encodeURIComponent(query)}&format=json&categories=general${focus !== 'all' ? ',' + focus : ''}`, {
@@ -48,11 +47,13 @@ export async function POST(req: Request) {
     ).join("\n\n");
 
     // --- LAYER 2: SYNTHESIS (Qwen AI) ---
-    const qUrl = process.env.QWEN_API_URL;
-    const qKey = process.env.QWEN_API_KEY;
+    // Using dedicated Kara Search API keys for isolation and quota tracking
+    const qUrl = process.env.KARA_SEARCH_QWEN_API_URL || process.env.QWEN_API_URL;
+    const qKey = process.env.KARA_SEARCH_QWEN_API_KEY || process.env.QWEN_API_KEY;
+    const qModel = process.env.KARA_SEARCH_QWEN_MODEL || process.env.QWEN_MODEL || "qwen-plus";
 
     if (!qUrl || !qKey) {
-      return NextResponse.json({ error: "AI configuration missing" }, { status: 500 });
+      return NextResponse.json({ error: "AI configuration missing. Please add KARA_SEARCH_QWEN_API_KEY and KARA_SEARCH_QWEN_API_URL to Vercel Environment Variables." }, { status: 500 });
     }
 
     const aiResponse = await fetch(qUrl, {
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.QWEN_MODEL || "qwen-plus",
+        model: qModel,
         messages: [
           { role: "system", content: SEARCH_SYSTEM_PROMPT },
           { role: "user", content: `Query: ${query}\n\nSources:\n${contextSources}` }
