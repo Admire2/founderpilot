@@ -19,7 +19,7 @@ export default function KarakataTopHeader() {
       <Link href="/karakata" className="text-lg font-bold text-amber-400 flex-shrink-0">
         KaraKata
       </Link>
-      <form onSubmit={handleSearch} className="flex flex-1 max-w-xl mx-2">
+      <form onSubmit={handleSearch} className="flex flex-1 max-w-md mx-2">
         <input
           type="text"
           value={searchQuery}
@@ -32,9 +32,14 @@ export default function KarakataTopHeader() {
         </button>
       </form>
       <div className="flex items-center gap-3 text-xs font-bold text-white">
+           <Link href="/karakata/sellercenter" className="hover:text-amber-400 transition whitespace-nowrap font-bold text-amber-400">
+     Seller Center
+   </Link>
+
         <Link href="/karakata/sellers" className="hover:text-amber-400 transition whitespace-nowrap">
           Sellers
         </Link>
+        
         <Link href="/karakata/build" className="hover:text-amber-400 transition text-amber-400 whitespace-nowrap">
           Build my store free
         </Link>
