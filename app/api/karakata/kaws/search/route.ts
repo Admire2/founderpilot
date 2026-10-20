@@ -18,20 +18,29 @@ export async function POST(req: Request) {
     const { query, focus } = await req.json(); // focus could be 'all', 'academic', 'news'
 
     // --- LAYER 1: RETRIEVAL (SearXNG) ---
-    // Assuming your SearXNG is running locally on port 8080 (standard Docker setup)
-    // In production, this would be your server's internal IP or hosted SearXNG URL
-    const searxngUrl = process.env.SEARXNG_URL || "http://localhost:8080/search"; 
+    // UPDATED: Using a public SearXNG instance so Vercel can reach it. 
+    // (Later, we can point this to your private kara-seek-engine server)
+    const searxngUrl = process.env.SEARXNG_URL || "https://searx.be/search"; 
     
     const searchResponse = await fetch(`${searxngUrl}?q=${encodeURIComponent(query)}&format=json&categories=general${focus !== 'all' ? ',' + focus : ''}`, {
       next: { revalidate: 0 } // Always get fresh results
     });
 
     if (!searchResponse.ok) {
-      return NextResponse.json({ error: "Search engine unreachable. Is SearXNG running?" }, { status: 502 });
+      console.error("SearXNG Error:", searchResponse.status, searchResponse.statusText);
+      return NextResponse.json({ error: "Search engine unreachable. Please try again." }, { status: 502 });
     }
 
     const searchData = await searchResponse.json();
     const results = searchData.results || [];
+
+    if (results.length === 0) {
+      return NextResponse.json({ 
+        ok: true, 
+        answer: "I searched the web but couldn't find specific information on this topic. Try rephrasing your query.", 
+        sources: [] 
+      });
+    }
 
     // Format results for the AI
     const contextSources = results.slice(0, 10).map((r: any, index: number) => 
