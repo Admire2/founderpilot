@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 export default function BuildStoreChoicePage() {
   const router = useRouter();
 
-  const handleAIBuild = () => {
-    // Navigate to AI builder with a flag
-    router.push('/karakata/build/ai?mode=new');
+ const handleAIBuild = () => {
+    router.push('/karakata/studio');
   };
 
   const handleManualBuild = () => {
@@ -70,9 +69,6 @@ export default function BuildStoreChoicePage() {
               ✨ Build with AI (Free)
             </button>
 
-            <p className="text-center text-xs text-slate-400 mt-3">
-              Powered by Qwen AI
-            </p>
           </div>
 
           {/* RIGHT: Build Manually */}

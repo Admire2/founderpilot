@@ -2,22 +2,31 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
 const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services", "Vehicles & Auto Parts"];
 const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"];
+
 export default function SellerCenter() {
+  const [step, setStep] = useState(1);
+  
+  // Profile State (Unchanged from original)
   const [shop, setShop] = useState(""); const [email, setEmail] = useState("");
   const [phone, setPhone] = useState(""); const [wa, setWa] = useState("");
   const [city, setCity] = useState(""); const [country, setCountry] = useState("");
   const [cat, setCat] = useState(CATS[0]); const [craft, setCraft] = useState("");
   const [pMsg, setPMsg] = useState(""); const [pBusy, setPBusy] = useState(false);
+  const [cInv, setCInv] = useState(false); const [cFun, setCFun] = useState(false); const [cBi, setCBi] = useState(false);
+
+  // Product State (Unchanged from original)
   const [title, setTitle] = useState(""); const [pcat, setPcat] = useState(CATS[0]);
   const [price, setPrice] = useState(""); const [lead, setLead] = useState("7");
   const [occ, setOcc] = useState("Everyday"); const [desc, setDesc] = useState("");
   const [file, setFile] = useState<any>(null);
   const [lMsg, setLMsg] = useState(""); const [lBusy, setLBusy] = useState(false);
-  const [cInv, setCInv] = useState(false);
-  const [sales, setSales] = useState("1000"); const [cFun, setCFun] = useState(false); const [cBi, setCBi] = useState(false);
+
+  // Exact same API calls as original, just wrapped with auto-advance logic
   const saveProfile = async () => {
     if (!shop.trim() || !email.trim()) { setPMsg("Shop name and email are required."); return; }
     setPBusy(true); setPMsg("");
@@ -25,10 +34,12 @@ export default function SellerCenter() {
       const r = await fetch("/api/karakata/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, shop_name: shop, category: cat, country, city, craft, phone, whatsapp: wa }) });
       await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
       const j = await r.json();
-      setPMsg(j.ok ? "Seller profile saved - Kara, your onboarding agent, just queued your welcome email and will nudge you until your first product is live." : (j.error || "Failed."));
+      setPMsg(j.ok ? "Profile saved! Kara has queued your welcome email." : (j.error || "Failed."));
+      if (j.ok) setTimeout(() => setStep(2), 1500); // AUTO-ADVANCE ON SUCCESS
     } catch (e) { setPMsg("Connection error."); }
     setPBusy(false);
   };
+
   const addProduct = async () => {
     if (!title.trim() || !desc.trim() || !price.trim()) { setLMsg("Title, description and price are required."); return; }
     setLBusy(true); setLMsg("");
@@ -37,128 +48,186 @@ export default function SellerCenter() {
     try {
       const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, title, category: pcat, description: desc, price_usd: price, lead_time_days: lead, image_url: url, occasion: occ }) });
       const j = await r.json();
-      setLMsg(j.ok ? "Product LIVE on KaraKata Market! Add another below or view the market." : (j.error || "Failed."));
+      setLMsg(j.ok ? "Product LIVE on KaraKata Market!" : (j.error || "Failed."));
+      if (j.ok) setTimeout(() => setStep(3), 1500); // AUTO-ADVANCE ON SUCCESS
     } catch (e) { setLMsg("Connection error."); }
     setLBusy(false);
   };
-  const inp = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
-  const lbl = "text-[11px] font-bold text-slate-600";
+
+  const inp = "w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition";
+  const lbl = "text-xs font-bold text-slate-600 mb-1 block";
+
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
-      <Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline">← Back to KaraKata Market</Link>
-      <h1 className="mt-3 text-3xl font-bold">🧑‍💼 Seller Center</h1>
-      
-    <div className="mt-4 flex gap-3 flex-wrap">
-      <Link href="/karakata/seller/orders" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200"> Orders</Link>
-      <Link href="/karakata/seller/messages" className="rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-200"> Messages</Link>
-    </div>
-      <p className="mt-1 text-sm text-slate-600">Register your contact, upload pictures, link your products and services - Amazon-style, but free to start and AI-empowered.</p>
-      <p className="mt-2 inline-block rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold text-cyan-700">🤖 Kara - onboarding agent: automatic welcome email + day-2 nudge for every new seller</p>
-            <div className="mt-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5">
-        <p className="text-lg font-bold text-slate-900">⚔️ Fee War Calculator — what your monthly sales cost elsewhere</p>
-        <p className="mt-1 text-xs text-slate-600">My monthly sales (USD): <input value={sales} onChange={(e) => setSales(e.target.value)} className="ml-1 w-24 rounded border border-slate-300 px-2 py-1 text-sm" /> </p>
-        {(() => {
-          const S = Number(sales) || 1000;
-          const rows = [
-            { n: "Amazon", lo: 0.30 * S, hi: 0.45 * S, note: "15% referral + $39.99/mo + FBA + ads (30-45% all-in)" },
-            { n: "Etsy", lo: 0.12 * S, hi: 0.20 * S, note: "$0.20 listing + 6.5% + processing + offsite ads" },
-            { n: "eBay", lo: 0.13 * S, hi: 0.15 * S, note: "~13.25% final value + per-order fees" },
-            { n: "Shopify", lo: 39 + 0.029 * S, hi: 39 + 0.049 * S, note: "$39+ rent + 2.9% + 30c - and you bring your own traffic" },
-            { n: "TikTok Shop", lo: 0.06 * S, hi: 0.08 * S, note: "6% referral; promos & affiliates can triple it" },
-            { n: "KaraKata", lo: 0, hi: 0.10 * S, note: "0% first 6 months (founding), then 8-10% - BI desk included", us: true }
-          ];
-          const max = Math.max.apply(null, rows.map((r) => r.hi)) || 1;
-          return (
-            <div className="mt-3 space-y-2">
-              {rows.map((r: any) => (
-                <div key={r.n}>
-                  <div className="flex justify-between text-xs font-bold text-slate-700"><span>{r.n}{r.us ? " 🛒" : ""}</span><span>{r.us && r.lo === 0 ? "$0 now → $" + Math.round(r.hi) + "/mo later" : "$" + Math.round(r.lo) + " - $" + Math.round(r.hi) + "/mo"}</span></div>
-                  <div className="h-3 w-full rounded bg-slate-200"><div className={"h-3 rounded " + (r.us ? "bg-emerald-500" : "bg-rose-400")} style={{ width: Math.max(2, (r.hi / max) * 100) + "%" }} /></div>
-                  <p className="text-[10px] text-slate-500">{r.note}</p>
-                </div>
-              ))}
-              <p className="pt-1 text-xs font-bold text-emerald-700">On ${S}/mo you keep up to ${S - Math.round(0.10 * S)} with KaraKata vs ${S - Math.round(0.45 * S)}-${S - Math.round(0.30 * S)} on Amazon.</p>
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      {/* Top Nav */}
+      <div className="border-b border-slate-200 bg-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+        <Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline flex items-center gap-1">← Back to Market</Link>
+        <div className="flex gap-3">
+          <Link href="/karakata/sellercenter/orders" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 transition">Orders</Link>
+          <Link href="/karakata/sellercenter/messages" className="rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-200 transition">Messages</Link>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-slate-900">🧑‍💼 Seller Onboarding</h1>
+        <p className="mt-2 text-slate-600">Launch your store in 3 simple steps. No listing fees, AI-empowered.</p>
+
+        {/* Progress Bar */}
+        <div className="mt-8 flex items-center justify-between mb-2">
+          {[1, 2, 3].map((s) => (
+            <div key={s} className="flex flex-col items-center flex-1">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition ${step >= s ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-300 text-slate-400"}`}>
+                {step > s ? "✓" : s}
+              </div>
+              <p className={`mt-2 text-xs font-bold ${step >= s ? "text-emerald-700" : "text-slate-400"}`}>
+                {s === 1 ? "Shop Profile" : s === 2 ? "First Listing" : "Get Paid"}
+              </p>
             </div>
-          );
-        })()}
-      </div>
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-lg font-bold">1 · Your seller profile & contact</p>
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div><p className={lbl}>Shop / business name</p><input value={shop} onChange={(e) => setShop(e.target.value)} className={"mt-1 " + inp} placeholder="Adire & Gold Atelier" /></div>
-            <div><p className={lbl}>Email</p><input value={email} onChange={(e) => setEmail(e.target.value)} className={"mt-1 " + inp} placeholder="you@shop.com" /></div>
-            <div><p className={lbl}>Phone</p><input value={phone} onChange={(e) => setPhone(e.target.value)} className={"mt-1 " + inp} placeholder="+234..." /></div>
-            <div><p className={lbl}>WhatsApp (private - support & payouts only)</p><input value={wa} onChange={(e) => setWa(e.target.value)} className={"mt-1 " + inp} placeholder="+234..." /></div>
-            <div><p className={lbl}>City</p><input value={city} onChange={(e) => setCity(e.target.value)} className={"mt-1 " + inp} placeholder="Lagos" /></div>
-            <div><p className={lbl}>Country</p><input value={country} onChange={(e) => setCountry(e.target.value)} className={"mt-1 " + inp} placeholder="Nigeria" /></div>
-            <div><p className={lbl}>Main category</p><select value={cat} onChange={(e) => setCat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
-          </div>
-          <p className={"mt-3 " + lbl}>What you sell / your craft</p>
-          <textarea value={craft} onChange={(e) => setCraft(e.target.value)} rows={2} className={"mt-1 " + inp} placeholder="Handwoven adire, beaded jewelry, event photography..." />
-          <p className="mt-4 text-[11px] font-bold text-slate-600"><p className="mb-3 text-[11px] font-bold text-emerald-700">Buyer messages reach you through the KaraKata relay form on your listings - your phone and email are never shown to buyers.</p>
-Optional growth program (tick only what you allow - revocable anytime)</p>
-        <label className="mt-1 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={cInv} onChange={(e) => setCInv(e.target.checked)} /> Share inventory & sales data for my free BI dashboard</label>
-        <label className="mt-1 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={cBi} onChange={(e) => setCBi(e.target.checked)} /> Email me monthly BI reports & profit tips</label>
-        <label className="mt-1 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={cFun} onChange={(e) => setCFun(e.target.checked)} /> Consider me for OPTIONAL expansion-funding offers</label>
-        <button onClick={saveProfile} disabled={pBusy} className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">{pBusy ? "Saving..." : "Save My Seller Profile (free)"}</button>
-          {pMsg && <p className="mt-2 text-xs font-bold text-emerald-700">{pMsg}</p>}
+          ))}
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-lg font-bold">2 · Link your products & services</p>
-          <p className="mt-1 text-xs text-slate-500">Upload pictures, set your price, publish live. Repeat for every item.</p>
-          <p className={"mt-3 " + lbl}>Photo</p>
-          <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-500 file:px-3 file:py-2 file:text-sm file:font-bold file:text-slate-950" />
-          <p className={"mt-3 " + lbl}>Title</p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className={"mt-1 " + inp} placeholder="Handmade Adire Scarf - Indigo" />
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div><p className={lbl}>Category</p><select value={pcat} onChange={(e) => setPcat(e.target.value)} className={"mt-1 " + inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
-            <div><p className={lbl}>Season / occasion</p><select value={occ} onChange={(e) => setOcc(e.target.value)} className={"mt-1 " + inp}>{OCC.map((o) => (<option key={o}>{o}</option>))}</select></div>
-            <div><p className={lbl}>Price (USD)</p><input value={price} onChange={(e) => setPrice(e.target.value)} className={"mt-1 " + inp} placeholder="45" /></div>
-            <div><p className={lbl}>Lead time (days)</p><input value={lead} onChange={(e) => setLead(e.target.value)} className={"mt-1 " + inp} placeholder="7" /></div>
-          </div>
-          <p className={"mt-3 " + lbl}>Description</p>
-          <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} className={"mt-1 " + inp} placeholder="Materials, sizes, colors, what makes it special..." />
-          <button onClick={addProduct} disabled={lBusy} className="mt-4 w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{lBusy ? "Publishing..." : "Publish This Product (free)"}</button>
-          {lMsg && <p className="mt-2 text-xs font-bold text-emerald-700">{lMsg}</p>}
-          <Link href="/karakata/studio" className="mt-3 block text-center text-xs font-bold text-cyan-700 hover:underline"><a href="/karakata/auto" className="mt-2 block text-center text-xs font-bold text-emerald-700 underline">🚗 Selling a vehicle or parts? Open the Auto Desk - VIN, history report & inspection badges →</a>
-Prefer AI to write listings? Seller Studio (2 cr) →</Link>
+        <div className="relative -mt-6 mb-8">
+          <div className="absolute top-5 left-0 w-full h-1 bg-slate-200 -z-10 rounded" />
+          <div className="absolute top-5 left-0 h-1 bg-emerald-600 transition-all duration-500 -z-10 rounded" style={{ width: `${((step - 1) / 2) * 100}%` }} />
         </div>
+
+        {/* STEP 1: SHOP PROFILE */}
+        {step === 1 && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-slate-900">Step 1: Your Shop Profile</h2>
+                <p className="text-sm text-slate-500 mt-1">Tell us about your business so buyers can find you.</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 w-full md:w-72 shrink-0">
+                <p className="text-xs font-bold text-amber-800 mb-2">💰 Fee War Calculator</p>
+                <p className="text-[11px] text-amber-700 leading-relaxed">On $1,000/mo sales, you keep up to <span className="font-bold text-emerald-700">$900</span> with KaraKata vs <span className="font-bold text-rose-600">$550-$700</span> on Amazon.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div><label className={lbl}>Shop / Business Name *</label><input value={shop} onChange={(e) => setShop(e.target.value)} className={inp} placeholder="e.g., Adire & Gold Atelier" /></div>
+              <div><label className={lbl}>Email *</label><input value={email} onChange={(e) => setEmail(e.target.value)} className={inp} placeholder="you@shop.com" /></div>
+              <div><label className={lbl}>Phone</label><input value={phone} onChange={(e) => setPhone(e.target.value)} className={inp} placeholder="+234..." /></div>
+              <div><label className={lbl}>WhatsApp (Private - Support & Payouts)</label><input value={wa} onChange={(e) => setWa(e.target.value)} className={inp} placeholder="+234..." /></div>
+              <div><label className={lbl}>City</label><input value={city} onChange={(e) => setCity(e.target.value)} className={inp} placeholder="Lagos" /></div>
+              <div><label className={lbl}>Country</label><input value={country} onChange={(e) => setCountry(e.target.value)} className={inp} placeholder="Nigeria" /></div>
+              <div className="md:col-span-2"><label className={lbl}>Main Category</label><select value={cat} onChange={(e) => setCat(e.target.value)} className={inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+              <div className="md:col-span-2"><label className={lbl}>What you sell / Your craft</label><textarea value={craft} onChange={(e) => setCraft(e.target.value)} rows={3} className={inp} placeholder="Handwoven adire, beaded jewelry, event photography..." /></div>
+            </div>
+
+            <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <p className="text-xs font-bold text-slate-700 mb-3">Optional Growth Program (Revocable anytime)</p>
+              <label className="flex items-center gap-3 text-sm text-slate-600 mb-2 cursor-pointer"><input type="checkbox" checked={cInv} onChange={(e) => setCInv(e.target.checked)} className="rounded text-emerald-600 focus:ring-emerald-500" /> Share inventory data for my free BI dashboard</label>
+              <label className="flex items-center gap-3 text-sm text-slate-600 mb-2 cursor-pointer"><input type="checkbox" checked={cBi} onChange={(e) => setCBi(e.target.checked)} className="rounded text-emerald-600 focus:ring-emerald-500" /> Email me monthly BI reports & profit tips</label>
+              <label className="flex items-center gap-3 text-sm text-slate-600 cursor-pointer"><input type="checkbox" checked={cFun} onChange={(e) => setCFun(e.target.checked)} className="rounded text-emerald-600 focus:ring-emerald-500" /> Consider me for OPTIONAL expansion-funding offers</label>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button onClick={saveProfile} disabled={pBusy} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition flex items-center gap-2 shadow-sm">
+                {pBusy ? "Saving..." : "Save & Continue →"}
+              </button>
+            </div>
+            {pMsg && <p className="mt-3 text-center text-sm font-bold text-emerald-700">{pMsg}</p>}
+          </div>
+        )}
+
+        {/* STEP 2: FIRST LISTING */}
+        {step === 2 && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-xl font-bold text-slate-900 mb-1">Step 2: Add Your First Product</h2>
+            <p className="text-sm text-slate-500 mb-6">Upload a photo, set your price, and go live. You can add more later.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="md:col-span-2">
+                <label className={lbl}>Product Photo</label>
+                <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-emerald-700 hover:file:bg-emerald-100 transition cursor-pointer" />
+              </div>
+              <div className="md:col-span-2"><label className={lbl}>Product Title *</label><input value={title} onChange={(e) => setTitle(e.target.value)} className={inp} placeholder="e.g., Handmade Adire Scarf - Indigo" /></div>
+              <div><label className={lbl}>Category</label><select value={pcat} onChange={(e) => setPcat(e.target.value)} className={inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+              <div><label className={lbl}>Season / Occasion</label><select value={occ} onChange={(e) => setOcc(e.target.value)} className={inp}>{OCC.map((o) => (<option key={o}>{o}</option>))}</select></div>
+              <div><label className={lbl}>Price (USD) *</label><input value={price} onChange={(e) => setPrice(e.target.value)} className={inp} placeholder="45" /></div>
+              <div><label className={lbl}>Lead Time (Days)</label><input value={lead} onChange={(e) => setLead(e.target.value)} className={inp} placeholder="7" /></div>
+              <div className="md:col-span-2"><label className={lbl}>Description *</label><textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} className={inp} placeholder="Materials, sizes, colors, what makes it special..." /></div>
+            </div>
+
+            <div className="mt-6 flex justify-between items-center">
+              <button onClick={() => setStep(1)} className="text-slate-500 font-bold hover:text-slate-800 text-sm transition">← Back</button>
+              <button onClick={addProduct} disabled={lBusy} className="bg-amber-500 text-slate-900 px-8 py-3 rounded-xl font-bold hover:bg-amber-400 disabled:opacity-50 transition flex items-center gap-2 shadow-sm">
+                {lBusy ? "Publishing..." : "Publish Product & Continue →"}
+              </button>
+            </div>
+            {lMsg && <p className="mt-3 text-center text-sm font-bold text-emerald-700">{lMsg}</p>}
+            
+            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+              <p className="text-xs text-slate-500 mb-2">Prefer AI to write your listings?</p>
+              <Link href="/karakata/studio" className="text-sm font-bold text-cyan-700 hover:underline transition">Open Seller Studio (AI Generator) →</Link>
+              <br />
+              <Link href="/karakata/auto" className="text-sm font-bold text-emerald-700 hover:underline mt-2 inline-block transition">🚗 Selling a vehicle? Open the Auto Desk →</Link>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: GET PAID */}
+        {step === 3 && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-xl font-bold text-slate-900 mb-1">Step 3: Connect Your Bank</h2>
+            <p className="text-sm text-slate-500 mb-6">Link your account to receive real money. Delivered orders auto-pay into your bank.</p>
+
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="bg-emerald-100 p-3 rounded-full text-2xl shrink-0">🏦</div>
+                <div>
+                  <h3 className="font-bold text-emerald-900">Stripe Connect</h3>
+                  <p className="text-sm text-emerald-800 mt-1">Secure, global payouts. Founding sellers get <span className="font-bold">0% fees for 6 months</span>, then just 8%.</p>
+                </div>
+              </div>
+              
+              <div id="stripe_connect" className="mt-4" />
+              <button onClick={async () => {
+                const el = document.getElementById("stripe_connect");
+                if (el) el.innerHTML = "<p class='text-sm text-emerald-700 font-bold mt-2'>Creating your secure Connect account...</p>";
+                try {
+                  const r = await fetch("/api/karakata/connect/onboard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+                  const j = await r.json();
+                  if (j.ok && j.url) { window.location.href = j.url; }
+                  else if (el) el.innerHTML = "<p class='text-sm font-bold text-rose-600 mt-2'>" + (j.error || "Failed") + "</p>";
+                } catch (e) { if (el) el.innerHTML = "<p class='text-sm font-bold text-rose-600 mt-2'>Connection error</p>"; }
+              }} className="mt-4 w-full md:w-auto bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-sm">
+                Connect your bank (Stripe-hosted) →
+              </button>
+              <div id="connect_status" className="mt-3 text-sm text-slate-600 font-medium" />
+              
+              <script dangerouslySetInnerHTML={{ __html: `
+                (async () => {
+                  try {
+                    const getEmail = () => { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); if (j && j.user && j.user.email) return j.user.email; } } } catch (e) {} return ""; };
+                    const email = getEmail();
+                    if (!email) return;
+                    const r = await fetch("/api/karakata/connect/account?email=" + encodeURIComponent(email));
+                    const j = await r.json();
+                    const el = document.getElementById("connect_status");
+                    if (!j.ok || !j.stripe_account) { if (el) el.innerHTML = "Status: Not connected yet."; return; }
+                    const chips = [];
+                    if (j.charges_enabled) chips.push("<span class='inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-bold mr-2'>Charges ✅</span>");
+                    if (j.payouts_enabled) chips.push("<span class='inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-bold mr-2'>Payouts ✅</span>");
+                    if (chips.length === 0) chips.push("<span class='inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2.5 py-0.5 text-xs font-bold mr-2'>KYC Pending ⏳</span>");
+                    if (el) el.innerHTML = "Account (" + j.stripe_account + "):<br/>" + chips.join(" ");
+                  } catch (e) {}
+                })();
+              `}} />
+            </div>
+
+            <div className="flex justify-between items-center">
+              <button onClick={() => setStep(2)} className="text-slate-500 font-bold hover:text-slate-800 text-sm transition">← Back</button>
+              <Link href="/karakata/sellercenter" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
+                Go to Seller Dashboard →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-8 text-center text-xs text-slate-400">Founding sellers: 0% commission for 6 months, then 8-10% only when you sell. No subscriptions, no listing fees.</p>
       </div>
-            <div className="mt-6 rounded-xl border-2 border-emerald-300 bg-white p-5 shadow-sm">
-        <p className="text-lg font-bold">💳 Stripe Connect — receive real money</p>
-        <p className="mt-1 text-xs text-slate-600">Link your bank account to Stripe. Once enabled, delivered orders auto-pay into your bank. Founding sellers: 0% fee for 6 months, then 8%.</p>
-        <div id="stripe_connect" className="mt-3" />
-        <button onClick={async () => {
-          const el = document.getElementById("stripe_connect");
-          if (el) el.innerHTML = "<p class='text-xs text-slate-500'>Creating your Connect account...</p>";
-          try {
-            const r = await fetch("/api/karakata/connect/onboard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-            const j = await r.json();
-            if (j.ok && j.url) { window.location.href = j.url; }
-            else if (el) el.innerHTML = "<p class='text-xs font-bold text-rose-600'>" + (j.error || "Failed") + "</p>";
-          } catch (e) { if (el) el.innerHTML = "<p class='text-xs font-bold text-rose-600'>Connection error</p>"; }
-        }} className="mt-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500">Connect your bank (Stripe-hosted) →</button>
-        <div id="connect_status" className="mt-2 text-xs text-slate-500" />
-        <script dangerouslySetInnerHTML={{ __html: `
-          (async () => {
-            try {
-              const email = (() => { try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ""; if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) { const j = JSON.parse(localStorage.getItem(k) || "null"); if (j && j.user && j.user.email) return j.user.email; } } } catch (e) {} return ""; })();
-              if (!email) return;
-              const r = await fetch("/api/karakata/connect/account?email=" + encodeURIComponent(email));
-              const j = await r.json();
-              const el = document.getElementById("connect_status");
-              if (!j.ok || !j.stripe_account) { if (el) el.innerHTML = "Connect status: not connected"; return; }
-              const chips = [];
-              if (j.charges_enabled) chips.push("<span class='rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold'>Charges ✅</span>");
-              if (j.payouts_enabled) chips.push("<span class='rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold'>Payouts ✅</span>");
-              if (chips.length === 0) chips.push("<span class='rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-bold'>KYC pending</span>");
-              if (el) el.innerHTML = "Connect (" + j.stripe_account + "): " + chips.join(" ");
-            } catch (e) {}
-          })();
-        `}} />
-      </div>
-      <p className="mt-6 text-center text-xs text-slate-500">Founding sellers: 0% commission for 6 months, then 8-10% only when you sell. No subscriptions, no listing fees.</p>
     </main>
   );
 }
