@@ -38,32 +38,37 @@ export default function SellerCenter() {
           setStripeSuccess(true);
         }
 
-        // 2. Get email from Supabase localStorage
-        const getEmail = () => {
+        // 2. FIRST: Check if we explicitly saved the onboarding email
+        let userEmail = localStorage.getItem("kara_seller_onboarding_email");
+        
+        // 3. FALLBACK: Get email from Supabase localStorage if not explicitly saved
+        if (!userEmail) {
           try {
             for (let i = 0; i < localStorage.length; i++) {
               const k = localStorage.key(i) || "";
               if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) {
                 const j = JSON.parse(localStorage.getItem(k) || "null");
-                if (j && j.user && j.user.email) return j.user.email;
+                if (j && j.user && j.user.email) {
+                  userEmail = j.user.email;
+                  break;
+                }
               }
             }
           } catch (e) {}
-          return "";
-        };
+        }
         
-        const userEmail = getEmail();
+        // If still no email, just show Step 1
         if (!userEmail) { 
           setLoading(false); 
           return; 
         }
 
-        // 3. Check if seller profile exists
+        // 4. Check if seller profile exists for this specific email
         const profileRes = await fetch(`/api/karakata/aje?action=report&email=${encodeURIComponent(userEmail)}`);
         const profileData = await profileRes.json();
 
         if (profileData.ok && profileData.seller) {
-          // Profile exists, populate fields
+          // Profile exists, populate fields with REAL database data
           setShop(profileData.seller.shop_name || "");
           setEmail(profileData.seller.email || userEmail);
           setPhone(profileData.seller.phone || "");
@@ -73,7 +78,7 @@ export default function SellerCenter() {
           setCat(profileData.seller.category || CATS[0]);
           setCraft(profileData.seller.craft || "");
 
-          // 4. Check if they have any listings to determine the step
+          // 5. Check if they have any listings to determine the step
           if (profileData.listings && profileData.listings.length > 0) {
             setStep(3); // Has product, skip to Step 3
           } else {
@@ -97,7 +102,12 @@ export default function SellerCenter() {
       await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
       const j = await r.json();
       setPMsg(j.ok ? "Profile saved! Kara has queued your welcome email." : (j.error || "Failed."));
-      if (j.ok) setTimeout(() => setStep(2), 1500); // AUTO-ADVANCE ON SUCCESS
+      
+      // 👇 CRITICAL FIX: Explicitly remember the email for page reloads
+      if (j.ok) {
+        localStorage.setItem("kara_seller_onboarding_email", email);
+        setTimeout(() => setStep(2), 1500); // AUTO-ADVANCE ON SUCCESS
+      }
     } catch (e) { setPMsg("Connection error."); }
     setPBusy(false);
   };
@@ -111,7 +121,12 @@ export default function SellerCenter() {
       const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, title, category: pcat, description: desc, price_usd: price, lead_time_days: lead, image_url: url, occasion: occ }) });
       const j = await r.json();
       setLMsg(j.ok ? "Product LIVE on KaraKata Market!" : (j.error || "Failed."));
-      if (j.ok) setTimeout(() => setStep(3), 1500); // AUTO-ADVANCE ON SUCCESS
+      
+      // 👇 CRITICAL FIX: Explicitly remember the email here too, just in case
+      if (j.ok) {
+        localStorage.setItem("kara_seller_onboarding_email", email);
+        setTimeout(() => setStep(3), 1500); // AUTO-ADVANCE ON SUCCESS
+      }
     } catch (e) { setLMsg("Connection error."); }
     setLBusy(false);
   };
