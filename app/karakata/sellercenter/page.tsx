@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,8 +10,10 @@ const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Fe
 
 export default function SellerCenter() {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [stripeSuccess, setStripeSuccess] = useState(false);
   
-  // Profile State (Unchanged from original)
+  // Profile State
   const [shop, setShop] = useState(""); const [email, setEmail] = useState("");
   const [phone, setPhone] = useState(""); const [wa, setWa] = useState("");
   const [city, setCity] = useState(""); const [country, setCountry] = useState("");
@@ -19,14 +21,74 @@ export default function SellerCenter() {
   const [pMsg, setPMsg] = useState(""); const [pBusy, setPBusy] = useState(false);
   const [cInv, setCInv] = useState(false); const [cFun, setCFun] = useState(false); const [cBi, setCBi] = useState(false);
 
-  // Product State (Unchanged from original)
+  // Product State
   const [title, setTitle] = useState(""); const [pcat, setPcat] = useState(CATS[0]);
   const [price, setPrice] = useState(""); const [lead, setLead] = useState("7");
   const [occ, setOcc] = useState("Everyday"); const [desc, setDesc] = useState("");
   const [file, setFile] = useState<any>(null);
   const [lMsg, setLMsg] = useState(""); const [lBusy, setLBusy] = useState(false);
 
-  // Exact same API calls as original, just wrapped with auto-advance logic
+  // SMART ONBOARDING DETECTION: Check database on load
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      try {
+        // 1. Check for Stripe redirect success
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('connect') === 'done') {
+          setStripeSuccess(true);
+        }
+
+        // 2. Get email from Supabase localStorage
+        const getEmail = () => {
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i) || "";
+              if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) {
+                const j = JSON.parse(localStorage.getItem(k) || "null");
+                if (j && j.user && j.user.email) return j.user.email;
+              }
+            }
+          } catch (e) {}
+          return "";
+        };
+        
+        const userEmail = getEmail();
+        if (!userEmail) { 
+          setLoading(false); 
+          return; 
+        }
+
+        // 3. Check if seller profile exists
+        const profileRes = await fetch(`/api/karakata/aje?action=report&email=${encodeURIComponent(userEmail)}`);
+        const profileData = await profileRes.json();
+
+        if (profileData.ok && profileData.seller) {
+          // Profile exists, populate fields
+          setShop(profileData.seller.shop_name || "");
+          setEmail(profileData.seller.email || userEmail);
+          setPhone(profileData.seller.phone || "");
+          setWa(profileData.seller.whatsapp || "");
+          setCity(profileData.seller.city || "");
+          setCountry(profileData.seller.country || "");
+          setCat(profileData.seller.category || CATS[0]);
+          setCraft(profileData.seller.craft || "");
+
+          // 4. Check if they have any listings to determine the step
+          if (profileData.listings && profileData.listings.length > 0) {
+            setStep(3); // Has product, skip to Step 3
+          } else {
+            setStep(2); // Has profile but no product, go to Step 2
+          }
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      }
+      setLoading(false);
+    };
+
+    checkOnboardingStatus();
+  }, []);
+
   const saveProfile = async () => {
     if (!shop.trim() || !email.trim()) { setPMsg("Shop name and email are required."); return; }
     setPBusy(true); setPMsg("");
@@ -56,6 +118,14 @@ export default function SellerCenter() {
 
   const inp = "w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition";
   const lbl = "text-xs font-bold text-slate-600 mb-1 block";
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-slate-600 font-bold animate-pulse">Loading your seller dashboard...</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -170,6 +240,11 @@ export default function SellerCenter() {
         {/* STEP 3: GET PAID */}
         {step === 3 && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {stripeSuccess && (
+              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm font-bold text-center animate-in fade-in slide-in-from-top-2">
+                ✅ Bank account connected successfully! You are ready to receive payouts.
+              </div>
+            )}
             <h2 className="text-xl font-bold text-slate-900 mb-1">Step 3: Connect Your Bank</h2>
             <p className="text-sm text-slate-500 mb-6">Link your account to receive real money. Delivered orders auto-pay into your bank.</p>
 
