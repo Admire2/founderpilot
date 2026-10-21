@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
-// Initialize Resend with your Vercel Environment Variable
+// Initialize Resend with your existing Vercel Environment Variable
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     
-    // 1. Save to Database
+    // 1. Save to Database (using renamed 'sellers' table)
     const { error } = await sb.from("sellers").upsert({ 
       email: String(b.email || "").toLowerCase(), 
       shop_name: b.shop_name, 
@@ -33,9 +33,9 @@ export async function POST(req: Request) {
     }
 
     // 2. SEND THE WELCOME EMAIL VIA RESEND
-    if (process.env.RESEND_API_KEY) {
+    try {
       await resend.emails.send({
-        from: "KaraKata <onboarding@resend.dev>", // Update this to your verified Resend domain later
+        from: "KaraKata <onboarding@resend.dev>",
         to: [b.email],
         subject: `Welcome to KaraKata, ${b.shop_name}! 🚀`,
         html: `
@@ -49,8 +49,9 @@ export async function POST(req: Request) {
         `
       });
       console.log("✅ Welcome email sent to:", b.email);
-    } else {
-      console.warn("⚠️ RESEND_API_KEY not found. Email not sent.");
+    } catch (emailError) {
+      console.error("⚠️ Email sending failed:", emailError);
+      // Don't fail the request if email fails - user still gets onboarded
     }
 
     return NextResponse.json({ ok: true });
