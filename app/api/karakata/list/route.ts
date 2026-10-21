@@ -6,15 +6,15 @@ export async function GET(req: Request) {
   const id = searchParams.get("id");
   const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
   if (id) {
-    const { data } = await sb.from("kara_listings").select("*, kara_sellers(shop_name, whatsapp, phone, city)").eq("id", Number(id)).single();
+    const { data } = await sb.from("kara_listings").select("*, sellers(shop_name, whatsapp, phone, city)").eq("id", Number(id)).single();
     const { data: rel } = await sb.from("kara_listings").select("*").eq("category", (data && data.category) || "").neq("id", Number(id)).limit(4);
     return NextResponse.json({ ok: true, item: data || null, related: rel || [] });
   }
-  const { data } = await sb.from("kara_listings").select("*, kara_sellers(shop_name, whatsapp, phone, city)").eq("status", "active").order("created_at", { ascending: false }).limit(60);
+  const { data } = await sb.from("kara_listings").select("*, sellers(shop_name, whatsapp, phone, city)").eq("status", "active").order("created_at", { ascending: false }).limit(60);
   const cons = await sb.from("kara_consents").select("email").eq("consent_inventory", true);
     const consSet = new Set((cons.data || []).map((c: any) => c.email));
     const items = (data || []).map((l: any) => {
-      const s = l.kara_sellers;
+      const s = l.sellers;
       const badges: string[] = [];
       if (Number(l.lead_time_days) <= 3) badges.push("Fast");
       if (s && s.status === "active") badges.push("Verified");

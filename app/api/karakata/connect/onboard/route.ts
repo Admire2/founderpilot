@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    let { data: seller } = await sb.from("kara_sellers").select("*").eq("email", email).single();
+    let { data: seller } = await sb.from("sellers").select("*").eq("email", email).single();
     if (!seller) return NextResponse.json({ ok: false, error: "Register as a seller first" }, { status: 404 });
 
     let acctId = seller.stripe_account;
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         metadata: { kara_seller_id: String(seller.id), shop_name: seller.shop_name }
       });
       acctId = acct.id;
-      await sb.from("kara_sellers").update({ stripe_account: acctId }).eq("id", seller.id);
+      await sb.from("sellers").update({ stripe_account: acctId }).eq("id", seller.id);
     }
 
     const origin = req.headers.get("origin") || "https://founderpilot-theta.vercel.app";

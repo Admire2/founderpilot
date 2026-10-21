@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       .eq("id", orderId).single();
     if (!order) return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
 
-    let seller: any = (order as any).kara_sellers; if (!seller && (order as any).seller_id) { const sr2: any = await sb.from("kara_sellers").select("*").eq("id", (order as any).seller_id).single(); seller = sr2.data; }
+    let seller: any = (order as any).sellers; if (!seller && (order as any).seller_id) { const sr2: any = await sb.from("sellers").select("*").eq("id", (order as any).seller_id).single(); seller = sr2.data; }
     if (!seller || !seller.stripe_account) {
       return NextResponse.json({ ok: false, error: "Seller has no Stripe Connect account" }, { status: 400 });
     }

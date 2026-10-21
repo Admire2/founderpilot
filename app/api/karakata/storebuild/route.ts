@@ -39,11 +39,11 @@ export async function POST(req: Request) {
     const d = b.draft || {};
     let sellerId = Number(b.seller_id || 0);
     if (!sellerId) {
-      const ins: any = await sb.from("kara_sellers").insert({ shop_name: String(d.shop_name || "New Store"), email: String(b.email || "pending@karakata.com"), stripe_account: "", stripe_payouts_enabled: false, tagline: String(d.tagline || ""), about_text: String(d.about_text || ""), theme_color: String(d.theme_color || "#0f766e"), banner_headline: String(d.banner_headline || "") }).select().single();
+      const ins: any = await sb.from("sellers").insert({ shop_name: String(d.shop_name || "New Store"), email: String(b.email || "pending@karakata.com"), stripe_account: "", stripe_payouts_enabled: false, tagline: String(d.tagline || ""), about_text: String(d.about_text || ""), theme_color: String(d.theme_color || "#0f766e"), banner_headline: String(d.banner_headline || "") }).select().single();
       if (!ins.data) return NextResponse.json({ ok: false, error: String(ins.error && ins.error.message) }, { status: 500 });
       sellerId = ins.data.id;
     } else {
-      await sb.from("kara_sellers").update({ shop_name: String(d.shop_name || ""), tagline: String(d.tagline || ""), about_text: String(d.about_text || ""), theme_color: String(d.theme_color || "#0f766e"), banner_headline: String(d.banner_headline || "") }).eq("id", sellerId);
+      await sb.from("sellers").update({ shop_name: String(d.shop_name || ""), tagline: String(d.tagline || ""), about_text: String(d.about_text || ""), theme_color: String(d.theme_color || "#0f766e"), banner_headline: String(d.banner_headline || "") }).eq("id", sellerId);
     }
     const probe: any = await sb.from("kara_listings").select("*").limit(1);
     const cols = probe && probe.data && probe.data[0] ? Object.keys(probe.data[0]) : [];

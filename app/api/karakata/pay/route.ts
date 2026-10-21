@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const sellerId = Number(b.seller_id || (items[0] && items[0].seller_id) || 0);
     let dest = ""; let fee = 0; let founding = true;
     if (sellerId) {
-      const { data: seller } = await sb.from("kara_sellers").select("*").eq("id", sellerId).single();
+      const { data: seller } = await sb.from("sellers").select("*").eq("id", sellerId).single();
       if (seller && seller.stripe_account && seller.stripe_charges_enabled) {
         dest = String(seller.stripe_account);
         const months = (Date.now() - new Date(seller.created_at || Date.now()).getTime()) / (30 * 86400000);

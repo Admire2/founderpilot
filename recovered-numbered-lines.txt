@@ -2332,7 +2332,7 @@
 3. Done — no code change needed anywhere; our `/api/karakata/connect/onboard` route was already correct.
 4. Back on `/karakata/sell` → click **Connect your bank (Stripe-hosted) →** again.
 5. This time Stripe's **Express onboarding** page opens (sandbox): fill test business + bank details (Stripe's sandbox accepts test routing/account numbers; it shows suggested test values).
-6. Finish → you're returned to `/karakata/sell?connect=done` → the status line flips from *"not connected"* to **Charges ✅ Payouts ✅** (the `account.updated` webhook stamps `kara_sellers` and Bose queues the "Connect is live" email).
+6. Finish → you're returned to `/karakata/sell?connect=done` → the status line flips from *"not connected"* to **Charges ✅ Payouts ✅** (the `account.updated` webhook stamps `sellers` and Bose queues the "Connect is live" email).
 1. Finish the dashboard Connect setup (four steps above).
 2. Back to `/karakata/sell` → **Connect your bank (Stripe-hosted) →** — this time the Express onboarding link will generate (the "sign up for Connect" error is gone).
 3. Complete test-mode Express onboarding → return → status chips **Charges ✅ Payouts ✅**.
@@ -2344,24 +2344,24 @@
 6. One quick escrow-alignment check before any money test:
 7. Then the sandbox money loop: publish product → `/karakata/express` → `4242…` → order stamps `paid` → Tunde `delivered` → transfer fires → Bose emails "💰 Payout landed."
 2. Complete test-mode Express onboarding (test bank details) → return → chips flip to **Charges ✅ Payouts ✅**.
-3. Supabase check: `kara_sellers` row shows `stripe_account = acct_...`, both flags true; `kara_emails` gets Bose's "Connect is live" row.
+3. Supabase check: `sellers` row shows `stripe_account = acct_...`, both flags true; `kara_emails` gets Bose's "Connect is live" row.
 4. Then the money loop: publish product → `/karakata/express` → `4242…` → order stamps `paid` → Tunde `delivered` → transfer fires → Bose emails "💰 Payout landed."
 1. Back to `/karakata/sell` → click **Connect your bank (Stripe-hosted) →** — this time the Express onboarding link will generate (the "sign up for Connect" error is permanently gone).
 2. Complete test-mode Express onboarding → return → chips flip to **Charges ✅ Payouts ✅**.
-3. Supabase check: `kara_sellers` row shows `stripe_account = acct_...`, both flags true; `kara_emails` gets Bose's "Connect is live" row.
+3. Supabase check: `sellers` row shows `stripe_account = acct_...`, both flags true; `kara_emails` gets Bose's "Connect is live" row.
 4. Sandbox money loop: publish product → `/karakata/express` → test card `4242 4242 4242 4242` → order stamps `paid` (funds sit on platform) → Tunde `delivered` → transfer fires to seller → Bose emails "💰 Payout landed."
 3. Category dropdown (sell) + filter (market) → **Vehicles & Auto Parts** present (if the quoted-item format matched; if a miss prints, paste the category array line and I'll pin it).
 4. Publish a parts listing (e.g., "Toyota Camry 2012 brake pads · OEM #04465-33471 · fits Camry 2007-2017") → appears in market under the new category.
 3. Paste a sample history text → **Analyze report** → verdict block (CLEAN/CAUTION/RED) → **Attach summary** → publish → market listing under **Vehicles & Auto Parts** carries the spec block, grade, history link and AI summary.
 4. Buyer side: spec + history + grade visible in the listing; questions ride the relay; money rides the escrow. Three legs, one stool.
-2. Chips flip to **Charges ✅ Payouts ✅**; `kara_sellers` row gets `stripe_account = acct_...` + both flags true; Bose queues the "Connect is live" email.
+2. Chips flip to **Charges ✅ Payouts ✅**; `sellers` row gets `stripe_account = acct_...` + both flags true; Bose queues the "Connect is live" email.
 3. Money loop test: publish product → `/karakata/express` → `4242 4242 4242 4242` → order stamps `paid` (escrow) → Tunde `delivered` → transfer fires → Bose emails "💰 Payout landed."
-2. Chips flip to **Charges ✅ Payouts ✅**; `kara_sellers` row gets `stripe_account = acct_...` + both flags; Bose queues the "Connect is live" email.
+2. Chips flip to **Charges ✅ Payouts ✅**; `sellers` row gets `stripe_account = acct_...` + both flags; Bose queues the "Connect is live" email.
 3. Then the money loop: publish product → `/karakata/express` → `4242 4242 4242 4242` → order stamps `paid` (escrow) → Tunde `delivered` → transfer fires → Bose emails "💰 Payout landed."
 2. Publish a product → `/karakata/express` → test card `4242 4242 4242 4242` → order stamps `paid` (escrow).
 3. Tunde marks `delivered` → transfer fires → Bose emails "💰 Payout landed."
 2. Back on desktop → `/karakata/sell` → **Connect your bank (Stripe-hosted) →** → complete the Express onboarding (test business + bank details).
-3. Chips flip to **Charges ✅ Payouts ✅** → `kara_sellers` row gets `stripe_account` + both flags true → Bose queues the "Connect is live" email.
+3. Chips flip to **Charges ✅ Payouts ✅** → `sellers` row gets `stripe_account` + both flags true → Bose queues the "Connect is live" email.
 4. Then the **sandbox money loop**: publish product → `/karakata/express` → `4242 4242 4242 4242` → order stamps `paid` (escrow) → Tunde `delivered` → transfer fires → Bose emails "💰 Payout landed."
 1. Market search "inspection" → the three Auto Desk services appear **on the shelf** (no longer just AI-sourced).
 2. Add the $35 history report to cart → `/karakata/express` → `4242…` → escrow stamps `paid` → mark delivered → payout fires to the Auto Desk seller → Bose email.
@@ -2415,7 +2415,7 @@
 3. Confirm **Verify an identity document** now reads *Verified* (your QR-code phone flow).
 4. Save and wait ~60 seconds.
 5. Back on `/karakata/sell` → click **Connect your bank (Stripe-hosted) →**.
-6. Success looks like: redirect to `connect.stripe.com` Express onboarding (test) → fill test business + bank (`110000000` / `000123456789`) → return to `?connect=done` → chips flip **Charges ✅ Payouts ✅** → `kara_sellers` row gets `stripe_account = acct_…` → Bose queues "Connect is live."
+6. Success looks like: redirect to `connect.stripe.com` Express onboarding (test) → fill test business + bank (`110000000` / `000123456789`) → return to `?connect=done` → chips flip **Charges ✅ Payouts ✅** → `sellers` row gets `stripe_account = acct_…` → Bose queues "Connect is live."
 7. Publish "Test Adire Scarf – $5" from that same Seller Center.
 8. Buy it via `/karakata/express` with `4242 4242 4242 4242`.
 9. Supabase `kara_orders`: `status = paid`, `payout_status = pending_delivery` ← **the escrow hold, visible**.
@@ -2441,7 +2441,7 @@
 1. Click **"Update your bank account →"** (the `>` chevron on that row). It jumps you straight to the Linked accounts panel — no hunting for buttons.
 3. Remove/retire the deactivated **Delta Community Cu ••••4408** row if offered.
 4. Come back to this Account status page: **Payouts should flip Paused → Active**, the task row vanishes, and the bell 🔔 reads **Action required: 0**.
-6. Test business + test bank → return → chips **Charges ✅ Payouts ✅** → dock (`/connect/accounts`) gains account #1 → `kara_sellers` stamped with `acct_…`.
+6. Test business + test bank → return → chips **Charges ✅ Payouts ✅** → dock (`/connect/accounts`) gains account #1 → `sellers` stamped with `acct_…`.
 2. Enter the **sandbox bank** (never the real Delta account again, even here):
 3. Submit. The "24 hours / 2–3 days" review language is **live-mode wording** — in sandbox this typically clears in minutes.
 1. Your `.env.local` file likely has quotes around the key (e.g., `STRIPE_SECRET_KEY="sk_test_..."`), which Stripe rejects as an invalid format.
@@ -2495,7 +2495,7 @@
 1. After the bank: any remaining review screens → **Agree & submit**.
 2. Stripe redirects to `/karakata/sell?connect=done`.
 3. Chips flip **Charges ✅ Payouts ✅**.
-4. Verify the stamp: `kara_sellers.stripe_account = acct_1UGfK6BgcDPSeiGx`; dock shows 1 Enabled account; Bose queues "Connect is live."
+4. Verify the stamp: `sellers.stripe_account = acct_1UGfK6BgcDPSeiGx`; dock shows 1 Enabled account; Bose queues "Connect is live."
 1. Keep **••••2227** selected (any "Linked" row works — they're all the same healthy simulation with different last-4s).
 2. Click **Continue**.
 3. Whatever follows (review screen, terms) → **Agree & submit**.
@@ -2681,7 +2681,7 @@
 3. SQL: `select id, code, status, payout_status, total_usd from kara_orders order by id desc limit 2;` → new row `paid` + `pending_delivery` (+ `total_usd = 22` if the total-fix is live).
 4. Tunde `delivered` → check **Connect → Transfers**. If empty (the 404 payout route), run this probe and paste the number:
 5. Bose "💰 Payout landed."
-1. Add a `commission_pct` column to the `kara_sellers` table (so you can negotiate custom rates with big sellers).
+1. Add a `commission_pct` column to the `sellers` table (so you can negotiate custom rates with big sellers).
 2. Or create a `kara_platform_settings` table with a global `default_fee_pct`.
 3. Build an Admin Dashboard UI where you can change the global fee from 8% to 10% with a single click, no code deployment required.
 1. Stripe processing cost → **seller bears it from day one** ✅ (decided)
@@ -2742,7 +2742,7 @@
 1. Open your Gmail. You will see the email with a big green **"Rate My Seller ⭐"** button. (Gmail will *never* strip a normal web link).
 2. Click the button. It will open the beautiful KaraKata dark-mode Review Page.
 3. Click the 5th star. The page will instantly animate and say **"Thank You! ⭐⭐⭐⭐⭐"**.
-4. Check your Supabase `kara_reviews` table to see the 5-star rating saved, and `kara_sellers` to see the average update to 5.0!
+4. Check your Supabase `kara_reviews` table to see the 5-star rating saved, and `sellers` to see the average update to 5.0!
 1. Open Gmail (check Inbox, Promotions, and Spam).
 2. You should see 3 emails from `KaraKata <onboarding@resend.dev>`.
 3. Open the **"🚚 Tunde: Delivered!"** email.

@@ -11,7 +11,7 @@ export default function ProductPage() {
   useEffect(() => { if (id) fetch("/api/karakata/list?id=" + id).then((r) => r.json()).then((j) => { setItem(j.item); setRel(j.related || []); }).catch(() => {}); }, [id]);
   if (!item) return (<main className="min-h-screen bg-slate-50 p-10 text-slate-900"><Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline">← Back to KaraKata Market</Link><p className="mt-6 text-slate-500">Loading product...</p><SellerRelay />
     </main>);
-  const seller = item.kara_sellers || {};
+  const seller = item.sellers || {};
   const wa = String(seller.whatsapp || "").replace(/[^0-9]/g, "");
   const waLink = wa ? "#relay" + wa + "?text=" + encodeURIComponent("Hi " + (seller.shop_name || "seller") + ", I want to order: " + item.title + " ($" + item.price_usd + ") from KaraKata Market.") : "";
   return (

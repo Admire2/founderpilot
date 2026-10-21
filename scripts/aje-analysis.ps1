@@ -10,7 +10,7 @@ if (-not $Url -or -not $Key) {
   }
 }
 $h = @{ apikey = $Key; Authorization = "Bearer $Key" }
-$sellers  = Invoke-RestMethod "$Url/rest/v1/kara_sellers?select=*"  -Headers $h
+$sellers  = Invoke-RestMethod "$Url/rest/v1/sellers?select=*"  -Headers $h
 $listings = Invoke-RestMethod "$Url/rest/v1/kara_listings?select=*" -Headers $h
 $inv      = Invoke-RestMethod "$Url/rest/v1/kara_inventory?select=*" -Headers $h
 $reqs     = Invoke-RestMethod "$Url/rest/v1/kara_requests?select=*" -Headers $h

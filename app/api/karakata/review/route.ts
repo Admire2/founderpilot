@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   const all = reviews || [];
   const avg = all.length > 0 ? all.reduce((sum: number, r: any) => sum + r.stars, 0) / all.length : 0;
   
-  await sb.from("kara_sellers").update({ 
+  await sb.from("sellers").update({ 
     avg_rating: avg.toFixed(2), 
     review_count: all.length 
   }).eq("id", order.seller_id);

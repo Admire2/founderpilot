@@ -23,7 +23,7 @@ export default function SellersPage() {
     const fetchSellers = async () => {
       try {
         const { data, error } = await sb
-          .from("kara_sellers")
+          .from("sellers")
           .select("*")
           .order("avg_rating", { ascending: false });
         

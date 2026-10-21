@@ -7,7 +7,7 @@ function stars(n: number) { const f = Math.round(n); return "â˜…".repeat(f) + "â
 export default async function SellerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { data: seller } = await sb.from("kara_sellers").select("*").eq("id", id).single();
+  const { data: seller } = await sb.from("sellers").select("*").eq("id", id).single();
   const { data: reviews } = await sb.from("kara_reviews").select("*").eq("seller_id", id).order("created_at", { ascending: false });
   const list = reviews || [];
   if (!seller) return <main className="min-h-screen bg-slate-950 p-10 text-white">Seller not found.</main>;

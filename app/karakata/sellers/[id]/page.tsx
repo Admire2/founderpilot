@@ -29,7 +29,7 @@ export default function SellerDetailPage() {
   useEffect(() => {
     const fetchSeller = async () => {
       const { data, error } = await sb
-        .from("kara_sellers")
+        .from("sellers")
         .select("*")
         .eq("id", sellerId)
         .single();

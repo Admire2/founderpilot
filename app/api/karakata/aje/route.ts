@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     }
 
     if (b.action === "report") {
-      const { data: sellers } = await sb.from("kara_sellers").select("*").eq("email", email).limit(1);
+      const { data: sellers } = await sb.from("sellers").select("*").eq("email", email).limit(1);
       const seller = sellers && sellers[0];
       if (!seller) return NextResponse.json({ ok: false, error: "Register as a seller first at /karakata/sell" }, { status: 404 });
       const { data: listings } = await sb.from("kara_listings").select("*").eq("seller_id", seller.id);
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     }
 
     if (b.action === "score") {
-      const { data: sellers } = await sb.from("kara_sellers").select("*");
+      const { data: sellers } = await sb.from("sellers").select("*");
       const { data: listings } = await sb.from("kara_listings").select("*");
       const { data: inv } = await sb.from("kara_inventory").select("*");
       const { data: reqs } = await sb.from("kara_requests").select("*");

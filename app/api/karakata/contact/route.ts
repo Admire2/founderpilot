@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         shop = String(row.shop_name || row.title || "");
         if (!sellerEmail && row.seller_id) {
           let s: any = null;
-          try { const r2 = await sb.from("kara_sellers").select("*").eq("id", Number(row.seller_id)).single(); s = r2.data; } catch (e) {}
+          try { const r2 = await sb.from("sellers").select("*").eq("id", Number(row.seller_id)).single(); s = r2.data; } catch (e) {}
           if (s) { sellerEmail = String(s.email || "").toLowerCase(); shop = shop || String(s.shop_name || ""); }
         }
         break;

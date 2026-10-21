@@ -13,6 +13,6 @@ KARAKATA SELLER FOLDERS AUDIT REPORT
 === FOLDER: SELLERS ===
 
   [FILE: page.tsx]
-  Preview: import { createClient } from "@supabase/supabase-js"; import Link from "next/link"; export const dynamic = "force-dynamic"; function stars(n: number) { const f = Math.round(n); return "★".repeat(f) + "☆".repeat(5 - f); } export default async function SellersPage() { const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!); const { data: sellers } = await sb.from("kara_sellers").select("*").order("avg_rating", { ascending: false }); const list = sellers || []; return ( <main className="min-h-screen bg-slate-950 p-6 text-white"> <...
+  Preview: import { createClient } from "@supabase/supabase-js"; import Link from "next/link"; export const dynamic = "force-dynamic"; function stars(n: number) { const f = Math.round(n); return "★".repeat(f) + "☆".repeat(5 - f); } export default async function SellersPage() { const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!); const { data: sellers } = await sb.from("sellers").select("*").order("avg_rating", { ascending: false }); const list = sellers || []; return ( <main className="min-h-screen bg-slate-950 p-6 text-white"> <...
   Size: 1586 bytes
 
