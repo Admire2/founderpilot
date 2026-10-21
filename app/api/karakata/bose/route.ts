@@ -30,7 +30,7 @@ export async function POST(req: Request) {
             "<p><b>Total sales:</b> $" + totalSales.toFixed(2) + "</p>" +
             "<p><b>Fees taken:</b> $" + totalFees.toFixed(2) + "</p>" +
             "<p><b>Net to your bank:</b> $" + (totalSales - totalFees).toFixed(2) + "</p>" +
-            "<p>Keep growing — Bose will ping you when your Aje funding tier moves.</p>" +
+            "<p>Keep growing ï¿½ Bose will ping you when your Aje funding tier moves.</p>" +
             "<p>- Bose, KaraKata Payout Agent</p></div>",
           status: "queued", send_at: new Date().toISOString()
         });
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       if (seller && payouts && seller.email) {
         await sb.from("kara_emails").insert({
           email: seller.email, kind: "bose_connect_ready",
-          subject: seller.shop_name + ", your Stripe Connect is LIVE — you can now receive payouts",
+          subject: seller.shop_name + ", your Stripe Connect is LIVE ï¿½ you can now receive payouts",
           body: "<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto'>" +
             "<h2 style='color:#0f766e'>?? Connect is live</h2>" +
             "<p>Hi " + seller.shop_name + ", Bose here.</p>" +
