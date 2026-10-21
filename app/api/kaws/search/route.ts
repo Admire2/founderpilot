@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     // --- LAYER 2: SYNTHESIS (Qwen AI - PROVEN WORKING!) ---
     const qUrl = process.env.KARA_SEARCH_QWEN_API_URL || process.env.QWEN_API_URL;
     const qKey = process.env.KARA_SEARCH_QWEN_API_KEY || process.env.QWEN_API_KEY;
-    const qModel = process.env.KARA_SEARCH_QWEN_MODEL || process.env.QWEN_MODEL || "3.75";
+    const qModel = process.env.KARA_SEARCH_QWEN_MODEL || process.env.QWEN_MODEL || "qwen-plus";
 
     if (!qUrl || !qKey) {
       console.error("❌ Missing Qwen API configuration");
