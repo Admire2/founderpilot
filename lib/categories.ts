@@ -1,4 +1,3 @@
-// MASTER CATEGORY LIST: Unified from Seller Onboarding and Marketplace
 export const MASTER_CATEGORIES = [
   "Fashion & Clothing",
   "Jewelry & Gems",
