@@ -88,7 +88,7 @@ export default function Market() {
         "&nologo=true";
   const norm = (s: any) => String(s || "").toLowerCase();
 
-  // ✅ STRICT SEARCH: Only checks Title and Category to prevent false positives (like "leather seats" in a car description)
+  // ✅ STRICT SEARCH: Only checks Title and Category to prevent false positives
   const filtered = items.filter(
     (l: any) =>
       (!cat || l.category === cat) &&
