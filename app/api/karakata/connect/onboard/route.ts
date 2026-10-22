@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -10,6 +11,7 @@ export async function POST(req: Request) {
     if (!email || !process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ ok: false, error: "Email and Stripe key required" }, { status: 400 });
     }
+    
     const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -29,12 +31,15 @@ export async function POST(req: Request) {
     }
 
     const origin = req.headers.get("origin") || "https://founderpilot-theta.vercel.app";
+    
+    // ✅ FIXED: Redirect back to Seller Center, not /karakata/sell
     const link = await stripe.accountLinks.create({
       account: acctId,
-      refresh_url: origin + "/karakata/sell",
-      return_url: origin + "/karakata/sell?connect=done",
+      refresh_url: origin + "/karakata/sellercenter?connect=refresh",
+      return_url: origin + "/karakata/sellercenter?connect=done",
       type: "account_onboarding"
     });
+    
     return NextResponse.json({ ok: true, url: link.url, account: acctId });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: String((e && e.message) || e) }, { status: 500 });
