@@ -17,7 +17,7 @@ export default function KarakataTopHeader() {
 
   return (
     <header className="w-full flex items-center justify-between gap-3">
-      <Link href="/karakata" className="text-lg font-bold text-amber-400 flex-shrink-0">
+        <a href="/karakata" className="text-lg font-bold text-amber-400 flex-shrink-0 hover:text-amber-300 transition">
         KaraKata
       </Link>
       <form onSubmit={handleSearch} className="flex flex-1 max-w-md mx-2">
