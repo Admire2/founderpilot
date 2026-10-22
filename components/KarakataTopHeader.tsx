@@ -7,10 +7,11 @@ export default function KarakataTopHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
-  const handleSearch = (e: React.FormEvent) => {
+   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push('/karakata?q=' + encodeURIComponent(searchQuery));
+      // ✅ FORCE RELOAD: Guarantees the market page re-reads the URL and updates the search state
+      window.location.href = '/karakata?q=' + encodeURIComponent(searchQuery);
     }
   };
 
