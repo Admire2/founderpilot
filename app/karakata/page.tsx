@@ -7,7 +7,7 @@ import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories";
 
 const TAXONOMY = MASTER_CATEGORIES.map((name) => ({
   name,
-  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "📦",
+  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "",
   subs: CATEGORY_SUBS[name] || []
 }));
 
@@ -183,27 +183,7 @@ export default function Market() {
           <p className="text-sm">Escrow-protected payments · Verified-purchase reviews · Free AI storefront builder</p>
         </div>
 
-        <div className="mt-6 flex gap-2">
-          <input
-            type="text"
-            value={term}
-            onChange={(e) => {
-              setTerm(e.target.value);
-              setQ(e.target.value);
-            }}
-            placeholder="Search for products, services, or categories (e.g., leather)..."
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
-          />
-          <button
-            onClick={() => {
-              setTerm("");
-              setQ("");
-            }}
-            className="rounded-lg bg-slate-200 px-6 py-3 text-sm font-bold hover:bg-slate-300"
-          >
-            Clear
-          </button>
-        </div>
+        {/* ✅ DUPLICATE SEARCH BAR REMOVED - Using global header search only */}
 
         {deals.length > 0 && (
           <section className="mt-6">
@@ -254,7 +234,7 @@ export default function Market() {
             <h2 className="text-lg font-bold">
               {cat ? cat : "All products & services"}
               {sub ? " · " + sub : ""}
-              {term ? " · search: “" + term + "”" : ""}{" "}
+              {term ? " · search: " + term : ""}{" "}
               <span className="text-sm font-normal text-slate-500">({filtered.length} results)</span>
             </h2>
             {(cat || sub || term) && (
@@ -306,7 +286,7 @@ export default function Market() {
               <div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4">
                 <p className="font-bold">Nothing matches yet.</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {term ? "No products or services match “" + term + "”." : "Be the first seller here."}
+                  {term ? "No products or services match " + term + "." : "Be the first seller here."}
                 </p>
                 <Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">
                   🏗️ Build my store free
