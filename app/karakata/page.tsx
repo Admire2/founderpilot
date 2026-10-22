@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation"; // ✅ ADDED FOR SEARCH
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import KaraKataAuthBar from "@/components/KaraKataAuthBar";
 import { createClient } from "@supabase/supabase-js";
-import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories"; 
+import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories";
 
 // Global Currency Converter
 const CURRENCY_MAP: Record<string, { symbol: string; rate: number; name: string; locale: string }> = {
@@ -67,7 +67,6 @@ const convertToLocalCurrency = (usdAmount: number, countryCode: string) => {
   };
 };
 
-
 // ✅ DYNAMICALLY BUILD TAXONOMY FROM MASTER LIST
 const TAXONOMY = MASTER_CATEGORIES.map(name => ({
   name,
@@ -99,9 +98,9 @@ export default function Market() {
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [cartCount, setCartCount] = useState(0);
-  const [email, setEmail] = useState(""); // ✅ Added to prevent crash
+  const [email, setEmail] = useState("");
   
-  const searchParams = useSearchParams(); // ✅ Hook to read URL
+  const searchParams = useSearchParams();
   const left = useCountdown();
 
   // ✅ AUTO-SET SEARCH TERM FROM URL (e.g., /?q=leather)
