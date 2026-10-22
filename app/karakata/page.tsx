@@ -1,6 +1,6 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories";
@@ -42,16 +42,19 @@ export default function Market() {
   const [term, setTerm] = useState("");
   const [cartCount, setCartCount] = useState(0);
   
-  const searchParams = useSearchParams();
   const left = useCountdown();
 
+  // ✅ SAFE SEARCH: Reads from window to avoid Next.js prerender Suspense errors
   useEffect(() => {
-    const query = searchParams.get("q");
-    if (query) {
-      setTerm(query);
-      setQ(query);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get("q");
+      if (query) {
+        setTerm(query);
+        setQ(query);
+      }
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     (async () => {
