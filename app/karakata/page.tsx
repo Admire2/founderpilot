@@ -60,7 +60,8 @@ export default function Market() {
     (async () => {
       try {
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-        const { data } = await sb.from("kara_listings").select("*");
+        // ✅ Fetch listing data AND the linked seller's shop_name
+const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
         const live = (data || []).filter((l: any) => !l.status || l.status === "active");
         const seen = new Set<string>();
         const uniq = live.filter((l: any) => {
@@ -88,14 +89,15 @@ export default function Market() {
         "&nologo=true";
   const norm = (s: any) => String(s || "").toLowerCase();
 
+   // ✅ Now also searches the Shop Name!
   const filtered = items.filter(
     (l: any) =>
       (!cat || l.category === cat) &&
       (!sub || l.subcategory === sub) &&
       (!term ||
         norm(l.title).includes(norm(term)) ||
-        norm(l.description).includes(norm(term)) ||
-        norm(l.category).includes(norm(term)))
+        norm(l.category).includes(norm(term)) ||
+        norm(l.sellers?.shop_name).includes(norm(term))) // <-- Shop name search added here
   );
 
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
