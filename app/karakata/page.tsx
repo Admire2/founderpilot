@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation"; // ✅ ADDED FOR SEARCH
 import Link from "next/link";
 import KaraKataAuthBar from "@/components/KaraKataAuthBar";
 import { createClient } from "@supabase/supabase-js";
+import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories"; 
 
 // Global Currency Converter
 const CURRENCY_MAP: Record<string, { symbol: string; rate: number; name: string; locale: string }> = {
@@ -66,31 +68,16 @@ const convertToLocalCurrency = (usdAmount: number, countryCode: string) => {
 };
 
 
-const TAXONOMY: any[] = [
-  { name: "Fashion & Clothing", icon: "", subs: ["Men", "Women", "Unisex", "Children", "Teenagers"] },
-  { name: "Jewelry & Gems", icon: "💍", subs: ["Cufflinks", "Rings", "Necklaces", "Bracelets", "Earrings", "Beads", "Custom pieces"] },
-  { name: "Fabrics & Textiles", icon: "", subs: ["Aso Oke", "Adire", "Ankara", "Lace", "Plain weaves"] },
-  { name: "Art & Crafts", icon: "", subs: ["Wall art", "Sculpture", "Beadwork", "Pottery", "Handmade"] },
-  { name: "Home & Living", icon: "🏠", subs: ["Decor", "Kitchen", "Bedding", "Furniture"] },
-  { name: "Beauty & Care", icon: "", subs: ["Skincare", "Hair", "Fragrance", "Makeup"] },
-  { name: "Electronics", icon: "", subs: ["Phones", "Accessories", "Audio", "Gadgets"] },
-  { name: "Food & Groceries", icon: "🍲", subs: ["Pantry", "Spices", "Snacks", "Drinks"] },
-  { name: "Books & Media", icon: "", subs: ["Fiction", "Non-fiction", "Audiobooks"] },
-  { name: "Toys & Games", icon: "", subs: ["Kids", "Board games", "Puzzles"] },
-  { name: "Sports & Outdoors", icon: "?", subs: ["Fitness", "Camping", "Team sports"] },
-  { name: "Automotive", icon: "", subs: ["Cars for sale - New", "Cars for sale - Fairly used", "Sell your car (Instant offer)", "VIN Check", "Pre-purchase inspection", "Certification", "Auto financing", "Accessories", "Parts", "Tools"] }, { name: "Power & Heavy Machinery", icon: "", subs: ["Generators", "Tractors", "Excavators", "Forklifts", "Cranes", "Industrial tools"] },
-  { name: "Health & Wellness", icon: "", subs: ["Supplements", "Fitness", "Self-care"] },
-  { name: "Services", icon: "🛠️", subs: ["Tailoring", "Repairs", "Custom orders", "Vehicle inspection"] },
-  // If it's an array like TAXONOMY:
-{ name: "Other", icon: "❓", subs: ["Custom / Describe Below"] },
-];
+// ✅ DYNAMICALLY BUILD TAXONOMY FROM MASTER LIST
+const TAXONOMY = MASTER_CATEGORIES.map(name => ({
+  name,
+  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "📦",
+  subs: CATEGORY_SUBS[name] || []
+}));
 
 function useCountdown() {
   const [left, setLeft] = useState("00:00:00");
   useEffect(() => {
-    
-    
-  
     const tick = () => {
       const now = new Date();
       const end = new Date(now);
@@ -112,9 +99,19 @@ export default function Market() {
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [cartCount, setCartCount] = useState(0);
+  const [email, setEmail] = useState(""); // ✅ Added to prevent crash
   
-  
+  const searchParams = useSearchParams(); // ✅ Hook to read URL
   const left = useCountdown();
+
+  // ✅ AUTO-SET SEARCH TERM FROM URL (e.g., /?q=leather)
+  useEffect(() => {
+    const query = searchParams.get("q");
+    if (query) {
+      setTerm(query);
+      setQ(query);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     (async () => {
@@ -132,17 +129,19 @@ export default function Market() {
         setItems(uniq);
       } catch (e) {}
       try { setCartCount(JSON.parse(localStorage.getItem("kara_cart") || "[]").reduce((a: number, c: any) => a + (c.qty || 1), 0)); } catch (e) {}
-      try { const k = localStorage.getItem("sb-auth-email"); if (k) setEmail(k); } catch (e) {}
     })();
   }, []);
 
   const priceOf = (l: any) => Number(l.price_usd != null ? l.price_usd : l.price) || 0;
-  const imgFor = (l: any) => l.image_url ? l.image_url : ("https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"); const norm = (s: any) => String(s || "").toLowerCase();
+  const imgFor = (l: any) => l.image_url ? l.image_url : ("https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"); 
+  const norm = (s: any) => String(s || "").toLowerCase();
+  
   const filtered = items.filter((l: any) =>
     (!cat || l.category === cat) &&
     (!sub || l.subcategory === sub) &&
-    (!term || norm(l.title).includes(norm(term)) || norm(l.description).includes(norm(term)) || norm(l.category).includes(norm(term)) || norm(l.subcategory).includes(norm(term)))
+    (!term || norm(l.title).includes(norm(term)) || norm(l.description).includes(norm(term)) || norm(l.category).includes(norm(term)))
   );
+  
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
@@ -158,8 +157,6 @@ export default function Market() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Header moved to Global Layout */}
-
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2">
           <button onClick={() => { setCat(null); setSub(null); }} className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (!cat ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}>All</button>
@@ -184,6 +181,23 @@ export default function Market() {
         <div className="mt-4 rounded-lg bg-gradient-to-r from-amber-500 to-red-600 p-4 text-white">
           <p className="text-lg font-bold">KaraKata Haul — Today only! Ends in <span className="font-mono">{left}</span></p>
           <p className="text-sm">Escrow-protected payments · Verified-purchase reviews · Free AI storefront builder</p>
+        </div>
+
+        {/* ✅ ADDED VISIBLE SEARCH BAR */}
+        <div className="mt-6 flex gap-2">
+          <input 
+            type="text" 
+            value={term} 
+            onChange={(e) => { setTerm(e.target.value); setQ(e.target.value); }}
+            placeholder="Search for products, services, or categories (e.g., leather)..." 
+            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+          />
+          <button 
+            onClick={() => { setTerm(""); setQ(""); }} 
+            className="rounded-lg bg-slate-200 px-6 py-3 text-sm font-bold hover:bg-slate-300"
+          >
+            Clear
+          </button>
         </div>
 
         {deals.length > 0 && (
