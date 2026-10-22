@@ -88,13 +88,13 @@ export default function Market() {
         "&nologo=true";
   const norm = (s: any) => String(s || "").toLowerCase();
 
+  // ✅ STRICT SEARCH: Only checks Title and Category to prevent false positives (like "leather seats" in a car description)
   const filtered = items.filter(
     (l: any) =>
       (!cat || l.category === cat) &&
       (!sub || l.subcategory === sub) &&
       (!term ||
         norm(l.title).includes(norm(term)) ||
-        norm(l.description).includes(norm(term)) ||
         norm(l.category).includes(norm(term)))
   );
 
@@ -182,8 +182,6 @@ export default function Market() {
           </p>
           <p className="text-sm">Escrow-protected payments · Verified-purchase reviews · Free AI storefront builder</p>
         </div>
-
-        {/* ✅ DUPLICATE SEARCH BAR REMOVED - Using global header search only */}
 
         {deals.length > 0 && (
           <section className="mt-6">
