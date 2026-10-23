@@ -59,13 +59,8 @@ export default function Market() {
     (async () => {
       try {
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-<<<<<<< HEAD
-        // ✅ Fetch listing data AND the linked seller's shop_name
-const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
-=======
         // ✅ UPDATED: Fetch listing data AND the linked seller's shop_name
         const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
->>>>>>> 68a5492ec16f568e77f0b091fdc5562a0e288f2b
         const live = (data || []).filter((l: any) => !l.status || l.status === "active");
         const seen = new Set<string>();
         const uniq = live.filter((l: any) => {
@@ -93,11 +88,7 @@ const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(sho
         "&nologo=true";
   const norm = (s: any) => String(s || "").toLowerCase();
 
-<<<<<<< HEAD
-   // ✅ Now also searches the Shop Name!
-=======
   // ✅ UPDATED: Now also searches the Shop Name!
->>>>>>> 68a5492ec16f568e77f0b091fdc5562a0e288f2b
   const filtered = items.filter(
     (l: any) =>
       (!cat || l.category === cat) &&
@@ -121,9 +112,6 @@ const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(sho
       price: p,
       image_url: l.image_url,
       seller_id: l.seller_id,
-      qty: 1,
-      it: { title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id }
-    };
     const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
     const ex = cart.find((c: any) => String(c.id) === String(l.id));
     if (ex) {
