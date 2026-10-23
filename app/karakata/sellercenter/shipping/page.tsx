@@ -80,15 +80,19 @@ export default function ShippingProfiles() {
     
     const ratesToSave = { ...rates, domestic_country: finalCountry };
     
-    console.log("📤 Attempting to save to Supabase:", { email, ratesToSave });
+    console.log("📤 Attempting to UPSERT to Supabase:", { email, ratesToSave });
 
-    const { data, error } = await sb.from("sellers").update({ shipping_rates: ratesToSave }).eq("email", email).select();
+    // ✅ CHANGED: .upsert() creates the row if it doesn't exist, or updates it if it does!
+    const { data, error } = await sb
+      .from("sellers")
+      .upsert({ email: email, shipping_rates: ratesToSave }, { onConflict: 'email' })
+      .select();
     
     if (error) {
-      console.error("❌ Supabase Update Error:", error);
+      console.error("❌ Supabase Upsert Error:", error);
       setMsg(`Error: ${error.message}`);
     } else {
-      console.log("✅ Supabase Update Success:", data);
+      console.log("✅ Supabase Upsert Success:", data);
       setMsg("✅ Shipping profiles saved successfully!");
     }
     
