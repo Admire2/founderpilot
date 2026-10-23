@@ -56,21 +56,29 @@ export default function ShippingProfiles() {
     setLoading(false);
   };
 
+  // ✅ FIX: Explicitly preserve ALL existing data when changing method
   const updateMethod = (region: string, method: string) => {
     setRates((prev: any) => {
-      const regionData = prev[region] || {};
-      return { ...prev, [region]: { ...regionData, method } };
-    });
-  };
-
-  const updateRate = (region: string, key: string, value: string) => {
-    setRates((prev: any) => {
-      // ✅ FIX: Ensure we preserve ALL existing properties for this region
-      const existingRegion = prev[region] || { method: "flat", brackets: {} };
+      const currentRegion = prev[region] || {};
       return {
         ...prev,
         [region]: {
-          ...existingRegion,
+          ...currentRegion,
+          method
+        }
+      };
+    });
+  };
+
+  // ✅ FIX: Explicitly force 'method' to exist (default "flat") when updating rates
+  const updateRate = (region: string, key: string, value: string) => {
+    setRates((prev: any) => {
+      const currentRegion = prev[region] || {};
+      return {
+        ...prev,
+        [region]: {
+          ...currentRegion,
+          method: currentRegion.method || "flat", // 🔥 CRITICAL: Never let method disappear!
           [key]: value
         }
       };
@@ -95,7 +103,7 @@ export default function ShippingProfiles() {
         email: email, 
         shipping_rates: ratesToSave,
         shop_name: "My Store",
-        category: "General" // ✅ FIX: Also add category to prevent that constraint error
+        category: "General" // ✅ Prevents DB constraint errors
       }, { onConflict: 'email' })
       .select();
     
@@ -168,7 +176,11 @@ export default function ShippingProfiles() {
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-8">
           {REGIONS.map((region) => {
-            const regionData = rates[region.key] || { method: "flat", flat_rate: "", brackets: {} };
+            // ✅ FIX: Safe fallbacks ensure the UI never breaks, even if data is missing
+            const regionData = rates[region.key] || {};
+            const currentMethod = regionData.method || "flat";
+            const currentFlatRate = regionData.flat_rate || "";
+            const currentBrackets = regionData.brackets || {};
             
             return (
               <div key={region.key} className="border-b border-slate-100 pb-6 last:border-0">
@@ -180,7 +192,7 @@ export default function ShippingProfiles() {
                       <input
                         type="radio"
                         name={`method-${region.key}`}
-                        checked={regionData.method === m}
+                        checked={currentMethod === m}
                         onChange={() => updateMethod(region.key, m)}
                         className="text-emerald-600 focus:ring-emerald-500"
                       />
@@ -191,12 +203,12 @@ export default function ShippingProfiles() {
                   ))}
                 </div>
 
-                {regionData.method === "flat" && (
+                {currentMethod === "flat" && (
                   <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg w-48">
                     <span className="text-slate-500 text-sm font-bold">$</span>
                     <input
                       type="number"
-                      value={regionData.flat_rate || ""}
+                      value={currentFlatRate}
                       onChange={(e) => updateRate(region.key, "flat_rate", e.target.value)}
                       className="w-full bg-transparent border-b border-slate-300 focus:border-emerald-500 focus:outline-none py-1"
                       placeholder="0.00"
@@ -204,7 +216,7 @@ export default function ShippingProfiles() {
                   </div>
                 )}
 
-                {regionData.method === "weight" && (
+                {currentMethod === "weight" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {WEIGHT_BRACKETS.map((bracket) => (
                       <div key={bracket.key} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg">
@@ -213,9 +225,9 @@ export default function ShippingProfiles() {
                           <span className="text-slate-500 text-sm font-bold">$</span>
                           <input
                             type="number"
-                            value={regionData.brackets?.[bracket.key] || ""}
+                            value={currentBrackets[bracket.key] || ""}
                             onChange={(e) => {
-                              const newBrackets = { ...(regionData.brackets || {}), [bracket.key]: e.target.value };
+                              const newBrackets = { ...currentBrackets, [bracket.key]: e.target.value };
                               updateRate(region.key, "brackets", newBrackets);
                             }}
                             className="w-20 rounded border border-slate-300 px-2 py-1 text-right focus:border-emerald-500 focus:outline-none"
@@ -227,7 +239,7 @@ export default function ShippingProfiles() {
                   </div>
                 )}
 
-                {regionData.method === "free" && (
+                {currentMethod === "free" && (
                   <p className="text-sm text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
                     ✅ Buyers in this region will see "Free Shipping" at checkout.
                   </p>
