@@ -59,7 +59,6 @@ export default function Market() {
     (async () => {
       try {
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-        // ✅ UPDATED: Fetch listing data AND the linked seller's shop_name
         const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
         const live = (data || []).filter((l: any) => !l.status || l.status === "active");
         const seen = new Set<string>();
@@ -88,7 +87,6 @@ export default function Market() {
         "&nologo=true";
   const norm = (s: any) => String(s || "").toLowerCase();
 
-  // ✅ UPDATED: Now also searches the Shop Name!
   const filtered = items.filter(
     (l: any) =>
       (!cat || l.category === cat) &&
@@ -96,7 +94,7 @@ export default function Market() {
       (!term ||
         norm(l.title).includes(norm(term)) ||
         norm(l.category).includes(norm(term)) ||
-        norm(l.sellers?.shop_name).includes(norm(term))) // <-- Shop name search added here
+        norm(l.sellers?.shop_name).includes(norm(term)))
   );
 
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
@@ -112,6 +110,9 @@ export default function Market() {
       price: p,
       image_url: l.image_url,
       seller_id: l.seller_id,
+      qty: 1,
+      it: { title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id }
+    };
     const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
     const ex = cart.find((c: any) => String(c.id) === String(l.id));
     if (ex) {
