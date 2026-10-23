@@ -41,8 +41,6 @@ export default function Market() {
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [cartCount, setCartCount] = useState(0);
-  
-  // ✅ NEW: State to track which item was just added for the animation
   const [addedId, setAddedId] = useState<string | number | null>(null);
   
   const left = useCountdown();
@@ -103,11 +101,19 @@ export default function Market() {
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
-  // ✅ UPDATED: Inventory check in add function
+  // ✅ UPDATED: Checks stock AND current cart quantity
   const add = (l: any) => {
-    const stock = l.inventory_count ?? 10; // Default to 10 if null
+    const stock = l.inventory_count ?? 10;
+    const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
+    const ex = cart.find((c: any) => String(c.id) === String(l.id));
+    const currentQty = ex ? (ex.qty || 1) : 0;
+
     if (stock <= 0) {
       alert("Sorry, this item is currently out of stock. We will let you know when it's updated!");
+      return;
+    }
+    if (currentQty >= stock) {
+      alert(`Sorry, you already have the maximum available stock (${stock}) in your cart!`);
       return;
     }
 
@@ -123,50 +129,35 @@ export default function Market() {
       qty: 1,
       it: { title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id }
     };
-    const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
-    const ex = cart.find((c: any) => String(c.id) === String(l.id));
+    
     if (ex) {
-      // ✅ Prevent adding more than available stock
-      if ((ex.qty || 1) >= stock) {
-        alert(`Sorry, only ${stock} items left in stock!`);
-        return;
-      }
-      ex.qty = (ex.qty || 1) + 1;
+      ex.qty = currentQty + 1;
     } else {
       cart.push(item);
     }
     localStorage.setItem("kara_cart", JSON.stringify(cart));
     setCartCount(cart.reduce((a: number, c: any) => a + (c.qty || 1), 0));
     
-    // ✅ NEW: Trigger the "Added!" animation for 2 seconds
     setAddedId(l.id);
     setTimeout(() => setAddedId(null), 2000);
+  };
+
+  // ✅ HELPER: Gets current cart quantity for any item instantly
+  const getCartQty = (itemId: string | number) => {
+    try {
+      const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
+      const item = cart.find((c: any) => String(c.id) === String(itemId));
+      return item ? (item.qty || 1) : 0;
+    } catch { return 0; }
   };
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2">
-          <button
-            onClick={() => {
-              setCat(null);
-              setSub(null);
-            }}
-            className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (!cat ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}
-          >
-            All
-          </button>
+          <button onClick={() => { setCat(null); setSub(null); }} className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (!cat ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}>All</button>
           {TAXONOMY.map((t: any) => (
-            <button
-              key={t.name}
-              onClick={() => {
-                setCat(cat === t.name ? null : t.name);
-                setSub(null);
-              }}
-              className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (cat === t.name ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}
-            >
-              {t.icon} {t.name}
-            </button>
+            <button key={t.name} onClick={() => { setCat(cat === t.name ? null : t.name); setSub(null); }} className={"whitespace-nowrap rounded-full px-4 py-1 text-sm font-bold " + (cat === t.name ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200")}>{t.icon} {t.name}</button>
           ))}
         </div>
       </div>
@@ -174,30 +165,15 @@ export default function Market() {
       {cat && activeSubs.length > 0 && (
         <div className="border-b border-slate-200 bg-slate-50">
           <div className="mx-auto flex max-w-7xl flex-wrap gap-2 px-4 py-2">
-            <button
-              onClick={() => setSub(null)}
-              className={"rounded-full px-3 py-1 text-xs font-bold " + (!sub ? "bg-amber-400 text-slate-900" : "bg-white border border-slate-300 hover:border-amber-400")}
-            >
-              All in {cat}
-            </button>
-            {activeSubs.map((s: string) => (
-              <button
-                key={s}
-                onClick={() => setSub(sub === s ? null : s)}
-                className={"rounded-full px-3 py-1 text-xs font-bold " + (sub === s ? "bg-amber-400 text-slate-900" : "bg-white border border-slate-300 hover:border-amber-400")}
-              >
-                {s}
-              </button>
-            ))}
+            <button onClick={() => setSub(null)} className={"rounded-full px-3 py-1 text-xs font-bold " + (!sub ? "bg-amber-400 text-slate-900" : "bg-white border border-slate-300 hover:border-amber-400")}>All in {cat}</button>
+            {activeSubs.map((s: string) => (<button key={s} onClick={() => setSub(sub === s ? null : s)} className={"rounded-full px-3 py-1 text-xs font-bold " + (sub === s ? "bg-amber-400 text-slate-900" : "bg-white border border-slate-300 hover:border-amber-400")}>{s}</button>))}
           </div>
         </div>
       )}
 
       <div className="mx-auto max-w-7xl px-4">
         <div className="mt-4 rounded-lg bg-gradient-to-r from-amber-500 to-red-600 p-4 text-white">
-          <p className="text-lg font-bold">
-            KaraKata Haul — Today only! Ends in <span className="font-mono">{left}</span>
-          </p>
+          <p className="text-lg font-bold">KaraKata Haul — Today only! Ends in <span className="font-mono">{left}</span></p>
           <p className="text-sm">Escrow-protected payments · Verified-purchase reviews · Free AI storefront builder</p>
         </div>
 
@@ -208,55 +184,27 @@ export default function Market() {
               {deals.map((l: any) => {
                 const p = priceOf(l);
                 const pct = Math.round((1 - p / Number(l.compare_at_usd)) * 100);
-                const isAdded = addedId === l.id;
                 const stock = l.inventory_count ?? 10;
+                const cartQty = getCartQty(l.id);
+                const isAdded = addedId === l.id;
                 const isOutOfStock = stock <= 0;
-                
+                const isMaxedOut = cartQty >= stock;
+
                 return (
                   <div key={l.id} className="w-56 shrink-0 rounded-lg border border-slate-200 p-3 shadow-sm">
-                    <img
-                      src={imgFor(l)}
-                      alt=""
-                      onError={(e: any) => {
-                        const t = e.currentTarget;
-                        if (!t.dataset.fb) {
-                          t.dataset.fb = "1";
-                          t.src =
-                            "https://image.pollinations.ai/prompt/" +
-                            encodeURIComponent("professional product photo of " + String(l.title || "product")) +
-                            "?width=800&height=600&seed=" +
-                            String(l.id) +
-                            "&nologo=true";
-                        }
-                      }}
-                      className="h-32 w-full rounded object-cover"
-                    />
-                    <p className="mt-2 text-xs font-bold text-red-600">
-                      {pct}% off <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Limited time deal</span>
-                    </p>
+                    <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-32 w-full rounded object-cover" />
+                    <p className="mt-2 text-xs font-bold text-red-600">{pct}% off <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Limited time deal</span></p>
                     <p className="mt-1 text-lg font-bold">${p.toFixed(2)}</p>
-                    <p className="text-xs text-slate-500">
-                      Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span>
-                    </p>
+                    <p className="text-xs text-slate-500">Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span></p>
                     <p className="mt-1 line-clamp-2 text-xs">{l.title}</p>
                     
-                    {/* ✅ UPGRADED: Inventory Aware Animated Add Button for Deals */}
+                    {/* ✅ DYNAMIC DEALS BUTTON */}
                     {isOutOfStock ? (
-                      <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center">
-                        <span>Out of Stock</span>
-                        <span className="text-[10px] font-normal">Check back later</span>
-                      </button>
+                      <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
+                    ) : isMaxedOut ? (
+                      <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
                     ) : (
-                      <button 
-                        onClick={() => add(l)} 
-                        className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${
-                          isAdded 
-                            ? "bg-emerald-500 text-white" 
-                            : "bg-amber-400 text-slate-900 hover:bg-amber-300"
-                        }`}
-                      >
-                        {isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}
-                      </button>
+                      <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}</button>
                     )}
                   </div>
                 );
@@ -267,100 +215,41 @@ export default function Market() {
 
         <section className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-bold">
-              {cat ? cat : "All products & services"}
-              {sub ? " · " + sub : ""}
-              {term ? " · search: " + term : ""}{" "}
-              <span className="text-sm font-normal text-slate-500">({filtered.length} results)</span>
-            </h2>
-            {(cat || sub || term) && (
-              <button
-                onClick={() => {
-                  setCat(null);
-                  setSub(null);
-                  setTerm("");
-                  setQ("");
-                }}
-                className="rounded-full border border-slate-300 px-3 py-1 text-xs font-bold hover:border-red-400 hover:text-red-600"
-              >
-                ✕ Clear filters
-              </button>
-            )}
+            <h2 className="text-lg font-bold">{cat ? cat : "All products & services"}{sub ? " · " + sub : ""}{term ? " · search: " + term : ""} <span className="text-sm font-normal text-slate-500">({filtered.length} results)</span></h2>
+            {(cat || sub || term) && (<button onClick={() => { setCat(null); setSub(null); setTerm(""); setQ(""); }} className="rounded-full border border-slate-300 px-3 py-1 text-xs font-bold hover:border-red-400 hover:text-red-600">✕ Clear filters</button>)}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map((l: any) => {
-              const isAdded = addedId === l.id;
               const stock = l.inventory_count ?? 10;
+              const cartQty = getCartQty(l.id);
+              const isAdded = addedId === l.id;
               const isOutOfStock = stock <= 0;
-              
+              const isMaxedOut = cartQty >= stock;
+
               return (
                 <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md">
-                  <img
-                    src={imgFor(l)}
-                    alt=""
-                    onError={(e: any) => {
-                      const t = e.currentTarget;
-                      if (!t.dataset.fb) {
-                        t.dataset.fb = "1";
-                        t.src =
-                          "https://image.pollinations.ai/prompt/" +
-                          encodeURIComponent("professional product photo of " + String(l.title || "product")) +
-                          "?width=800&height=600&seed=" +
-                          String(l.id) +
-                          "&nologo=true";
-                      }
-                    }}
-                    className="h-40 w-full rounded object-cover"
-                  />
+                  <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-40 w-full rounded object-cover" />
                   <p className="mt-2 text-lg font-bold">${priceOf(l).toFixed(2)}</p>
                   <p className="mt-1 line-clamp-2 text-sm">{l.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {l.category || "Uncategorized"}
-                    {l.subcategory ? " · " + l.subcategory : ""}
-                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{l.category || "Uncategorized"}{l.subcategory ? " · " + l.subcategory : ""}</p>
                   
-                  {/* ✅ UPGRADED: Inventory Aware Animated Add Button for Main Grid */}
+                  {/* ✅ DYNAMIC MAIN GRID BUTTON */}
                   {isOutOfStock ? (
-                    <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center">
-                      <span>Out of Stock</span>
-                      <span className="text-[10px] font-normal">Check back later</span>
-                    </button>
+                    <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
+                  ) : isMaxedOut ? (
+                    <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
                   ) : (
-                    <button 
-                      onClick={() => add(l)} 
-                      className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${
-                        isAdded 
-                          ? "bg-emerald-500 text-white" 
-                          : "bg-amber-400 text-slate-900 hover:bg-amber-300"
-                      }`}
-                    >
-                      {isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}
-                    </button>
+                    <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}</button>
                   )}
                 </div>
               );
             })}
-            {filtered.length === 0 && (
-              <div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4">
-                <p className="font-bold">Nothing matches yet.</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {term ? "No products or services match " + term + "." : "Be the first seller here."}
-                </p>
-                <Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">
-                  🏗️ Build my store free
-                </Link>
-              </div>
-            )}
+            {filtered.length === 0 && (<div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4"><p className="font-bold">Nothing matches yet.</p><p className="mt-1 text-sm text-slate-500">{term ? "No products or services match " + term + "." : "Be the first seller here."}</p><Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">🏗️ Build my store free</Link></div>)}
           </div>
         </section>
 
         <footer className="mt-10 border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-          <p>
-            Selling on Amazon, Etsy or Shopify?{" "}
-            <Link className="text-emerald-600 underline" href="/karakata/build">
-              Photograph your shop - KaraKata builds your storefront free
-            </Link>
-          </p>
+          <p>Selling on Amazon, Etsy or Shopify? <Link className="text-emerald-600 underline" href="/karakata/build">Photograph your shop - KaraKata builds your storefront free</Link></p>
         </footer>
       </div>
     </main>
