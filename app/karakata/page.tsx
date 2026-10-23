@@ -7,7 +7,7 @@ import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories";
 
 const TAXONOMY = MASTER_CATEGORIES.map((name) => ({
   name,
-  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "",
+  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "" : name === "Artisan Services" ? "🛠️" : "",
   subs: CATEGORY_SUBS[name] || []
 }));
 
@@ -41,6 +41,9 @@ export default function Market() {
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [cartCount, setCartCount] = useState(0);
+  
+  // ✅ NEW: State to track which item was just added for the animation
+  const [addedId, setAddedId] = useState<string | number | null>(null);
   
   const left = useCountdown();
 
@@ -100,7 +103,6 @@ export default function Market() {
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
-  // ✅ FIXED: The item object is now properly closed with all its properties
   const add = (l: any) => {
     const p = priceOf(l);
     const item = {
@@ -123,6 +125,10 @@ export default function Market() {
     }
     localStorage.setItem("kara_cart", JSON.stringify(cart));
     setCartCount(cart.reduce((a: number, c: any) => a + (c.qty || 1), 0));
+    
+    // ✅ NEW: Trigger the "Added!" animation for 2 seconds
+    setAddedId(l.id);
+    setTimeout(() => setAddedId(null), 2000);
   };
 
   return (
@@ -185,11 +191,13 @@ export default function Market() {
 
         {deals.length > 0 && (
           <section className="mt-6">
-            <h2 className="text-lg font-bold">⚡ Rolling deals — ends in {left}</h2>
+            <h2 className="text-lg font-bold"> Rolling deals — ends in {left}</h2>
             <div className="mt-3 flex gap-4 overflow-x-auto pb-3">
               {deals.map((l: any) => {
                 const p = priceOf(l);
                 const pct = Math.round((1 - p / Number(l.compare_at_usd)) * 100);
+                const isAdded = addedId === l.id;
+                
                 return (
                   <div key={l.id} className="w-56 shrink-0 rounded-lg border border-slate-200 p-3 shadow-sm">
                     <img
@@ -217,8 +225,17 @@ export default function Market() {
                       Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span>
                     </p>
                     <p className="mt-1 line-clamp-2 text-xs">{l.title}</p>
-                    <button onClick={() => add(l)} className="mt-2 w-full rounded-full bg-amber-400 py-1 text-xs font-bold hover:bg-amber-300">
-                      Add to cart
+                    
+                    {/* ✅ UPGRADED: Animated Add Button for Deals */}
+                    <button 
+                      onClick={() => add(l)} 
+                      className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${
+                        isAdded 
+                          ? "bg-emerald-500 text-white" 
+                          : "bg-amber-400 text-slate-900 hover:bg-amber-300"
+                      }`}
+                    >
+                      {isAdded ? "Added to Cart ✅" : "Add to cart"}
                     </button>
                   </div>
                 );
@@ -250,36 +267,49 @@ export default function Market() {
             )}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((l: any) => (
-              <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md">
-                <img
-                  src={imgFor(l)}
-                  alt=""
-                  onError={(e: any) => {
-                    const t = e.currentTarget;
-                    if (!t.dataset.fb) {
-                      t.dataset.fb = "1";
-                      t.src =
-                        "https://image.pollinations.ai/prompt/" +
-                        encodeURIComponent("professional product photo of " + String(l.title || "product")) +
-                        "?width=800&height=600&seed=" +
-                        String(l.id) +
-                        "&nologo=true";
-                    }
-                  }}
-                  className="h-40 w-full rounded object-cover"
-                />
-                <p className="mt-2 text-lg font-bold">${priceOf(l).toFixed(2)}</p>
-                <p className="mt-1 line-clamp-2 text-sm">{l.title}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {l.category || "Uncategorized"}
-                  {l.subcategory ? " · " + l.subcategory : ""}
-                </p>
-                <button onClick={() => add(l)} className="mt-2 w-full rounded-full bg-amber-400 py-1.5 text-sm font-bold hover:bg-amber-300">
-                  Add to cart
-                </button>
-              </div>
-            ))}
+            {filtered.map((l: any) => {
+              const isAdded = addedId === l.id;
+              
+              return (
+                <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md">
+                  <img
+                    src={imgFor(l)}
+                    alt=""
+                    onError={(e: any) => {
+                      const t = e.currentTarget;
+                      if (!t.dataset.fb) {
+                        t.dataset.fb = "1";
+                        t.src =
+                          "https://image.pollinations.ai/prompt/" +
+                          encodeURIComponent("professional product photo of " + String(l.title || "product")) +
+                          "?width=800&height=600&seed=" +
+                          String(l.id) +
+                          "&nologo=true";
+                      }
+                    }}
+                    className="h-40 w-full rounded object-cover"
+                  />
+                  <p className="mt-2 text-lg font-bold">${priceOf(l).toFixed(2)}</p>
+                  <p className="mt-1 line-clamp-2 text-sm">{l.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {l.category || "Uncategorized"}
+                    {l.subcategory ? " · " + l.subcategory : ""}
+                  </p>
+                  
+                  {/* ✅ UPGRADED: Animated Add Button for Main Grid */}
+                  <button 
+                    onClick={() => add(l)} 
+                    className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${
+                      isAdded 
+                        ? "bg-emerald-500 text-white" 
+                        : "bg-amber-400 text-slate-900 hover:bg-amber-300"
+                    }`}
+                  >
+                    {isAdded ? "Added to Cart ✅" : "Add to cart"}
+                  </button>
+                </div>
+              );
+            })}
             {filtered.length === 0 && (
               <div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4">
                 <p className="font-bold">Nothing matches yet.</p>
