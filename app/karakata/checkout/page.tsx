@@ -30,7 +30,6 @@ export default function CheckoutPage() {
       try {
         const parsedCart = JSON.parse(savedCart);
         setCart(parsedCart);
-        // V1: Fetch shipping rates for the first seller in the cart
         if (parsedCart.length > 0 && parsedCart[0].seller_id) {
           fetchSellerShipping(parsedCart[0].seller_id, parsedCart);
         }
@@ -58,7 +57,6 @@ export default function CheckoutPage() {
     const domesticCountry = (rates.domestic_country || data.country || "Nigeria").toLowerCase();
     const targetCountry = country.toLowerCase();
     
-    // Smart Region Detection
     let region = "row";
     if (targetCountry === domesticCountry) {
       region = "domestic";
@@ -98,10 +96,23 @@ export default function CheckoutPage() {
     }
   };
 
+  // ✅ NEW: Remove item from cart
+  const removeFromCart = (itemId: string | number) => {
+    const updatedCart = cart.filter((item) => String(item.id) !== String(itemId));
+    setCart(updatedCart);
+    localStorage.setItem("kara_cart", JSON.stringify(updatedCart));
+    
+    if (updatedCart.length > 0 && sellerData) {
+      calculateShipping(sellerData, shippingCountry, updatedCart);
+    } else if (updatedCart.length === 0) {
+      setShippingCost(0);
+    }
+  };
+
   // Dynamic Math Calculations
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || Number(item.price_usd) || 0) * (item.qty || 1), 0);
   const grandTotal = subtotal + shippingCost;
-  const escrowFee = grandTotal * 0.05; // 5% Smart Escrow Buffer on Grand Total
+  const escrowFee = grandTotal * 0.05; 
   const finalTotal = grandTotal + escrowFee;
 
   const handleCheckout = async () => {
@@ -124,7 +135,6 @@ export default function CheckoutPage() {
       const data = await response.json();
       
       if (data.ok && data.url) {
-        // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else {
         alert(data.error || "Failed to initialize checkout. Please try again.");
@@ -186,6 +196,13 @@ export default function CheckoutPage() {
                         ${(Number(item.price) || Number(item.price_usd) || 0).toFixed(2)}
                       </p>
                     </div>
+                    {/* ✅ NEW: Remove Button */}
+                    <button 
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-1 rounded-lg text-sm font-bold transition self-start"
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
@@ -210,7 +227,6 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-bold mb-6">Payment Details</h2>
               
               <div className="space-y-3 text-sm mb-6">
-                {/* ✅ NEW: Dynamic Shipping Destination Selector */}
                 <div className="mb-4">
                   <label className="text-xs font-bold text-slate-600 mb-1 block">Shipping Destination</label>
                   <select 
