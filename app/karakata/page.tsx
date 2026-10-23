@@ -40,10 +40,25 @@ export default function Market() {
   const [sub, setSub] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
+  
+  // ✅ NEW: Live Cart State to track exact items and quantities
+  const [cart, setCart] = useState<any[]>([]);
   const [cartCount, setCartCount] = useState(0);
   const [addedId, setAddedId] = useState<string | number | null>(null);
   
   const left = useCountdown();
+
+  // ✅ HELPER: Load cart from LocalStorage into React State
+  const syncCart = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("kara_cart") || "[]");
+      setCart(saved);
+      setCartCount(saved.reduce((a: number, c: any) => a + (c.qty || 1), 0));
+    } catch (e) {
+      setCart([]);
+      setCartCount(0);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -53,6 +68,18 @@ export default function Market() {
         setTerm(query);
         setQ(query);
       }
+      
+      // Initial load
+      syncCart();
+
+      // ✅ Listen for cart changes from other tabs/pages
+      window.addEventListener("storage", syncCart);
+      window.addEventListener("focus", syncCart); // Refreshes when user switches back to this tab
+
+      return () => {
+        window.removeEventListener("storage", syncCart);
+        window.removeEventListener("focus", syncCart);
+      };
     }
   }, []);
 
@@ -70,9 +97,6 @@ export default function Market() {
           return true;
         });
         setItems(uniq);
-      } catch (e) {}
-      try {
-        setCartCount(JSON.parse(localStorage.getItem("kara_cart") || "[]").reduce((a: number, c: any) => a + (c.qty || 1), 0));
       } catch (e) {}
     })();
   }, []);
@@ -101,12 +125,10 @@ export default function Market() {
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
-  // ✅ UPDATED: Checks stock AND current cart quantity
+  // ✅ UPDATED: Uses live React state instead of reading LocalStorage directly
   const add = (l: any) => {
     const stock = l.inventory_count ?? 10;
-    const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
-    const ex = cart.find((c: any) => String(c.id) === String(l.id));
-    const currentQty = ex ? (ex.qty || 1) : 0;
+    const currentQty = cart.find((c) => String(c.id) === String(l.id))?.qty || 0;
 
     if (stock <= 0) {
       alert("Sorry, this item is currently out of stock. We will let you know when it's updated!");
@@ -118,37 +140,38 @@ export default function Market() {
     }
 
     const p = priceOf(l);
-    const item = {
-      id: l.id,
-      listing_id: l.id,
-      title: l.title,
-      price_usd: p,
-      price: p,
-      image_url: l.image_url,
-      seller_id: l.seller_id,
-      qty: 1,
-      it: { title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id }
-    };
+    const newCart = [...cart];
+    const ex = newCart.find((c) => String(c.id) === String(l.id));
     
     if (ex) {
       ex.qty = currentQty + 1;
     } else {
-      cart.push(item);
+      newCart.push({
+        id: l.id,
+        listing_id: l.id,
+        title: l.title,
+        price_usd: p,
+        price: p,
+        image_url: l.image_url,
+        seller_id: l.seller_id,
+        qty: 1,
+        it: { title: l.title, price_usd: p, price: p, image_url: l.image_url, seller_id: l.seller_id }
+      });
     }
-    localStorage.setItem("kara_cart", JSON.stringify(cart));
-    setCartCount(cart.reduce((a: number, c: any) => a + (c.qty || 1), 0));
+    
+    // ✅ Update both State and LocalStorage instantly
+    setCart(newCart);
+    setCartCount(newCart.reduce((a, c) => a + (c.qty || 1), 0));
+    localStorage.setItem("kara_cart", JSON.stringify(newCart));
     
     setAddedId(l.id);
     setTimeout(() => setAddedId(null), 2000);
   };
 
-  // ✅ HELPER: Gets current cart quantity for any item instantly
+  // ✅ HELPER: Gets current cart quantity from live state
   const getCartQty = (itemId: string | number) => {
-    try {
-      const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
-      const item = cart.find((c: any) => String(c.id) === String(itemId));
-      return item ? (item.qty || 1) : 0;
-    } catch { return 0; }
+    const item = cart.find((c) => String(c.id) === String(itemId));
+    return item ? (item.qty || 1) : 0;
   };
 
   return (
@@ -198,13 +221,12 @@ export default function Market() {
                     <p className="text-xs text-slate-500">Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span></p>
                     <p className="mt-1 line-clamp-2 text-xs">{l.title}</p>
                     
-                    {/* ✅ DYNAMIC DEALS BUTTON */}
                     {isOutOfStock ? (
                       <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
                     ) : isMaxedOut ? (
                       <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
                     ) : (
-                      <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}</button>
+                      <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock - cartQty} left)`}</button>
                     )}
                   </div>
                 );
@@ -233,13 +255,12 @@ export default function Market() {
                   <p className="mt-1 line-clamp-2 text-sm">{l.title}</p>
                   <p className="mt-1 text-xs text-slate-500">{l.category || "Uncategorized"}{l.subcategory ? " · " + l.subcategory : ""}</p>
                   
-                  {/* ✅ DYNAMIC MAIN GRID BUTTON */}
                   {isOutOfStock ? (
                     <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
                   ) : isMaxedOut ? (
                     <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
                   ) : (
-                    <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}</button>
+                    <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock - cartQty} left)`}</button>
                   )}
                 </div>
               );
