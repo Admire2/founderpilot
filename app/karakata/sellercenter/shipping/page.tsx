@@ -6,9 +6,9 @@ import { createClient } from "@supabase/supabase-js";
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const COUNTRIES = [
-  "Nigeria", "United States", "United Kingdom", "Canada", "Ghana", 
-  "Kenya", "South Africa", "India", "China", "United Arab Emirates", 
-  "Australia", "Germany", "France", "Brazil", "Mexico", "Other"
+  "Nigeria", "Ghana", "Kenya", "South Africa", "United States", "United Kingdom", 
+  "Canada", "India", "China", "United Arab Emirates", "Australia", "Germany", 
+  "France", "Brazil", "Mexico", "Other"
 ];
 
 const WEIGHT_BRACKETS = [
@@ -36,13 +36,10 @@ export default function ShippingProfiles() {
   }, []);
 
   const loadRates = async (userEmail: string) => {
-    // ✅ SMART PRE-FILL: Fetch both shipping_rates AND the country from Step 1
     const { data } = await sb.from("sellers").select("shipping_rates, country").eq("email", userEmail).single();
     
     if (data) {
       setRates(data.shipping_rates || {});
-      
-      // Pre-fill domestic country: Priority 1 = saved shipping setting, Priority 2 = Step 1 country, Priority 3 = Nigeria
       if (data.shipping_rates?.domestic_country) {
         setDomesticCountry(data.shipping_rates.domestic_country);
       } else if (data.country) {
@@ -79,11 +76,14 @@ export default function ShippingProfiles() {
 
   if (loading) return <div className="p-10 text-center text-slate-600">Loading shipping settings...</div>;
 
+  // ✅ UPGRADED: Africa and Asia are now distinct, professional regions
   const REGIONS = [
     { key: "domestic", label: `🏠 Domestic (${domesticCountry})` },
+    { key: "africa", label: "🌍 Africa (Cross-border)" },
+    { key: "asia", label: "🌏 Asia" },
     { key: "na", label: "🇺🇸 North America (USA, Canada, Mexico)" },
     { key: "eu", label: "🇪🇺 Europe" },
-    { key: "row", label: "🌍 Rest of World" }
+    { key: "row", label: "🌐 Rest of World" }
   ];
 
   return (
@@ -94,11 +94,8 @@ export default function ShippingProfiles() {
         </Link>
         
         <h1 className="text-3xl font-bold mb-2">Global Shipping Profiles</h1>
-        <p className="text-slate-600 mb-6">
-          Set your shipping rates by region and weight bracket. 
-        </p>
+        <p className="text-slate-600 mb-6">Set your shipping rates by region and weight bracket.</p>
 
-        {/* ✅ SMART PRE-FILL: Domestic Country Selector */}
         <div className="mb-8 p-5 bg-blue-50 border border-blue-200 rounded-xl">
           <label className="text-sm font-bold text-blue-900 mb-2 block">📍 Your Domestic Country</label>
           <select 
