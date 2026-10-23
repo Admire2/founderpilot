@@ -3,19 +3,37 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+const COUNTRIES = [
+  "Nigeria", "Ghana", "Kenya", "South Africa", 
+  "United States", "Canada", "United Kingdom", "Germany", "France", 
+  "China", "India", "United Arab Emirates", "Australia", "Brazil", "Other"
+];
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [cart, setCart] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  
+  // Shipping State
+  const [shippingCountry, setShippingCountry] = useState("Nigeria");
+  const [shippingCost, setShippingCost] = useState(0);
+  const [sellerData, setSellerData] = useState<any>(null);
 
   useEffect(() => {
-    // Read cart from localStorage on client-side mount
     const savedCart = localStorage.getItem("kara_cart");
     if (savedCart) {
       try {
-        setCart(JSON.parse(savedCart));
+        const parsedCart = JSON.parse(savedCart);
+        setCart(parsedCart);
+        // V1: Fetch shipping rates for the first seller in the cart
+        if (parsedCart.length > 0 && parsedCart[0].seller_id) {
+          fetchSellerShipping(parsedCart[0].seller_id, parsedCart);
+        }
       } catch (e) {
         console.error("Failed to parse cart", e);
       }
@@ -23,19 +41,84 @@ export default function CheckoutPage() {
     setLoading(false);
   }, []);
 
-  // Calculate totals dynamically
+  const fetchSellerShipping = async (sellerId: string, currentCart: any[]) => {
+    try {
+      const { data } = await sb.from("sellers").select("email, shipping_rates, country").eq("id", sellerId).single();
+      if (data) {
+        setSellerData(data);
+        calculateShipping(data, shippingCountry, currentCart);
+      }
+    } catch (e) {
+      console.error("Error fetching seller shipping", e);
+    }
+  };
+
+  const calculateShipping = (data: any, country: string, currentCart: any[]) => {
+    const rates = data.shipping_rates || {};
+    const domesticCountry = (rates.domestic_country || data.country || "Nigeria").toLowerCase();
+    const targetCountry = country.toLowerCase();
+    
+    // Smart Region Detection
+    let region = "row";
+    if (targetCountry === domesticCountry) {
+      region = "domestic";
+    } else if (["nigeria", "ghana", "kenya", "south africa", "egypt", "tanzania", "rwanda"].includes(targetCountry)) {
+      region = "africa";
+    } else if (["united states", "canada", "mexico"].includes(targetCountry)) {
+      region = "na";
+    } else if (["united kingdom", "germany", "france", "spain", "italy", "netherlands"].includes(targetCountry)) {
+      region = "eu";
+    } else if (["china", "india", "japan", "united arab emirates", "singapore"].includes(targetCountry)) {
+      region = "asia";
+    }
+
+    const regionRates = rates[region] || { method: "flat", flat_rate: "0" };
+    let cost = 0;
+
+    if (regionRates.method === "free") {
+      cost = 0;
+    } else if (regionRates.method === "flat") {
+      cost = Number(regionRates.flat_rate) || 0;
+    } else if (regionRates.method === "weight") {
+      const totalWeight = currentCart.reduce((sum, item) => sum + (Number(item.weight_lbs) || 5), 0);
+      let bracket = "0-5";
+      if (totalWeight > 20) bracket = "20+";
+      else if (totalWeight > 10) bracket = "10-20";
+      else if (totalWeight > 5) bracket = "5-10";
+      cost = Number(regionRates.brackets?.[bracket]) || 0;
+    }
+
+    setShippingCost(cost);
+  };
+
+  const handleCountryChange = (country: string) => {
+    setShippingCountry(country);
+    if (sellerData && cart.length > 0) {
+      calculateShipping(sellerData, country, cart);
+    }
+  };
+
+  // Dynamic Math Calculations
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || Number(item.price_usd) || 0) * (item.qty || 1), 0);
-  const escrowFee = subtotal * 0.05; // 5% Smart Escrow Buffer
-  const total = subtotal + escrowFee;
+  const grandTotal = subtotal + shippingCost;
+  const escrowFee = grandTotal * 0.05; // 5% Smart Escrow Buffer on Grand Total
+  const finalTotal = grandTotal + escrowFee;
 
   const handleCheckout = async () => {
     setProcessing(true);
     try {
-      // We will wire this to the order API in Step 2
       const response = await fetch("/api/karakata/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart, total, escrowFee }),
+        body: JSON.stringify({ 
+          cart, 
+          subtotal,
+          shippingCost, 
+          shippingCountry,
+          grandTotal,
+          escrowFee,
+          seller_id: cart[0]?.seller_id
+        }),
       });
       
       const data = await response.json();
@@ -127,9 +210,27 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-bold mb-6">Payment Details</h2>
               
               <div className="space-y-3 text-sm mb-6">
-                <div className="flex justify-between">
+                {/* ✅ NEW: Dynamic Shipping Destination Selector */}
+                <div className="mb-4">
+                  <label className="text-xs font-bold text-slate-600 mb-1 block">Shipping Destination</label>
+                  <select 
+                    value={shippingCountry}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-between border-t border-slate-100 pt-3">
                   <span className="text-slate-600">Subtotal</span>
                   <span className="font-bold">${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Shipping</span>
+                  <span className="font-bold text-emerald-700">${shippingCost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center group relative">
                   <div className="flex items-center gap-1 text-slate-600 cursor-help">
@@ -143,7 +244,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="border-t border-slate-200 pt-3 flex justify-between text-lg">
                   <span className="font-bold text-slate-900">Total Due</span>
-                  <span className="font-bold text-slate-900">${total.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">${finalTotal.toFixed(2)}</span>
                 </div>
               </div>
 
