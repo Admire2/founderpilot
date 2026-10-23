@@ -22,21 +22,29 @@ export default function ShippingProfiles() {
   const [email, setEmail] = useState("");
   const [rates, setRates] = useState<any>({});
   const [domesticCountry, setDomesticCountry] = useState("Nigeria");
+  const [customCountry, setCustomCountry] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("kara_seller_onboarding_email");
     if (storedEmail) {
-      setEmail(storedEmail);
-      loadRates(storedEmail);
+      // Clean the email to prevent hidden space mismatches
+      const cleanEmail = storedEmail.trim().toLowerCase();
+      setEmail(cleanEmail);
+      loadRates(cleanEmail);
     } else {
       setLoading(false);
     }
   }, []);
 
   const loadRates = async (userEmail: string) => {
-    const { data } = await sb.from("sellers").select("shipping_rates, country").eq("email", userEmail).single();
+    console.log("🔍 Fetching rates for email:", userEmail);
+    const { data, error } = await sb.from("sellers").select("shipping_rates, country").eq("email", userEmail).single();
+    
+    if (error) {
+      console.error("❌ Supabase Fetch Error:", error);
+    }
     
     if (data) {
       setRates(data.shipping_rates || {});
@@ -67,18 +75,30 @@ export default function ShippingProfiles() {
     if (!email) return;
     setMsg("Saving...");
     
-    const ratesToSave = { ...rates, domestic_country: domesticCountry };
-    const { error } = await sb.from("sellers").update({ shipping_rates: ratesToSave }).eq("email", email);
+    // ✅ If "Other" is selected, use the custom typed country. Otherwise, use the dropdown value.
+    const finalCountry = domesticCountry === "Other" ? customCountry.trim() : domesticCountry;
     
-    setMsg(error ? "Error saving rates." : "✅ Shipping profiles saved successfully!");
-    setTimeout(() => setMsg(""), 3000);
+    const ratesToSave = { ...rates, domestic_country: finalCountry };
+    
+    console.log("📤 Attempting to save to Supabase:", { email, ratesToSave });
+
+    const { data, error } = await sb.from("sellers").update({ shipping_rates: ratesToSave }).eq("email", email).select();
+    
+    if (error) {
+      console.error("❌ Supabase Update Error:", error);
+      setMsg(`Error: ${error.message}`);
+    } else {
+      console.log("✅ Supabase Update Success:", data);
+      setMsg("✅ Shipping profiles saved successfully!");
+    }
+    
+    setTimeout(() => setMsg(""), 4000);
   };
 
   if (loading) return <div className="p-10 text-center text-slate-600">Loading shipping settings...</div>;
 
-  // ✅ UPGRADED: Africa and Asia are now distinct, professional regions
   const REGIONS = [
-    { key: "domestic", label: `🏠 Domestic (${domesticCountry})` },
+    { key: "domestic", label: `🏠 Domestic (${domesticCountry === "Other" ? (customCountry || "Custom") : domesticCountry})` },
     { key: "africa", label: "🌍 Africa (Cross-border)" },
     { key: "asia", label: "🌏 Asia" },
     { key: "na", label: "🇺🇸 North America (USA, Canada, Mexico)" },
@@ -107,6 +127,20 @@ export default function ShippingProfiles() {
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+          
+          {/* ✅ DYNAMIC "OTHER" INPUT */}
+          {domesticCountry === "Other" && (
+            <div className="mt-3">
+              <input
+                type="text"
+                value={customCountry}
+                onChange={(e) => setCustomCountry(e.target.value)}
+                placeholder="Please type your country name (e.g., Argentina, Japan)"
+                className="w-full md:w-1/2 rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition"
+              />
+            </div>
+          )}
+
           <p className="text-xs text-blue-700 mt-2">
             Pre-filled from your shop profile. Buyers from this country will see these "Domestic" rates.
           </p>
