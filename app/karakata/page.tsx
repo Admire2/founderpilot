@@ -7,7 +7,7 @@ import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories";
 
 const TAXONOMY = MASTER_CATEGORIES.map((name) => ({
   name,
-  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "📦",
+  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "",
   subs: CATEGORY_SUBS[name] || []
 }));
 
@@ -44,7 +44,6 @@ export default function Market() {
   
   const left = useCountdown();
 
-  // ✅ SAFE SEARCH: Reads from window to avoid Next.js prerender Suspense errors
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -60,8 +59,13 @@ export default function Market() {
     (async () => {
       try {
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+<<<<<<< HEAD
         // ✅ Fetch listing data AND the linked seller's shop_name
 const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
+=======
+        // ✅ UPDATED: Fetch listing data AND the linked seller's shop_name
+        const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
+>>>>>>> 68a5492ec16f568e77f0b091fdc5562a0e288f2b
         const live = (data || []).filter((l: any) => !l.status || l.status === "active");
         const seen = new Set<string>();
         const uniq = live.filter((l: any) => {
@@ -89,7 +93,11 @@ const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(sho
         "&nologo=true";
   const norm = (s: any) => String(s || "").toLowerCase();
 
+<<<<<<< HEAD
    // ✅ Now also searches the Shop Name!
+=======
+  // ✅ UPDATED: Now also searches the Shop Name!
+>>>>>>> 68a5492ec16f568e77f0b091fdc5562a0e288f2b
   const filtered = items.filter(
     (l: any) =>
       (!cat || l.category === cat) &&
@@ -185,28 +193,6 @@ const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(sho
           <p className="text-sm">Escrow-protected payments · Verified-purchase reviews · Free AI storefront builder</p>
         </div>
 
-        <div className="mt-6 flex gap-2">
-          <input
-            type="text"
-            value={term}
-            onChange={(e) => {
-              setTerm(e.target.value);
-              setQ(e.target.value);
-            }}
-            placeholder="Search for products, services, or categories (e.g., leather)..."
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
-          />
-          <button
-            onClick={() => {
-              setTerm("");
-              setQ("");
-            }}
-            className="rounded-lg bg-slate-200 px-6 py-3 text-sm font-bold hover:bg-slate-300"
-          >
-            Clear
-          </button>
-        </div>
-
         {deals.length > 0 && (
           <section className="mt-6">
             <h2 className="text-lg font-bold">⚡ Rolling deals — ends in {left}</h2>
@@ -256,7 +242,7 @@ const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(sho
             <h2 className="text-lg font-bold">
               {cat ? cat : "All products & services"}
               {sub ? " · " + sub : ""}
-              {term ? " · search: “" + term + "”" : ""}{" "}
+              {term ? " · search: " + term : ""}{" "}
               <span className="text-sm font-normal text-slate-500">({filtered.length} results)</span>
             </h2>
             {(cat || sub || term) && (
@@ -308,7 +294,7 @@ const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(sho
               <div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4">
                 <p className="font-bold">Nothing matches yet.</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {term ? "No products or services match “" + term + "”." : "Be the first seller here."}
+                  {term ? "No products or services match " + term + "." : "Be the first seller here."}
                 </p>
                 <Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">
                   🏗️ Build my store free
