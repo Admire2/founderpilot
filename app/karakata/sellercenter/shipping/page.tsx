@@ -72,7 +72,10 @@ export default function ShippingProfiles() {
   };
 
   const saveRates = async () => {
-    if (!email) return;
+    if (!email) {
+      setMsg("⚠️ No email found. Please refresh or log in.");
+      return;
+    }
     setMsg("Saving...");
     
     // ✅ If "Other" is selected, use the custom typed country. Otherwise, use the dropdown value.
@@ -82,10 +85,14 @@ export default function ShippingProfiles() {
     
     console.log("📤 Attempting to UPSERT to Supabase:", { email, ratesToSave });
 
-    // ✅ CHANGED: .upsert() creates the row if it doesn't exist, or updates it if it does!
+    // ✅ FIX: Include a default shop_name to satisfy the NOT NULL constraint if the row is new
     const { data, error } = await sb
       .from("sellers")
-      .upsert({ email: email, shipping_rates: ratesToSave }, { onConflict: 'email' })
+      .upsert({ 
+        email: email, 
+        shipping_rates: ratesToSave,
+        shop_name: "My Store" // <-- Safe default to satisfy database rules
+      }, { onConflict: 'email' })
       .select();
     
     if (error) {
@@ -119,6 +126,12 @@ export default function ShippingProfiles() {
         
         <h1 className="text-3xl font-bold mb-2">Global Shipping Profiles</h1>
         <p className="text-slate-600 mb-6">Set your shipping rates by region and weight bracket.</p>
+
+        {msg && !email && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 font-bold text-center">
+            {msg}
+          </div>
+        )}
 
         <div className="mb-8 p-5 bg-blue-50 border border-blue-200 rounded-xl">
           <label className="text-sm font-bold text-blue-900 mb-2 block">📍 Your Domestic Country</label>
@@ -222,7 +235,7 @@ export default function ShippingProfiles() {
         </div>
 
         <div className="mt-8 flex justify-end items-center gap-4">
-          {msg && <span className={`font-bold ${msg.includes("✅") ? "text-emerald-600" : "text-rose-600"}`}>{msg}</span>}
+          {msg && email && <span className={`font-bold ${msg.includes("✅") ? "text-emerald-600" : "text-rose-600"}`}>{msg}</span>}
           <button 
             onClick={saveRates}
             className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-sm"
