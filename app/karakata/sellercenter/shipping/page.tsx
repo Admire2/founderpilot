@@ -29,7 +29,6 @@ export default function ShippingProfiles() {
   useEffect(() => {
     const storedEmail = localStorage.getItem("kara_seller_onboarding_email");
     if (storedEmail) {
-      // Clean the email to prevent hidden space mismatches
       const cleanEmail = storedEmail.trim().toLowerCase();
       setEmail(cleanEmail);
       loadRates(cleanEmail);
@@ -66,8 +65,15 @@ export default function ShippingProfiles() {
 
   const updateRate = (region: string, key: string, value: string) => {
     setRates((prev: any) => {
-      const regionData = prev[region] || {};
-      return { ...prev, [region]: { ...regionData, [key]: value } };
+      // ✅ FIX: Ensure we preserve ALL existing properties for this region
+      const existingRegion = prev[region] || { method: "flat", brackets: {} };
+      return {
+        ...prev,
+        [region]: {
+          ...existingRegion,
+          [key]: value
+        }
+      };
     });
   };
 
@@ -78,20 +84,18 @@ export default function ShippingProfiles() {
     }
     setMsg("Saving...");
     
-    // ✅ If "Other" is selected, use the custom typed country. Otherwise, use the dropdown value.
     const finalCountry = domesticCountry === "Other" ? customCountry.trim() : domesticCountry;
-    
     const ratesToSave = { ...rates, domestic_country: finalCountry };
     
     console.log("📤 Attempting to UPSERT to Supabase:", { email, ratesToSave });
 
-    // ✅ FIX: Include a default shop_name to satisfy the NOT NULL constraint if the row is new
     const { data, error } = await sb
       .from("sellers")
       .upsert({ 
         email: email, 
         shipping_rates: ratesToSave,
-        shop_name: "My Store" // <-- Safe default to satisfy database rules
+        shop_name: "My Store",
+        category: "General" // ✅ FIX: Also add category to prevent that constraint error
       }, { onConflict: 'email' })
       .select();
     
@@ -145,7 +149,6 @@ export default function ShippingProfiles() {
             ))}
           </select>
           
-          {/* ✅ DYNAMIC "OTHER" INPUT */}
           {domesticCountry === "Other" && (
             <div className="mt-3">
               <input
