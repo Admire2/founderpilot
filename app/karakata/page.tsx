@@ -100,6 +100,7 @@ export default function Market() {
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
+  // ✅ FIXED: The item object is now properly closed with all its properties
   const add = (l: any) => {
     const p = priceOf(l);
     const item = {
