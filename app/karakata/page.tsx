@@ -7,7 +7,7 @@ import { MASTER_CATEGORIES, CATEGORY_SUBS } from "@/lib/categories";
 
 const TAXONOMY = MASTER_CATEGORIES.map((name) => ({
   name,
-  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "" : name === "Artisan Services" ? "🛠️" : "",
+  icon: name === "Jewelry & Gems" ? "💍" : name === "Home & Kitchen" ? "🏠" : name === "Artisan Services" ? "🛠️" : "",
   subs: CATEGORY_SUBS[name] || []
 }));
 
@@ -103,7 +103,14 @@ export default function Market() {
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
+  // ✅ UPDATED: Inventory check in add function
   const add = (l: any) => {
+    const stock = l.inventory_count ?? 10; // Default to 10 if null
+    if (stock <= 0) {
+      alert("Sorry, this item is currently out of stock. We will let you know when it's updated!");
+      return;
+    }
+
     const p = priceOf(l);
     const item = {
       id: l.id,
@@ -119,6 +126,11 @@ export default function Market() {
     const cart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
     const ex = cart.find((c: any) => String(c.id) === String(l.id));
     if (ex) {
+      // ✅ Prevent adding more than available stock
+      if ((ex.qty || 1) >= stock) {
+        alert(`Sorry, only ${stock} items left in stock!`);
+        return;
+      }
       ex.qty = (ex.qty || 1) + 1;
     } else {
       cart.push(item);
@@ -197,6 +209,8 @@ export default function Market() {
                 const p = priceOf(l);
                 const pct = Math.round((1 - p / Number(l.compare_at_usd)) * 100);
                 const isAdded = addedId === l.id;
+                const stock = l.inventory_count ?? 10;
+                const isOutOfStock = stock <= 0;
                 
                 return (
                   <div key={l.id} className="w-56 shrink-0 rounded-lg border border-slate-200 p-3 shadow-sm">
@@ -226,17 +240,24 @@ export default function Market() {
                     </p>
                     <p className="mt-1 line-clamp-2 text-xs">{l.title}</p>
                     
-                    {/* ✅ UPGRADED: Animated Add Button for Deals */}
-                    <button 
-                      onClick={() => add(l)} 
-                      className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${
-                        isAdded 
-                          ? "bg-emerald-500 text-white" 
-                          : "bg-amber-400 text-slate-900 hover:bg-amber-300"
-                      }`}
-                    >
-                      {isAdded ? "Added to Cart ✅" : "Add to cart"}
-                    </button>
+                    {/* ✅ UPGRADED: Inventory Aware Animated Add Button for Deals */}
+                    {isOutOfStock ? (
+                      <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center">
+                        <span>Out of Stock</span>
+                        <span className="text-[10px] font-normal">Check back later</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => add(l)} 
+                        className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${
+                          isAdded 
+                            ? "bg-emerald-500 text-white" 
+                            : "bg-amber-400 text-slate-900 hover:bg-amber-300"
+                        }`}
+                      >
+                        {isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -269,6 +290,8 @@ export default function Market() {
           <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map((l: any) => {
               const isAdded = addedId === l.id;
+              const stock = l.inventory_count ?? 10;
+              const isOutOfStock = stock <= 0;
               
               return (
                 <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md">
@@ -296,17 +319,24 @@ export default function Market() {
                     {l.subcategory ? " · " + l.subcategory : ""}
                   </p>
                   
-                  {/* ✅ UPGRADED: Animated Add Button for Main Grid */}
-                  <button 
-                    onClick={() => add(l)} 
-                    className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${
-                      isAdded 
-                        ? "bg-emerald-500 text-white" 
-                        : "bg-amber-400 text-slate-900 hover:bg-amber-300"
-                    }`}
-                  >
-                    {isAdded ? "Added to Cart ✅" : "Add to cart"}
-                  </button>
+                  {/* ✅ UPGRADED: Inventory Aware Animated Add Button for Main Grid */}
+                  {isOutOfStock ? (
+                    <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center">
+                      <span>Out of Stock</span>
+                      <span className="text-[10px] font-normal">Check back later</span>
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => add(l)} 
+                      className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${
+                        isAdded 
+                          ? "bg-emerald-500 text-white" 
+                          : "bg-amber-400 text-slate-900 hover:bg-amber-300"
+                      }`}
+                    >
+                      {isAdded ? "Added to Cart ✅" : `Add to cart (${stock} left)`}
+                    </button>
+                  )}
                 </div>
               );
             })}
