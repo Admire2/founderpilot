@@ -5,7 +5,6 @@ import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-// Global country list for the domestic selector
 const COUNTRIES = [
   "Nigeria", "United States", "United Kingdom", "Canada", "Ghana", 
   "Kenya", "South Africa", "India", "China", "United Arab Emirates", 
@@ -37,12 +36,17 @@ export default function ShippingProfiles() {
   }, []);
 
   const loadRates = async (userEmail: string) => {
-    const { data } = await sb.from("sellers").select("shipping_rates").eq("email", userEmail).single();
-    if (data?.shipping_rates) {
-      setRates(data.shipping_rates);
-      // Pre-fill domestic country if it was saved previously
-      if (data.shipping_rates.domestic_country) {
+    // ✅ SMART PRE-FILL: Fetch both shipping_rates AND the country from Step 1
+    const { data } = await sb.from("sellers").select("shipping_rates, country").eq("email", userEmail).single();
+    
+    if (data) {
+      setRates(data.shipping_rates || {});
+      
+      // Pre-fill domestic country: Priority 1 = saved shipping setting, Priority 2 = Step 1 country, Priority 3 = Nigeria
+      if (data.shipping_rates?.domestic_country) {
         setDomesticCountry(data.shipping_rates.domestic_country);
+      } else if (data.country) {
+        setDomesticCountry(data.country);
       }
     }
     setLoading(false);
@@ -66,17 +70,15 @@ export default function ShippingProfiles() {
     if (!email) return;
     setMsg("Saving...");
     
-    // Ensure domestic country is saved alongside the rates
     const ratesToSave = { ...rates, domestic_country: domesticCountry };
-    
     const { error } = await sb.from("sellers").update({ shipping_rates: ratesToSave }).eq("email", email);
+    
     setMsg(error ? "Error saving rates." : "✅ Shipping profiles saved successfully!");
     setTimeout(() => setMsg(""), 3000);
   };
 
   if (loading) return <div className="p-10 text-center text-slate-600">Loading shipping settings...</div>;
 
-  // Dynamic regions array based on selected domestic country
   const REGIONS = [
     { key: "domestic", label: `🏠 Domestic (${domesticCountry})` },
     { key: "na", label: "🇺🇸 North America (USA, Canada, Mexico)" },
@@ -96,7 +98,7 @@ export default function ShippingProfiles() {
           Set your shipping rates by region and weight bracket. 
         </p>
 
-        {/* ✅ NEW: Domestic Country Selector */}
+        {/* ✅ SMART PRE-FILL: Domestic Country Selector */}
         <div className="mb-8 p-5 bg-blue-50 border border-blue-200 rounded-xl">
           <label className="text-sm font-bold text-blue-900 mb-2 block">📍 Your Domestic Country</label>
           <select 
@@ -109,7 +111,7 @@ export default function ShippingProfiles() {
             ))}
           </select>
           <p className="text-xs text-blue-700 mt-2">
-            Buyers from this country will see these "Domestic" rates. This ensures your baseline shipping is accurate no matter where you are located.
+            Pre-filled from your shop profile. Buyers from this country will see these "Domestic" rates.
           </p>
         </div>
 
@@ -121,7 +123,6 @@ export default function ShippingProfiles() {
               <div key={region.key} className="border-b border-slate-100 pb-6 last:border-0">
                 <h2 className="text-xl font-bold mb-4">{region.label}</h2>
                 
-                {/* Method Selector */}
                 <div className="flex flex-wrap gap-4 mb-4">
                   {["flat", "weight", "free"].map((m) => (
                     <label key={m} className="flex items-center gap-2 cursor-pointer">
@@ -139,7 +140,6 @@ export default function ShippingProfiles() {
                   ))}
                 </div>
 
-                {/* Conditional Inputs */}
                 {regionData.method === "flat" && (
                   <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg w-48">
                     <span className="text-slate-500 text-sm font-bold">$</span>
@@ -178,7 +178,7 @@ export default function ShippingProfiles() {
 
                 {regionData.method === "free" && (
                   <p className="text-sm text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-                    ✅ Buyers in this region will see "Free Shipping" at checkout. (You will absorb the shipping cost).
+                    ✅ Buyers in this region will see "Free Shipping" at checkout.
                   </p>
                 )}
               </div>
