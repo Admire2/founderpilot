@@ -30,7 +30,7 @@ export default function CheckoutPage() {
         const parsedCart = JSON.parse(savedCart);
         setCart(parsedCart);
         if (parsedCart.length > 0 && parsedCart[0].seller_id) {
-          // ✅ Pass the seller_id (which is the email) to fetch shipping
+          // ✅ Pass the numeric seller_id to fetch shipping
           fetchSellerShipping(parsedCart[0].seller_id, parsedCart);
         }
       } catch (e) {
@@ -40,21 +40,27 @@ export default function CheckoutPage() {
     setLoading(false);
   }, []);
 
-  const fetchSellerShipping = async (sellerEmail: string, currentCart: any[]) => {
+  const fetchSellerShipping = async (sellerId: number | string, currentCart: any[]) => {
     try {
-      // ✅ FIX: Query by 'email' because that's the unique identifier we used for shipping profiles
-      const { data, error } = await sb.from("sellers").select("email, shipping_rates, country").eq("email", sellerEmail).single();
+      console.log("🔍 Attempting to fetch shipping for seller ID:", sellerId);
+      
+      // ✅ FIX: Query the sellers table by their primary key 'id', NOT email
+      const { data, error } = await sb
+        .from("sellers")
+        .select("id, email, shipping_rates, country")
+        .eq("id", sellerId)
+        .single();
       
       if (error) {
         console.error("❌ Supabase Shipping Fetch Error:", error);
       }
 
       if (data) {
-        console.log("✅ Found Seller Shipping Data:", data);
+        console.log("✅ SUCCESS! Found Seller Shipping Data:", data);
         setSellerData(data);
         calculateShipping(data, shippingCountry, currentCart);
       } else {
-        console.warn("⚠️ No seller data found for email:", sellerEmail);
+        console.warn("⚠️ No seller data found for ID:", sellerId);
       }
     } catch (e) {
       console.error("Error fetching seller shipping", e);
@@ -66,6 +72,8 @@ export default function CheckoutPage() {
     const domesticCountry = (rates.domestic_country || data.country || "Nigeria").toLowerCase();
     const targetCountry = country.toLowerCase();
     
+    console.log(`🌍 Calculating Shipping: Buyer is in [${targetCountry}], Seller Domestic is [${domesticCountry}]`);
+
     let region = "row";
     if (targetCountry === domesticCountry) region = "domestic";
     else if (["nigeria", "ghana", "kenya", "south africa", "egypt", "tanzania", "rwanda"].includes(targetCountry)) region = "africa";
@@ -73,12 +81,16 @@ export default function CheckoutPage() {
     else if (["united kingdom", "germany", "france", "spain", "italy", "netherlands"].includes(targetCountry)) region = "eu";
     else if (["china", "india", "japan", "united arab emirates", "singapore"].includes(targetCountry)) region = "asia";
 
+    console.log("🎯 Matched Region:", region);
+
     const regionRates = rates[region] || { method: "flat", flat_rate: "0" };
     let cost = 0;
 
-    if (regionRates.method === "free") cost = 0;
-    else if (regionRates.method === "flat") cost = Number(regionRates.flat_rate) || 0;
-    else if (regionRates.method === "weight") {
+    if (regionRates.method === "free") {
+      cost = 0;
+    } else if (regionRates.method === "flat") {
+      cost = Number(regionRates.flat_rate) || 0;
+    } else if (regionRates.method === "weight") {
       const totalWeight = currentCart.reduce((sum, item) => sum + (Number(item.weight_lbs) || 5) * (item.qty || 1), 0);
       let bracket = "0-5";
       if (totalWeight > 20) bracket = "20+";
@@ -86,6 +98,8 @@ export default function CheckoutPage() {
       else if (totalWeight > 5) bracket = "5-10";
       cost = Number(regionRates.brackets?.[bracket]) || 0;
     }
+    
+    console.log("💰 Final Calculated Shipping Cost:", cost);
     setShippingCost(cost);
   };
 
@@ -169,22 +183,12 @@ export default function CheckoutPage() {
                     <img src={item.image_url || "https://via.placeholder.com/80"} alt={item.title} className="w-20 h-20 rounded-lg object-cover bg-slate-100" />
                     <div className="flex-1">
                       <h3 className="font-bold text-slate-900">{item.title}</h3>
-                      
                       <div className="flex items-center gap-3 mt-2">
-                        <button 
-                          onClick={() => updateQty(item.id, -1)}
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition"
-                        >-</button>
+                        <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition">-</button>
                         <span className="text-sm font-bold text-slate-900 w-4 text-center">{item.qty || 1}</span>
-                        <button 
-                          onClick={() => updateQty(item.id, 1)}
-                          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition"
-                        >+</button>
+                        <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition">+</button>
                       </div>
-
-                      <p className="text-sm font-bold text-emerald-700 mt-1">
-                        ${(Number(item.price) || Number(item.price_usd) || 0).toFixed(2)}
-                      </p>
+                      <p className="text-sm font-bold text-emerald-700 mt-1">${(Number(item.price) || Number(item.price_usd) || 0).toFixed(2)}</p>
                     </div>
                     <button onClick={() => removeFromCart(item.id)} className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-1 rounded-lg text-sm font-bold transition self-start">Remove</button>
                   </div>
