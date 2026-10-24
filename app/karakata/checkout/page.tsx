@@ -30,7 +30,6 @@ export default function CheckoutPage() {
         const parsedCart = JSON.parse(savedCart);
         setCart(parsedCart);
         if (parsedCart.length > 0 && parsedCart[0].seller_id) {
-          // ✅ Pass the numeric seller_id to fetch shipping
           fetchSellerShipping(parsedCart[0].seller_id, parsedCart);
         }
       } catch (e) {
@@ -42,25 +41,13 @@ export default function CheckoutPage() {
 
   const fetchSellerShipping = async (sellerId: number | string, currentCart: any[]) => {
     try {
-      console.log("🔍 Attempting to fetch shipping for seller ID:", sellerId);
-      
-      // ✅ FIX: Query the sellers table by their primary key 'id', NOT email
-      const { data, error } = await sb
-        .from("sellers")
-        .select("id, email, shipping_rates, country")
-        .eq("id", sellerId)
-        .single();
-      
+      const { data, error } = await sb.from("sellers").select("id, email, shipping_rates, country").eq("id", sellerId).single();
       if (error) {
         console.error("❌ Supabase Shipping Fetch Error:", error);
       }
-
       if (data) {
-        console.log("✅ SUCCESS! Found Seller Shipping Data:", data);
         setSellerData(data);
         calculateShipping(data, shippingCountry, currentCart);
-      } else {
-        console.warn("⚠️ No seller data found for ID:", sellerId);
       }
     } catch (e) {
       console.error("Error fetching seller shipping", e);
@@ -72,8 +59,6 @@ export default function CheckoutPage() {
     const domesticCountry = (rates.domestic_country || data.country || "Nigeria").toLowerCase();
     const targetCountry = country.toLowerCase();
     
-    console.log(`🌍 Calculating Shipping: Buyer is in [${targetCountry}], Seller Domestic is [${domesticCountry}]`);
-
     let region = "row";
     if (targetCountry === domesticCountry) region = "domestic";
     else if (["nigeria", "ghana", "kenya", "south africa", "egypt", "tanzania", "rwanda"].includes(targetCountry)) region = "africa";
@@ -81,16 +66,12 @@ export default function CheckoutPage() {
     else if (["united kingdom", "germany", "france", "spain", "italy", "netherlands"].includes(targetCountry)) region = "eu";
     else if (["china", "india", "japan", "united arab emirates", "singapore"].includes(targetCountry)) region = "asia";
 
-    console.log("🎯 Matched Region:", region);
-
     const regionRates = rates[region] || { method: "flat", flat_rate: "0" };
     let cost = 0;
 
-    if (regionRates.method === "free") {
-      cost = 0;
-    } else if (regionRates.method === "flat") {
-      cost = Number(regionRates.flat_rate) || 0;
-    } else if (regionRates.method === "weight") {
+    if (regionRates.method === "free") cost = 0;
+    else if (regionRates.method === "flat") cost = Number(regionRates.flat_rate) || 0;
+    else if (regionRates.method === "weight") {
       const totalWeight = currentCart.reduce((sum, item) => sum + (Number(item.weight_lbs) || 5) * (item.qty || 1), 0);
       let bracket = "0-5";
       if (totalWeight > 20) bracket = "20+";
@@ -98,8 +79,6 @@ export default function CheckoutPage() {
       else if (totalWeight > 5) bracket = "5-10";
       cost = Number(regionRates.brackets?.[bracket]) || 0;
     }
-    
-    console.log("💰 Final Calculated Shipping Cost:", cost);
     setShippingCost(cost);
   };
 
@@ -118,6 +97,10 @@ export default function CheckoutPage() {
     });
     setCart(updatedCart);
     localStorage.setItem("kara_cart", JSON.stringify(updatedCart));
+    
+    // ✅ SHOUT to the browser to update the header badge instantly!
+    window.dispatchEvent(new Event("kara_cart_updated"));
+    
     if (sellerData) calculateShipping(sellerData, shippingCountry, updatedCart);
   };
 
@@ -125,6 +108,10 @@ export default function CheckoutPage() {
     const updatedCart = cart.filter((item) => String(item.id) !== String(itemId));
     setCart(updatedCart);
     localStorage.setItem("kara_cart", JSON.stringify(updatedCart));
+    
+    // ✅ SHOUT to the browser to update the header badge instantly!
+    window.dispatchEvent(new Event("kara_cart_updated"));
+    
     if (updatedCart.length > 0 && sellerData) {
       calculateShipping(sellerData, shippingCountry, updatedCart);
     } else if (updatedCart.length === 0) {
