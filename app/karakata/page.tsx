@@ -164,6 +164,9 @@ export default function Market() {
     setCartCount(newCart.reduce((a, c) => a + (c.qty || 1), 0));
     localStorage.setItem("kara_cart", JSON.stringify(newCart));
     
+    // ✅ SHOUT to the browser to update the header badge instantly!
+    window.dispatchEvent(new Event("kara_cart_updated"));
+    
     setAddedId(l.id);
     setTimeout(() => setAddedId(null), 2000);
   };
