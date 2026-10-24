@@ -30,6 +30,7 @@ export default function CheckoutPage() {
         const parsedCart = JSON.parse(savedCart);
         setCart(parsedCart);
         if (parsedCart.length > 0 && parsedCart[0].seller_id) {
+          // ✅ Pass the seller_id (which is the email) to fetch shipping
           fetchSellerShipping(parsedCart[0].seller_id, parsedCart);
         }
       } catch (e) {
@@ -39,12 +40,21 @@ export default function CheckoutPage() {
     setLoading(false);
   }, []);
 
-  const fetchSellerShipping = async (sellerId: string, currentCart: any[]) => {
+  const fetchSellerShipping = async (sellerEmail: string, currentCart: any[]) => {
     try {
-      const { data } = await sb.from("sellers").select("email, shipping_rates, country").eq("id", sellerId).single();
+      // ✅ FIX: Query by 'email' because that's the unique identifier we used for shipping profiles
+      const { data, error } = await sb.from("sellers").select("email, shipping_rates, country").eq("email", sellerEmail).single();
+      
+      if (error) {
+        console.error("❌ Supabase Shipping Fetch Error:", error);
+      }
+
       if (data) {
+        console.log("✅ Found Seller Shipping Data:", data);
         setSellerData(data);
         calculateShipping(data, shippingCountry, currentCart);
+      } else {
+        console.warn("⚠️ No seller data found for email:", sellerEmail);
       }
     } catch (e) {
       console.error("Error fetching seller shipping", e);
@@ -84,11 +94,10 @@ export default function CheckoutPage() {
     if (sellerData && cart.length > 0) calculateShipping(sellerData, country, cart);
   };
 
-  // ✅ NEW: Quantity Controls
   const updateQty = (itemId: string | number, change: number) => {
     const updatedCart = cart.map(item => {
       if (String(item.id) === String(itemId)) {
-        const newQty = Math.max(1, (item.qty || 1) + change); // Prevent going below 1
+        const newQty = Math.max(1, (item.qty || 1) + change);
         return { ...item, qty: newQty };
       }
       return item;
@@ -161,7 +170,6 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <h3 className="font-bold text-slate-900">{item.title}</h3>
                       
-                      {/* ✅ NEW: Quantity Controls */}
                       <div className="flex items-center gap-3 mt-2">
                         <button 
                           onClick={() => updateQty(item.id, -1)}
