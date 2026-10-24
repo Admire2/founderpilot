@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import CartBadge from "@/components/CartBadge";
 
 export default function KarakataTopHeader() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,9 +44,9 @@ export default function KarakataTopHeader() {
         <Link href="/karakata/build" className="hover:text-amber-400 transition text-amber-400 whitespace-nowrap">
           Build your Store 
         </Link>
-        <Link href="/karakata/checkout" className="hover:text-amber-400 transition flex items-center gap-1 whitespace-nowrap">
-          Cart
-        </Link>
+        
+        {/* ✅ REPLACED: Simple "Cart" text with the live CartBadge component */}
+        <CartBadge />
       </div>
     </header>
   );
