@@ -97,10 +97,7 @@ export default function CheckoutPage() {
     });
     setCart(updatedCart);
     localStorage.setItem("kara_cart", JSON.stringify(updatedCart));
-    
-    // ✅ SHOUT to the browser to update the header badge instantly!
     window.dispatchEvent(new Event("kara_cart_updated"));
-    
     if (sellerData) calculateShipping(sellerData, shippingCountry, updatedCart);
   };
 
@@ -108,10 +105,7 @@ export default function CheckoutPage() {
     const updatedCart = cart.filter((item) => String(item.id) !== String(itemId));
     setCart(updatedCart);
     localStorage.setItem("kara_cart", JSON.stringify(updatedCart));
-    
-    // ✅ SHOUT to the browser to update the header badge instantly!
     window.dispatchEvent(new Event("kara_cart_updated"));
-    
     if (updatedCart.length > 0 && sellerData) {
       calculateShipping(sellerData, shippingCountry, updatedCart);
     } else if (updatedCart.length === 0) {
@@ -130,7 +124,17 @@ export default function CheckoutPage() {
       const response = await fetch("/api/karakata/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart, subtotal, shippingCost, shippingCountry, grandTotal, escrowFee, seller_id: cart[0]?.seller_id }),
+        // ✅ ADDED buyer_email to the payload!
+        body: JSON.stringify({ 
+          cart, 
+          subtotal, 
+          shippingCost, 
+          shippingCountry, 
+          grandTotal, 
+          escrowFee, 
+          seller_id: cart[0]?.seller_id,
+          buyer_email: "greatmind20@gmail.com" // ✅ Hardcoded to your email for this test!
+        }),
       });
       const data = await response.json();
       if (data.ok && data.url) {
@@ -205,7 +209,6 @@ export default function CheckoutPage() {
                 <div className="flex justify-between border-t border-slate-100 pt-3"><span className="text-slate-600">Subtotal</span><span className="font-bold">${subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span className="text-slate-600">Shipping</span><span className="font-bold text-emerald-700">${shippingCost.toFixed(2)}</span></div>
                 
-                {/* ✅ FIXED: Replaced ugly "?" with a clean, professional Info Icon */}
                 <div className="flex justify-between items-center group relative">
                   <div className="flex items-center gap-1 text-slate-600 cursor-help">
                     <span>Smart Escrow Buffer (5%)</span>
