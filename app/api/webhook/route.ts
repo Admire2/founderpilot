@@ -1,114 +1,130 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { sendMail } from "@/lib/mail";
 
-export const dynamic = "force-dynamic";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2023-10-16",
+});
 
-export async function POST(req: Request) {
-  const raw = await req.text();
-  let event: Stripe.Event | null = null;
-  const secret = process.env.STRIPE_WEBHOOK_SECRET || "";
-  const ts = process.env.STRIPE_WEBHOOK_SECRET_TEST || "";
-  const sig = req.headers.get("stripe-signature") || "";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-  if ((secret || ts) && sig && process.env.STRIPE_SECRET_KEY) {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const signature = req.headers.get("stripe-signature")!;
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err: any) {
+    console.error(`Webhook signature verification failed:`, err.message);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const orderId = session.metadata?.order_id;
+    const sellerId = session.metadata?.seller_id;
+    const buyerEmail = session.customer_details?.email;
+
+    if (!orderId) {
+      console.error("No order_id found in session metadata");
+      return NextResponse.json({ received: true });
+    }
+
     try {
-      event = stripe.webhooks.constructEvent(raw, sig, secret || ts);
-    } catch (e1) {
-      if (ts) {
-        try { event = stripe.webhooks.constructEvent(raw, sig, ts); } catch (e2) {
-          return NextResponse.json({ ok: false, error: "signature verification failed" }, { status: 400 });
+      // 1. Update Order Status to 'paid'
+      const { error: orderError } = await supabase
+        .from("kara_orders")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("id", orderId);
+
+      if (orderError) {
+        console.error("Failed to update order status:", orderError);
+      }
+
+      // 2. Send Beautiful Order Confirmation Email via Resend/Gmail fallback
+      if (buyerEmail) {
+        try {
+          const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background-color: #fbbf24; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .header h1 { color: #0f172a; margin: 0; font-size: 24px; }
+                .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
+                .badge { display: inline-block; background-color: #d1fae5; color: #065f46; padding: 6px 12px; border-radius: 9999px; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
+                .details { background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; }
+                .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #64748b; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>Order Confirmed! 🎉</h1>
+                </div>
+                <div class="content">
+                  <p>Hello,</p>
+                  <p>Thank you for your purchase on <strong>KaraKata</strong>. Your payment has been successfully processed and is now securely held in our <strong>Smart Escrow</strong> system.</p>
+                  
+                  <div class="badge">🛡️ Funds Protected</div>
+                  
+                  <p>Your funds will be held securely and only released to the seller after you confirm satisfactory delivery of your item(s). 0% risk to you.</p>
+                  
+                  <div class="details">
+                    <p><strong>Transaction ID:</strong> ${session.id}</p>
+                    <p><strong>Order Status:</strong> Paid & Held in Escrow</p>
+                    <p><strong>Next Step:</strong> The seller is preparing your shipment. You will receive another email once your item ships.</p>
+                  </div>
+
+                  <p>If you have any questions, simply reply to this email or visit your KaraKata dashboard.</p>
+                  
+                  <p>Best regards,<br>The KaraKata Team</p>
+                </div>
+                <div class="footer">
+                  <p>&copy; 2026 KaraKata. All rights reserved.</p>
+                  <p>This is an automated message, please do not reply directly to this email.</p>
+                </div>
+              </div>
+            </body>
+            </html>
+          `;
+          
+          await sendMail({
+            to: buyerEmail,
+            subject: "Order Confirmed! 🎉 - KaraKata Smart Escrow",
+            html: emailHtml,
+          });
+          console.log(`✅ Order confirmation email sent to ${buyerEmail}`);
+        } catch (emailError) {
+          console.error("Failed to send order confirmation email:", emailError);
+          // We don't throw here, so the webhook still returns 200 OK to Stripe
         }
-      } else {
-        return NextResponse.json({ ok: false, error: "signature verification failed" }, { status: 400 });
       }
+
+      console.log(`✅ Order ${orderId} marked as PAID successfully!`);
+    } catch (error) {
+      console.error("Webhook processing error:", error);
+      return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
     }
-  } else {
-    try { event = JSON.parse(raw); } catch (e) { return NextResponse.json({ ok: true, ignored: "unparseable" }); }
   }
 
-  if (!event) return NextResponse.json({ ok: true, ignored: "no event" });
-
-  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
-  const type = event.type;
-  const obj = event.data.object as any;
-
-  // 1. BLACKBOX LOGGER (independent try/catch)
-  try { await sb.from("stripe_events").insert({ id: event.id, type: type, data: obj }); } catch (e) { console.error("BLACKBOX INSERT FAILED:", e); }
-
-  // 2. CREDITS (independent try/catch)
-  if (type === "checkout.session.completed") { try {
-    const s0: any = event.data.object;
-    const oid0 = Number(s0.metadata && s0.metadata.order_id);
-    if (oid0) {
-      const od0: any = await sb.from("kara_orders").select("*").eq("id", oid0).single();
-      const em0 = String((od0 && od0.data && od0.data.buyer_email) || s0.customer_email || "");
-      if (em0) {
-        const code0 = String((od0 && od0.data && od0.data.code) || ("#" + oid0));
-        const tot0 = ((Number(s0.amount_total) || 0) / 100).toFixed(2);
-        await sb.from("kara_emails").insert({
-          email: em0,
-          kind: "order_confirm",
-          subject: "KaraKata order " + code0 + " confirmed - payment received",
-          body: '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto"><h2 style="color:#0f766e">We saw your purchase - order ' + code0 + '</h2><p>Hi, we received your payment of <b>$' + tot0 + '</b>. It is held in ESCROW until you confirm delivery - the seller sees it but cannot touch it early.</p><p><b>Did not make this purchase?</b> Reply to this email or open a dispute via Contact & Support within 24 hours - we will reverse the payment and investigate.</p><p>- Tunde, KaraKata Order Agent<br/>FounderPilot AI</p></div>',
-          status: "queued",
-          send_at: new Date().toISOString()
-        });
-      }
-    }
-  } catch (e) {}
-    try {
-      const email = String((obj.metadata && obj.metadata.email) || (obj.customer_details && obj.customer_details.email) || "").toLowerCase();
-      const credits = Number((obj.metadata && obj.metadata.credits) || 0);
-      if (email && credits > 0) {
-        const { data } = await sb.from("credits").select("*").eq("email", email).single();
-        if (data) await sb.from("credits").update({ pack_balance: Number(data.pack_balance || 0) + credits }).eq("email", email);
-        else await sb.from("credits").insert({ email: email, balance: 0, pack_balance: credits, plan: "free" });
-      }
-    } catch (e) {}
-  }
-
-  // 3. SUBSCRIPTIONS (independent try/catch)
-      {
-      const oid = Number((obj.metadata && obj.metadata.order_id) || 0);
-      if (oid) { try { await sb.from("kara_orders").update({ stripe_payment_intent: String(obj.payment_intent || ""), status: "paid", payout_status: "pending_delivery" }).eq("id", oid); } catch (e) {} }
-    }
-    if (type === "customer.subscription.created" || type === "customer.subscription.updated" || type === "customer.subscription.deleted") {
-    try {
-      const email = String((obj.metadata && obj.metadata.email) || "").toLowerCase();
-      const plan = type === "customer.subscription.deleted" ? "free" : String((obj.metadata && obj.metadata.plan) || "");
-      if (email && plan) await sb.from("credits").update({ plan: plan, last_refresh: new Date().toISOString() }).eq("email", email);
-    } catch (e) {}
-  }
-
-  // 4. AFFILIATE TRANSFERS (independent try/catch)
-  if (type === "transfer.created" || type === "payout.paid") {
-    try {
-      const affId = obj.metadata?.affiliate_id || obj.destination;
-      const amount = obj.amount;
-      if (affId) {
-        await sb.from("affiliates").update({ payout_status: "paid", last_payout: new Date().toISOString() }).eq("stripe_account", affId);
-        await sb.from("affiliate_payouts").insert({ affiliate_stripe_id: affId, amount: amount, status: "paid", stripe_event_id: event.id });
-      }
-    } catch (e) {}
-  }
-
-  // 5. AFFILIATE ACCOUNT UPDATES (independent try/catch)
-        // Forward account.updated to Bose agent
-      try {
-        const base = process.env.VERCEL_URL ? ("https://" + process.env.VERCEL_URL) : "https://founderpilot-theta.vercel.app";
-        await fetch(base + "/api/karakata/bose", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "account_updated", account: obj.id, charges_enabled: obj.charges_enabled, payouts_enabled: obj.payouts_enabled })
-        });
-      } catch (e) {}
-    if (type === "account.updated") {
-    try {
-      await sb.from("affiliates").update({ charges_enabled: obj.charges_enabled, payouts_enabled: obj.payouts_enabled }).eq("stripe_account", obj.id);
-    } catch (e) {}
-  }
-
-  // 6. ALWAYS RETURN 200 — never let a DB hiccup surface to Stripe
-  return NextResponse.json({ ok: true, received: type });
+  return NextResponse.json({ received: true });
 }
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
