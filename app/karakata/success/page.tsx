@@ -13,7 +13,7 @@ export default function SuccessPage() {
     // ✅ 2. SHOUT to the browser to update the header badge to 0 instantly
     window.dispatchEvent(new Event("kara_cart_updated"));
 
-    // ✅ 3. Get session_id from URL safely on the client side (No build errors!)
+    // ✅ 3. Get session_id from URL safely on the client side (No Next.js build errors!)
     const params = new URLSearchParams(window.location.search);
     setSessionId(params.get("session_id"));
   }, []);
@@ -41,16 +41,19 @@ export default function SuccessPage() {
         <div className="space-y-3">
           <Link 
             href="/karakata" 
-            className="block w-full bg-amber-400 text-slate-900 py-3 rounded-xl font-bold hover:bg-amber-300 transition"
+            className="block w-full bg-amber-400 text-slate-900 py-3 rounded-xl font-bold hover:bg-amber-300 transition text-center"
           >
             Continue Shopping
           </Link>
           <Link 
-            href="/karakata/sellercenter/orders" 
-            className="block w-full bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition"
+            href="/karakata/track" 
+            className="block w-full bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition text-center"
           >
-            View Order Status
+            Track Your Order
           </Link>
+          <p className="text-xs text-slate-500 mt-4">
+            💡 A payment receipt has been sent to the email address provided at checkout.
+          </p>
         </div>
       </div>
     </main>
