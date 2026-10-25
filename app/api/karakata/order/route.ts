@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
 // Initialize Stripe (Make sure STRIPE_SECRET_KEY is in your Vercel Environment Variables)
-   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16", 
 });
 
@@ -16,7 +16,8 @@ const supabase = createClient(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cart, subtotal, shippingCost, shippingCountry, grandTotal, escrowFee, seller_id } = body;
+    // ✅ Added buyer_email to the destructured body
+    const { cart, subtotal, shippingCost, shippingCountry, grandTotal, escrowFee, seller_id, buyer_email } = body;
 
     // 1. Basic Validation
     if (!cart || cart.length === 0) {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     const { data: order, error: orderError } = await supabase
       .from("kara_orders")
       .insert({
-        buyer_email: "guest@karakata.com", // We will capture real email in Stripe later
+        buyer_email: buyer_email || "guest@karakata.com", // ✅ Captures real email from checkout!
         seller_id: seller_id,
         status: "pending_payment",
         total_amount: finalChargeAmount, 
