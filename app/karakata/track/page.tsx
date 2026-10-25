@@ -2,15 +2,61 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default function TrackOrderPage() {
   const [email, setEmail] = useState("");
   const [orderId, setOrderId] = useState("");
-  const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [order, setOrder] = useState<any>(null);
+  const [error, setError] = useState("");
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSearched(true);
+    setLoading(true);
+    setError("");
+    setOrder(null);
+
+    try {
+      let query = sb.from("kara_orders").select("*");
+      
+      if (orderId.trim()) {
+        query = query.eq("stripe_session_id", orderId.trim());
+      } else if (email.trim()) {
+        query = query.eq("buyer_email", email.trim().toLowerCase());
+      } else {
+        setError("Please enter an email or Order ID.");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: dbError } = await query.order("created_at", { ascending: false }).limit(1);
+
+      if (dbError) throw dbError;
+
+      if (data && data.length > 0) {
+        setOrder(data[0]);
+      } else {
+        setError("No orders found matching those details. Please check your email or try again.");
+      }
+    } catch (err: any) {
+      console.error("Track order error:", err);
+      setError("An error occurred while searching. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "paid": return "bg-emerald-100 text-emerald-800";
+      case "pending_payment": return "bg-amber-100 text-amber-800";
+      case "shipped": return "bg-blue-100 text-blue-800";
+      case "delivered": return "bg-slate-100 text-slate-800";
+      default: return "bg-slate-100 text-slate-800";
+    }
   };
 
   return (
@@ -24,7 +70,7 @@ export default function TrackOrderPage() {
         
         <h1 className="text-2xl font-bold text-slate-900 mb-2">Track Your Order</h1>
         <p className="text-slate-600 mb-6 text-sm">
-          Enter the email address or Order ID you used at checkout to view your current order status.
+          Enter the email address or Stripe Order ID you used at checkout.
         </p>
 
         <form onSubmit={handleSearch} className="space-y-4 text-left">
@@ -50,20 +96,33 @@ export default function TrackOrderPage() {
           </div>
           <button 
             type="submit" 
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition"
+            disabled={loading}
+            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition disabled:opacity-50"
           >
-            Track Order
+            {loading ? "Searching..." : "Track Order"}
           </button>
         </form>
 
-        {searched && (
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-left">
-            <p className="text-sm font-bold text-amber-900 mb-1">🔍 Search Demo</p>
-            <p className="text-xs text-amber-800">
-              In the next update, this will connect to the database and show: <br/>
-              <strong>Status:</strong> Paid & Held in Escrow <br/>
-              <strong>Next Step:</strong> Seller is preparing your shipment.
-            </p>
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
+            <p className="text-sm font-bold text-red-900">⚠️ {error}</p>
+          </div>
+        )}
+
+        {order && (
+          <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-left">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-emerald-900">Order Found!</p>
+              <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase ${getStatusColor(order.status)}`}>
+                {order.status.replace("_", " ")}
+              </span>
+            </div>
+            <div className="space-y-2 text-xs text-emerald-800">
+              <p><strong>Amount:</strong> ${Number(order.total_amount).toFixed(2)}</p>
+              <p><strong>Escrow Held:</strong> ${Number(order.escrow_amount).toFixed(2)}</p>
+              {order.paid_at && <p><strong>Paid At:</strong> {new Date(order.paid_at).toLocaleString()}</p>}
+              <p className="mt-3 font-bold">Next Step: Seller is preparing your shipment. You will be notified when it ships.</p>
+            </div>
           </div>
         )}
 
