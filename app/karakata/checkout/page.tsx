@@ -204,14 +204,19 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between border-t border-slate-100 pt-3"><span className="text-slate-600">Subtotal</span><span className="font-bold">${subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span className="text-slate-600">Shipping</span><span className="font-bold text-emerald-700">${shippingCost.toFixed(2)}</span></div>
+                
+                {/* ✅ FIXED: Replaced ugly "?" with a clean, professional Info Icon */}
                 <div className="flex justify-between items-center group relative">
                   <div className="flex items-center gap-1 text-slate-600 cursor-help">
                     <span>Smart Escrow Buffer (5%)</span>
-                    <span className="text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">?</span>
+                    <svg className="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <div className="absolute bottom-full right-0 mb-2 w-64 bg-slate-900 text-white text-xs p-3 rounded-lg opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">This 5% fee is held securely by KaraKata and released to the seller only after you confirm satisfactory delivery.</div>
                   </div>
                   <span className="font-bold text-emerald-700">${escrowFee.toFixed(2)}</span>
                 </div>
+                
                 <div className="border-t border-slate-200 pt-3 flex justify-between text-lg"><span className="font-bold text-slate-900">Total Due</span><span className="font-bold text-slate-900">${finalTotal.toFixed(2)}</span></div>
               </div>
 
