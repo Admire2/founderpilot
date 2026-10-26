@@ -13,9 +13,10 @@ export default function TrackOrderPage() {
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -32,7 +33,7 @@ export default function TrackOrderPage() {
     setLoading(true);
     setError("");
     setOrder(null);
-    setCancelMessage(null);
+    setActionMessage(null);
 
     try {
       let query = sb.from("kara_orders").select("*");
@@ -61,79 +62,81 @@ export default function TrackOrderPage() {
     }
   };
 
-  // ✅ UPGRADED: INSTANT CANCEL WITH REAL ERROR LOGGING
   const handleInstantCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this order? A full refund will be issued to your payment method.")) return;
+    if (!confirm("Are you sure you want to cancel this order? A full refund will be issued.")) return;
     setCancelLoading(true);
-    setCancelMessage(null);
+    setActionMessage(null);
     try {
       const res = await fetch("/api/karakata/order/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: order.id, mode: "instant" }),
       });
-      
-      // ✅ Check if response is actually JSON before parsing
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
-        console.error("API returned non-JSON:", text);
-        throw new Error(`Server error (${res.status}): Check Vercel logs or Env Vars.`);
-      }
-
       const data = await res.json();
-      console.log("Cancel API Response:", data); 
-      
       if (data.ok) {
-        setCancelMessage({ type: "success", text: "✅ Order canceled! A full refund has been issued. Check your email for confirmation." });
+        setActionMessage({ type: "success", text: "✅ Order canceled! A full refund has been issued." });
         setOrder({ ...order, status: "canceled" });
       } else {
-        setCancelMessage({ type: "error", text: data.error || "Failed to cancel order." });
+        setActionMessage({ type: "error", text: data.error || "Failed to cancel order." });
       }
     } catch (err: any) {
-      console.error("❌ Cancel API Error Details:", err); 
-      setCancelMessage({ type: "error", text: err.message || "Network error. Please check console (F12) for details." });
+      setActionMessage({ type: "error", text: err.message || "Network error." });
     } finally {
       setCancelLoading(false);
     }
   };
 
-  // ✅ UPGRADED: REQUEST CANCEL WITH REAL ERROR LOGGING
   const handleRequestCancel = async () => {
     if (cancelReason.trim().length < 5) {
-      setCancelMessage({ type: "error", text: "Please provide a reason (at least 5 characters)." });
+      setActionMessage({ type: "error", text: "Please provide a reason (at least 5 characters)." });
       return;
     }
     setCancelLoading(true);
-    setCancelMessage(null);
+    setActionMessage(null);
     try {
       const res = await fetch("/api/karakata/order/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: order.id, mode: "request", reason: cancelReason }),
       });
-      
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
-        console.error("API returned non-JSON:", text);
-        throw new Error(`Server error (${res.status}): Check Vercel logs or Env Vars.`);
-      }
-
       const data = await res.json();
       if (data.ok) {
-        setCancelMessage({ type: "success", text: "✅ Cancellation request sent to seller. They have 24 hours to respond. You will receive an email with the decision." });
+        setActionMessage({ type: "success", text: "✅ Cancellation request sent to seller." });
         setOrder({ ...order, status: "cancellation_requested" });
         setShowRequestModal(false);
         setCancelReason("");
       } else {
-        setCancelMessage({ type: "error", text: data.error || "Failed to submit request." });
+        setActionMessage({ type: "error", text: data.error || "Failed to submit request." });
       }
     } catch (err: any) {
-      console.error("❌ Request Cancel API Error Details:", err);
-      setCancelMessage({ type: "error", text: err.message || "Network error. Please check console (F12) for details." });
+      setActionMessage({ type: "error", text: err.message || "Network error." });
     } finally {
       setCancelLoading(false);
+    }
+  };
+
+  // ✅ NEW: CONFIRM RECEIPT & RELEASE FUNDS
+  const handleConfirmReceipt = async () => {
+    if (!confirm("Are you sure you received the item in good condition? This will release the funds to the seller.")) return;
+    setConfirmLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch("/api/karakata/order/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: order.id, buyer_email: order.buyer_email }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setActionMessage({ type: "success", text: "✅ Thank you! Funds have been released to the seller." });
+        setOrder({ ...order, status: "completed" });
+      } else {
+        setActionMessage({ type: "error", text: data.error || "Failed to confirm receipt." });
+      }
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.message || "Network error." });
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
@@ -143,7 +146,8 @@ export default function TrackOrderPage() {
       case "cancellation_requested": return "bg-amber-100 text-amber-800";
       case "canceled": return "bg-rose-100 text-rose-800";
       case "shipped": return "bg-purple-100 text-purple-800";
-      case "delivered": return "bg-emerald-100 text-emerald-800";
+      case "delivered": return "bg-indigo-100 text-indigo-800";
+      case "completed": return "bg-emerald-100 text-emerald-800";
       case "pending_payment": return "bg-slate-100 text-slate-800";
       default: return "bg-slate-100 text-slate-800";
     }
@@ -152,16 +156,11 @@ export default function TrackOrderPage() {
   const getCancelState = () => {
     if (!order) return null;
     if (order.status !== "escrow_active") return null;
-
     const createdAt = new Date(order.created_at);
     const now = new Date();
     const minutesSince = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-
-    if (minutesSince <= 60) {
-      return { type: "instant", minutesRemaining: Math.floor(60 - minutesSince) };
-    } else {
-      return { type: "request" };
-    }
+    if (minutesSince <= 60) return { type: "instant", minutesRemaining: Math.floor(60 - minutesSince) };
+    return { type: "request" };
   };
 
   const cancelState = getCancelState();
@@ -176,9 +175,7 @@ export default function TrackOrderPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-slate-900 mb-2 text-center">Track Your Order</h1>
-        <p className="text-slate-600 mb-6 text-sm text-center">
-          Enter the email address or Stripe Order ID you used at checkout.
-        </p>
+        <p className="text-slate-600 mb-6 text-sm text-center">Enter the email address or Stripe Order ID you used at checkout.</p>
 
         <form onSubmit={handleSearch} className="space-y-4 text-left">
           <div>
@@ -207,9 +204,22 @@ export default function TrackOrderPage() {
             <div className="space-y-2 text-xs text-emerald-800">
               <p><strong>Amount:</strong> ${Number(order.total_amount).toFixed(2)}</p>
               <p><strong>Escrow Held:</strong> ${Number(order.escrow_amount).toFixed(2)}</p>
+              
               {order.status === "escrow_active" && <p className="mt-2 font-bold">Next Step: Seller is preparing your shipment.</p>}
               {order.status === "cancellation_requested" && <p className="mt-2 font-bold text-amber-800">⏳ Awaiting seller's response (up to 24 hours).</p>}
               {order.status === "canceled" && <p className="mt-2 font-bold text-rose-800">✅ Refund issued. Check your email.</p>}
+              
+              {/* ✅ NEW: CONFIRM RECEIPT UI */}
+              {(order.status === "shipped" || order.status === "delivered") && (
+                <div className="mt-4 pt-4 border-t border-emerald-200">
+                  <p className="text-xs text-indigo-800 mb-2 font-bold">📦 Your item has been shipped/delivered.</p>
+                  <p className="text-xs text-slate-600 mb-3">Please inspect your item. If everything is perfect, click below to release the funds to the seller.</p>
+                  <button onClick={handleConfirmReceipt} disabled={confirmLoading} className="w-full bg-emerald-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-emerald-700 transition disabled:opacity-50">
+                    {confirmLoading ? "Processing..." : "Confirm Receipt & Release Funds"}
+                  </button>
+                </div>
+              )}
+              {order.status === "completed" && <p className="mt-2 font-bold text-emerald-800">✅ Order completed. Funds released to seller.</p>}
             </div>
 
             {cancelState && (
@@ -230,9 +240,9 @@ export default function TrackOrderPage() {
               </div>
             )}
 
-            {cancelMessage && (
-              <div className={`mt-4 p-3 rounded-lg text-xs ${cancelMessage.type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
-                {cancelMessage.text}
+            {actionMessage && (
+              <div className={`mt-4 p-3 rounded-lg text-xs ${actionMessage.type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                {actionMessage.text}
               </div>
             )}
           </div>
@@ -247,21 +257,12 @@ export default function TrackOrderPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
             <h2 className="text-xl font-bold text-slate-900 mb-2">Request Cancellation</h2>
-            <p className="text-sm text-slate-600 mb-4">The seller has 24 hours to respond. If they don't respond, the system will auto-approve your request.</p>
+            <p className="text-sm text-slate-600 mb-4">The seller has 24 hours to respond.</p>
             <label className="block text-xs font-bold text-slate-600 mb-1">Reason for cancellation</label>
-            <textarea 
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="e.g., Ordered wrong size, found better price, etc."
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none min-h-[100px]"
-            />
+            <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="e.g., Ordered wrong size..." className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none min-h-[100px]" />
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setShowRequestModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg font-bold text-sm hover:bg-slate-200 transition">
-                Back
-              </button>
-              <button onClick={handleRequestCancel} disabled={cancelLoading} className="flex-1 bg-amber-500 text-white py-2 rounded-lg font-bold text-sm hover:bg-amber-600 transition disabled:opacity-50">
-                {cancelLoading ? "Sending..." : "Submit Request"}
-              </button>
+              <button onClick={() => setShowRequestModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg font-bold text-sm hover:bg-slate-200 transition">Back</button>
+              <button onClick={handleRequestCancel} disabled={cancelLoading} className="flex-1 bg-amber-500 text-white py-2 rounded-lg font-bold text-sm hover:bg-amber-600 transition disabled:opacity-50">{cancelLoading ? "Sending..." : "Submit Request"}</button>
             </div>
           </div>
         </div>
