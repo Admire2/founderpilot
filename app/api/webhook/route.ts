@@ -7,7 +7,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 });
 
-// ✅ CRITICAL: Use SERVICE ROLE KEY for webhooks to bypass Row Level Security (RLS)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,8 +16,6 @@ export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature") as string;
 
-  console.log("🔔 Webhook received. Signature present:", !!signature);
-
   let event: Stripe.Event;
 
   try {
@@ -27,7 +24,6 @@ export async function POST(req: NextRequest) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-    console.log("✅ Webhook signature verified successfully!");
   } catch (err: any) {
     console.error(`❌ Webhook signature verification failed:`, err.message);
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
@@ -44,24 +40,22 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // 1. Update Order Status to 'escrow_active' and save the real buyer email
-      const { error: orderError } = await supabase
+      // 1. Update Order Status to 'escrow_active'
+      await supabase
         .from("kara_orders")
         .update({ 
-          status: "escrow_active", // ✅ True escrow state: Funds held, awaiting shipment
-          buyer_email: buyerEmail // ✅ Overwrite the guest email with the real one!
+          status: "escrow_active",
+          buyer_email: buyerEmail
         })
         .eq("id", orderId);
 
-      if (orderError) {
-        console.error("❌ Failed to update order status:", orderError);
-      } else {
-        console.log(`✅ Order ${orderId} marked as ESCROW_ACTIVE successfully!`);
-      }
-
-      // 2. Send Beautiful Order Confirmation Email
+      // 2. Send Beautiful Order Confirmation Email with One-Click Tracking
       if (buyerEmail) {
         try {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://founderpilot-theta.vercel.app";
+          // ✅ Create a magic link that auto-fills the tracking page!
+          const trackUrl = `${appUrl}/karakata/track?email=${encodeURIComponent(buyerEmail)}&orderId=${session.id}`;
+
           const emailHtml = `
             <!DOCTYPE html>
             <html>
@@ -74,6 +68,8 @@ export async function POST(req: NextRequest) {
                 .content { background-color: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; }
                 .badge { display: inline-block; background-color: #d1fae5; color: #065f46; padding: 6px 12px; border-radius: 9999px; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
                 .details { background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; }
+                .track-btn { display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0; }
+                .track-btn:hover { background-color: #334155; }
                 .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #64748b; }
               </style>
             </head>
@@ -85,6 +81,11 @@ export async function POST(req: NextRequest) {
                   <p>Thank you for your purchase on <strong>KaraKata</strong>. Your payment has been successfully processed and is now securely held in our <strong>Smart Escrow</strong> system.</p>
                   <div class="badge">🛡️ Funds Protected</div>
                   <p>Your funds will be held securely and only released to the seller after you confirm satisfactory delivery. 0% risk to you.</p>
+                  
+                  <div style="text-align: center;">
+                    <a href="${trackUrl}" class="track-btn">Track Your Order</a>
+                  </div>
+
                   <div class="details">
                     <p><strong>Transaction ID:</strong> ${session.id}</p>
                     <p><strong>Order Status:</strong> Payment Held in Escrow (Awaiting Shipment)</p>
