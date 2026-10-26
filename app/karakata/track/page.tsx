@@ -61,7 +61,7 @@ export default function TrackOrderPage() {
     }
   };
 
-  // ✅ INSTANT CANCEL (Phase 1: 0-60 min)
+  // ✅ UPGRADED: INSTANT CANCEL WITH REAL ERROR LOGGING
   const handleInstantCancel = async () => {
     if (!confirm("Are you sure you want to cancel this order? A full refund will be issued to your payment method.")) return;
     setCancelLoading(true);
@@ -72,21 +72,33 @@ export default function TrackOrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: order.id, mode: "instant" }),
       });
+      
+      // ✅ Check if response is actually JSON before parsing
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error("API returned non-JSON:", text);
+        throw new Error(`Server error (${res.status}): Check Vercel logs or Env Vars.`);
+      }
+
       const data = await res.json();
+      console.log("Cancel API Response:", data); 
+      
       if (data.ok) {
         setCancelMessage({ type: "success", text: "✅ Order canceled! A full refund has been issued. Check your email for confirmation." });
         setOrder({ ...order, status: "canceled" });
       } else {
         setCancelMessage({ type: "error", text: data.error || "Failed to cancel order." });
       }
-    } catch (err) {
-      setCancelMessage({ type: "error", text: "Network error. Please try again." });
+    } catch (err: any) {
+      console.error("❌ Cancel API Error Details:", err); 
+      setCancelMessage({ type: "error", text: err.message || "Network error. Please check console (F12) for details." });
     } finally {
       setCancelLoading(false);
     }
   };
 
-  // ✅ REQUEST CANCEL (Phase 2: 60+ min, pre-shipment)
+  // ✅ UPGRADED: REQUEST CANCEL WITH REAL ERROR LOGGING
   const handleRequestCancel = async () => {
     if (cancelReason.trim().length < 5) {
       setCancelMessage({ type: "error", text: "Please provide a reason (at least 5 characters)." });
@@ -100,6 +112,14 @@ export default function TrackOrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: order.id, mode: "request", reason: cancelReason }),
       });
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        console.error("API returned non-JSON:", text);
+        throw new Error(`Server error (${res.status}): Check Vercel logs or Env Vars.`);
+      }
+
       const data = await res.json();
       if (data.ok) {
         setCancelMessage({ type: "success", text: "✅ Cancellation request sent to seller. They have 24 hours to respond. You will receive an email with the decision." });
@@ -109,8 +129,9 @@ export default function TrackOrderPage() {
       } else {
         setCancelMessage({ type: "error", text: data.error || "Failed to submit request." });
       }
-    } catch (err) {
-      setCancelMessage({ type: "error", text: "Network error. Please try again." });
+    } catch (err: any) {
+      console.error("❌ Request Cancel API Error Details:", err);
+      setCancelMessage({ type: "error", text: err.message || "Network error. Please check console (F12) for details." });
     } finally {
       setCancelLoading(false);
     }
@@ -128,7 +149,6 @@ export default function TrackOrderPage() {
     }
   };
 
-  // ✅ CALCULATE CANCELLATION ELIGIBILITY
   const getCancelState = () => {
     if (!order) return null;
     if (order.status !== "escrow_active") return null;
@@ -192,7 +212,6 @@ export default function TrackOrderPage() {
               {order.status === "canceled" && <p className="mt-2 font-bold text-rose-800">✅ Refund issued. Check your email.</p>}
             </div>
 
-            {/* ✅ CANCELLATION BUTTONS */}
             {cancelState && (
               <div className="mt-4 pt-4 border-t border-emerald-200">
                 {cancelState.type === "instant" && (
@@ -211,7 +230,6 @@ export default function TrackOrderPage() {
               </div>
             )}
 
-            {/* ✅ CANCEL MESSAGE */}
             {cancelMessage && (
               <div className={`mt-4 p-3 rounded-lg text-xs ${cancelMessage.type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
                 {cancelMessage.text}
@@ -225,7 +243,6 @@ export default function TrackOrderPage() {
         </Link>
       </div>
 
-      {/* ✅ REQUEST CANCELLATION MODAL */}
       {showRequestModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
