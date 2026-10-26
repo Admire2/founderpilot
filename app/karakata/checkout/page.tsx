@@ -19,6 +19,9 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   
+  // ✅ NEW: Buyer Email State
+  const [buyerEmail, setBuyerEmail] = useState("");
+  
   const [shippingCountry, setShippingCountry] = useState("Nigeria");
   const [shippingCost, setShippingCost] = useState(0);
   const [sellerData, setSellerData] = useState<any>(null);
@@ -119,12 +122,18 @@ export default function CheckoutPage() {
   const finalTotal = grandTotal + escrowFee;
 
   const handleCheckout = async () => {
+    // ✅ NEW: Validate email before proceeding
+    if (!buyerEmail || !buyerEmail.includes("@")) {
+      alert("Please enter a valid email address to receive your order confirmation and tracking updates.");
+      return;
+    }
+
     setProcessing(true);
     try {
       const response = await fetch("/api/karakata/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ ADDED buyer_email to the payload!
+        // ✅ UPDATED: Pass the dynamic buyer email to the API
         body: JSON.stringify({ 
           cart, 
           subtotal, 
@@ -133,7 +142,7 @@ export default function CheckoutPage() {
           grandTotal, 
           escrowFee, 
           seller_id: cart[0]?.seller_id,
-          buyer_email: "greatmind20@gmail.com" // ✅ Hardcoded to your email for this test!
+          buyer_email: buyerEmail.trim().toLowerCase() 
         }),
       });
       const data = await response.json();
@@ -200,6 +209,21 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sticky top-6">
               <h2 className="text-xl font-bold mb-6">Payment Details</h2>
               <div className="space-y-3 text-sm mb-6">
+                
+                {/* ✅ NEW: Buyer Email Input */}
+                <div className="mb-4">
+                  <label className="text-xs font-bold text-slate-600 mb-1 block">Email Address <span className="text-rose-500">*</span></label>
+                  <input 
+                    type="email" 
+                    value={buyerEmail}
+                    onChange={(e) => setBuyerEmail(e.target.value)}
+                    placeholder="you@example.com" 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition"
+                    required
+                  />
+                  <p className="text-xs text-slate-500 mt-1">We will send your receipt and tracking updates here.</p>
+                </div>
+
                 <div className="mb-4">
                   <label className="text-xs font-bold text-slate-600 mb-1 block">Shipping Destination</label>
                   <select value={shippingCountry} onChange={(e) => handleCountryChange(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition">
