@@ -228,10 +228,17 @@ export default function TrackOrderPage() {
               {/* ✅ THE INDUSTRY-STANDARD DUAL-ACTION UI */}
               {order.status === "shipped" && (
                 <div className="mt-4 pt-4 border-t border-emerald-200 space-y-3">
-                  <p className="text-xs text-slate-600">
-                    Please inspect your item. If everything is perfect, click below to release the funds. 
-                    <br/><span className="font-bold text-amber-700">Note: Funds will auto-release in 7 days if no action is taken.</span>
-                  </p>
+                    <p className="text-xs text-slate-600">
+     Your item is on the way! You can click below to release funds to the seller early. 
+     <br/>
+     <span className="font-bold text-amber-700">
+       ⚠️ Note: Once the carrier scans this package as "Delivered", funds will automatically release to the seller after a 24-hour inspection window. 
+     </span>
+     <br/>
+     <span className="text-rose-600 font-bold">
+       If there is an issue, you must click "Report a Problem" before the auto-release occurs.
+     </span>
+   </p>
                   <button onClick={handleConfirmReceipt} disabled={confirmLoading} className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-emerald-700 transition disabled:opacity-50">
                     {confirmLoading ? "Processing..." : "✅ Confirm Receipt & Release Funds"}
                   </button>
