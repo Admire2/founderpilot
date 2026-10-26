@@ -51,10 +51,10 @@ export default function TrackOrderPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "paid": return "bg-emerald-100 text-emerald-800";
+      case "escrow_active": return "bg-blue-100 text-blue-800"; // ✅ Funds held securely
+      case "shipped": return "bg-purple-100 text-purple-800";
+      case "delivered": return "bg-emerald-100 text-emerald-800"; // ✅ Seller gets paid
       case "pending_payment": return "bg-amber-100 text-amber-800";
-      case "shipped": return "bg-blue-100 text-blue-800";
-      case "delivered": return "bg-slate-100 text-slate-800";
       default: return "bg-slate-100 text-slate-800";
     }
   };
@@ -120,7 +120,6 @@ export default function TrackOrderPage() {
             <div className="space-y-2 text-xs text-emerald-800">
               <p><strong>Amount:</strong> ${Number(order.total_amount).toFixed(2)}</p>
               <p><strong>Escrow Held:</strong> ${Number(order.escrow_amount).toFixed(2)}</p>
-              {order.paid_at && <p><strong>Paid At:</strong> {new Date(order.paid_at).toLocaleString()}</p>}
               <p className="mt-3 font-bold">Next Step: Seller is preparing your shipment. You will be notified when it ships.</p>
             </div>
           </div>
