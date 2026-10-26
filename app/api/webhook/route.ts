@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const { error: orderError } = await supabase
         .from("kara_orders")
         .update({ 
-          status: "paid", 
+          status: "escrow_active", 
           buyer_email: buyerEmail // ✅ Overwrite the guest email with the real one!
         })
         .eq("id", orderId);
