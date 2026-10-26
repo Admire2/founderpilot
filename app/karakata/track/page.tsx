@@ -169,7 +169,55 @@ export default function TrackOrderPage() {
               <p><strong>Amount:</strong> ${Number(order.total_amount).toFixed(2)}</p>
               <p><strong>Escrow Held:</strong> ${Number(order.escrow_amount).toFixed(2)}</p>
               
-              {(order.status === "shipped" || order.status === "escrow_active") && order.tracking_number && (
+              {/* ✅ MULTI-STAGE TRACKING TIMELINE */}
+              {order.tracking_stages && Array.isArray(order.tracking_stages) && order.tracking_stages.length > 0 && (
+                <div className="mt-3 p-3 bg-white rounded-lg border border-emerald-200">
+                  <p className="font-bold text-slate-900 mb-3">📦 Shipment Timeline</p>
+                  <div className="space-y-3">
+                    {order.tracking_stages
+                      .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime())
+                      .map((stage: any, idx: number) => {
+                        const labels: Record<string, string> = {
+                          label_created: "Label Created",
+                          picked_up: "Picked Up by Carrier",
+                          in_transit: "In Transit",
+                          out_for_delivery: "Out for Delivery 🚚",
+                          delivered: "Delivered ✅",
+                        };
+                        const isLatest = idx === order.tracking_stages.length - 1;
+                        return (
+                          <div key={idx} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-3 h-3 rounded-full ${isLatest ? "bg-purple-600 ring-4 ring-purple-100" : "bg-slate-300"}`}></div>
+                              {idx < order.tracking_stages.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 mt-1"></div>}
+                            </div>
+                            <div className="flex-1 pb-3">
+                              <p className={`text-sm font-bold ${isLatest ? "text-purple-900" : "text-slate-700"}`}>
+                                {labels[stage.stage] || stage.stage}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(stage.time).toLocaleString()} · {stage.location}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  {order.tracking_number && (
+                    <a 
+                      href={`https://www.fedex.com/fedextrack/?trknbr=${order.tracking_number}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 block text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      View on {order.carrier?.toUpperCase()} website →
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Fallback if no tracking stages but we have a tracking number */}
+              {(!order.tracking_stages?.length) && order.tracking_number && (
                 <div className="mt-3 p-3 bg-white rounded-lg border border-emerald-200">
                   <p className="font-bold text-slate-900 mb-1">📦 Tracking Information</p>
                   <p className="text-slate-600">Carrier: {order.carrier?.toUpperCase()}</p>
