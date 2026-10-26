@@ -51,9 +51,9 @@ export default function TrackOrderPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "escrow_active": return "bg-blue-100 text-blue-800"; // ✅ Funds held securely
+      case "escrow_active": return "bg-blue-100 text-blue-800"; 
       case "shipped": return "bg-purple-100 text-purple-800";
-      case "delivered": return "bg-emerald-100 text-emerald-800"; // ✅ Seller gets paid
+      case "delivered": return "bg-emerald-100 text-emerald-800"; 
       case "pending_payment": return "bg-amber-100 text-amber-800";
       default: return "bg-slate-100 text-slate-800";
     }
@@ -76,22 +76,24 @@ export default function TrackOrderPage() {
         <form onSubmit={handleSearch} className="space-y-4 text-left">
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Email Address</label>
+            {/* ✅ FIXED: Added bg-white and text-slate-900 so text is always visible */}
             <input 
               type="email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-400 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Order ID (Optional)</label>
+            {/* ✅ FIXED: Added bg-white and text-slate-900 so text is always visible */}
             <input 
               type="text" 
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
               placeholder="e.g., cs_test_..."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-400 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
             />
           </div>
           <button 
