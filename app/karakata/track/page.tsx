@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
@@ -12,6 +12,18 @@ export default function TrackOrderPage() {
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState("");
+
+  // ✅ AUTO-FILL: Read URL parameters when the page loads (from email link)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlEmail = params.get("email");
+      const urlOrderId = params.get("orderId");
+      
+      if (urlEmail) setEmail(urlEmail);
+      if (urlOrderId) setOrderId(urlOrderId);
+    }
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +88,6 @@ export default function TrackOrderPage() {
         <form onSubmit={handleSearch} className="space-y-4 text-left">
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Email Address</label>
-            {/* ✅ FIXED: Added bg-white and text-slate-900 so text is always visible */}
             <input 
               type="email" 
               value={email}
@@ -87,7 +98,6 @@ export default function TrackOrderPage() {
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Order ID (Optional)</label>
-            {/* ✅ FIXED: Added bg-white and text-slate-900 so text is always visible */}
             <input 
               type="text" 
               value={orderId}
