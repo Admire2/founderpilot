@@ -33,6 +33,9 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.metadata?.order_id;
     const buyerEmail = session.customer_details?.email;
+    const paymentIntent = typeof session.payment_intent === "string" 
+      ? session.payment_intent 
+      : session.payment_intent?.id;
 
     if (!orderId) {
       console.error("No order_id found in session metadata");
@@ -40,20 +43,20 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // 1. Update Order Status to 'escrow_active'
+      // ✅ 1. Update Order with escrow status, buyer email, AND payment intent (for refunds)
       await supabase
         .from("kara_orders")
         .update({ 
           status: "escrow_active",
-          buyer_email: buyerEmail
+          buyer_email: buyerEmail,
+          stripe_payment_intent: paymentIntent // ✅ CRITICAL for instant refunds
         })
         .eq("id", orderId);
 
-      // 2. Send Beautiful Order Confirmation Email with One-Click Tracking
+      // 2. Send Order Confirmation Email
       if (buyerEmail) {
         try {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://founderpilot-theta.vercel.app";
-          // ✅ Create a magic link that auto-fills the tracking page!
           const trackUrl = `${appUrl}/karakata/track?email=${encodeURIComponent(buyerEmail)}&orderId=${session.id}`;
 
           const emailHtml = `
@@ -78,14 +81,13 @@ export async function POST(req: NextRequest) {
                 <div class="header"><h1>Order Confirmed! 🎉</h1></div>
                 <div class="content">
                   <p>Hello,</p>
-                  <p>Thank you for your purchase on <strong>KaraKata</strong>. Your payment has been successfully processed and is now securely held in our <strong>Smart Escrow</strong> system.</p>
+                  <p>Thank you for your purchase on <strong>KaraKata</strong>. Your payment is securely held in our <strong>Smart Escrow</strong> system.</p>
                   <div class="badge">🛡️ Funds Protected</div>
-                  <p>Your funds will be held securely and only released to the seller after you confirm satisfactory delivery. 0% risk to you.</p>
-                  
+                  <p>Your funds will only be released to the seller after you confirm satisfactory delivery. 0% risk to you.</p>
+                  <p style="background-color:#fef3c7;padding:10px;border-radius:6px;font-size:13px;"><strong>⏱️ Need to cancel?</strong> You have a 60-minute "Oops Window" to cancel with one click. After that, you can request cancellation before the seller ships.</p>
                   <div style="text-align: center;">
                     <a href="${trackUrl}" class="track-btn">Track Your Order</a>
                   </div>
-
                   <div class="details">
                     <p><strong>Transaction ID:</strong> ${session.id}</p>
                     <p><strong>Order Status:</strong> Payment Held in Escrow (Awaiting Shipment)</p>
@@ -104,7 +106,6 @@ export async function POST(req: NextRequest) {
             subject: "Order Confirmed! 🎉 - KaraKata Smart Escrow",
             html: emailHtml,
           });
-          console.log(`✅ Order confirmation email sent to ${buyerEmail}`);
         } catch (emailError) {
           console.error("❌ Failed to send order confirmation email:", emailError);
         }
