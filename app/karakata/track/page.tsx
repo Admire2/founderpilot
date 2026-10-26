@@ -12,14 +12,16 @@ export default function TrackOrderPage() {
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelMessage, setCancelMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // ✅ AUTO-FILL: Read URL parameters when the page loads (from email link)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlEmail = params.get("email");
       const urlOrderId = params.get("orderId");
-      
       if (urlEmail) setEmail(urlEmail);
       if (urlOrderId) setOrderId(urlOrderId);
     }
@@ -30,10 +32,10 @@ export default function TrackOrderPage() {
     setLoading(true);
     setError("");
     setOrder(null);
+    setCancelMessage(null);
 
     try {
       let query = sb.from("kara_orders").select("*");
-      
       if (orderId.trim()) {
         query = query.eq("stripe_session_id", orderId.trim());
       } else if (email.trim()) {
@@ -45,81 +47,134 @@ export default function TrackOrderPage() {
       }
 
       const { data, error: dbError } = await query.order("created_at", { ascending: false }).limit(1);
-
       if (dbError) throw dbError;
 
       if (data && data.length > 0) {
         setOrder(data[0]);
       } else {
-        setError("No orders found matching those details. Please check your email or try again.");
+        setError("No orders found matching those details.");
       }
     } catch (err: any) {
-      console.error("Track order error:", err);
-      setError("An error occurred while searching. Please try again.");
+      setError("An error occurred while searching.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ INSTANT CANCEL (Phase 1: 0-60 min)
+  const handleInstantCancel = async () => {
+    if (!confirm("Are you sure you want to cancel this order? A full refund will be issued to your payment method.")) return;
+    setCancelLoading(true);
+    setCancelMessage(null);
+    try {
+      const res = await fetch("/api/karakata/order/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: order.id, mode: "instant" }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCancelMessage({ type: "success", text: "✅ Order canceled! A full refund has been issued. Check your email for confirmation." });
+        setOrder({ ...order, status: "canceled" });
+      } else {
+        setCancelMessage({ type: "error", text: data.error || "Failed to cancel order." });
+      }
+    } catch (err) {
+      setCancelMessage({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  // ✅ REQUEST CANCEL (Phase 2: 60+ min, pre-shipment)
+  const handleRequestCancel = async () => {
+    if (cancelReason.trim().length < 5) {
+      setCancelMessage({ type: "error", text: "Please provide a reason (at least 5 characters)." });
+      return;
+    }
+    setCancelLoading(true);
+    setCancelMessage(null);
+    try {
+      const res = await fetch("/api/karakata/order/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: order.id, mode: "request", reason: cancelReason }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCancelMessage({ type: "success", text: "✅ Cancellation request sent to seller. They have 24 hours to respond. You will receive an email with the decision." });
+        setOrder({ ...order, status: "cancellation_requested" });
+        setShowRequestModal(false);
+        setCancelReason("");
+      } else {
+        setCancelMessage({ type: "error", text: data.error || "Failed to submit request." });
+      }
+    } catch (err) {
+      setCancelMessage({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "escrow_active": return "bg-blue-100 text-blue-800"; 
+      case "escrow_active": return "bg-blue-100 text-blue-800";
+      case "cancellation_requested": return "bg-amber-100 text-amber-800";
+      case "canceled": return "bg-rose-100 text-rose-800";
       case "shipped": return "bg-purple-100 text-purple-800";
-      case "delivered": return "bg-emerald-100 text-emerald-800"; 
-      case "pending_payment": return "bg-amber-100 text-amber-800";
+      case "delivered": return "bg-emerald-100 text-emerald-800";
+      case "pending_payment": return "bg-slate-100 text-slate-800";
       default: return "bg-slate-100 text-slate-800";
     }
   };
 
+  // ✅ CALCULATE CANCELLATION ELIGIBILITY
+  const getCancelState = () => {
+    if (!order) return null;
+    if (order.status !== "escrow_active") return null;
+
+    const createdAt = new Date(order.created_at);
+    const now = new Date();
+    const minutesSince = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+
+    if (minutesSince <= 60) {
+      return { type: "instant", minutesRemaining: Math.floor(60 - minutesSince) };
+    } else {
+      return { type: "request" };
+    }
+  };
+
+  const cancelState = getCancelState();
+
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+    <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 max-w-md w-full">
         <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
         </div>
-        
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Track Your Order</h1>
-        <p className="text-slate-600 mb-6 text-sm">
+
+        <h1 className="text-2xl font-bold text-slate-900 mb-2 text-center">Track Your Order</h1>
+        <p className="text-slate-600 mb-6 text-sm text-center">
           Enter the email address or Stripe Order ID you used at checkout.
         </p>
 
         <form onSubmit={handleSearch} className="space-y-4 text-left">
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Email Address</label>
-            <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none" />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Order ID (Optional)</label>
-            <input 
-              type="text" 
-              value={orderId}
-              onChange={(e) => setOrderId(e.target.value)}
-              placeholder="e.g., cs_test_..."
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none"
-            />
+            <input type="text" value={orderId} onChange={(e) => setOrderId(e.target.value)} placeholder="e.g., cs_test_..." className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none" />
           </div>
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition disabled:opacity-50">
             {loading ? "Searching..." : "Track Order"}
           </button>
         </form>
 
-        {error && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-            <p className="text-sm font-bold text-red-900">⚠️ {error}</p>
-          </div>
-        )}
+        {error && <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg"><p className="text-sm font-bold text-red-900">⚠️ {error}</p></div>}
 
         {order && (
           <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-left">
@@ -132,15 +187,68 @@ export default function TrackOrderPage() {
             <div className="space-y-2 text-xs text-emerald-800">
               <p><strong>Amount:</strong> ${Number(order.total_amount).toFixed(2)}</p>
               <p><strong>Escrow Held:</strong> ${Number(order.escrow_amount).toFixed(2)}</p>
-              <p className="mt-3 font-bold">Next Step: Seller is preparing your shipment. You will be notified when it ships.</p>
+              {order.status === "escrow_active" && <p className="mt-2 font-bold">Next Step: Seller is preparing your shipment.</p>}
+              {order.status === "cancellation_requested" && <p className="mt-2 font-bold text-amber-800">⏳ Awaiting seller's response (up to 24 hours).</p>}
+              {order.status === "canceled" && <p className="mt-2 font-bold text-rose-800">✅ Refund issued. Check your email.</p>}
             </div>
+
+            {/* ✅ CANCELLATION BUTTONS */}
+            {cancelState && (
+              <div className="mt-4 pt-4 border-t border-emerald-200">
+                {cancelState.type === "instant" && (
+                  <div>
+                    <p className="text-xs text-blue-800 mb-2 font-bold">⏱️ Oops Window: {cancelState.minutesRemaining} min remaining</p>
+                    <button onClick={handleInstantCancel} disabled={cancelLoading} className="w-full bg-rose-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-rose-700 transition disabled:opacity-50">
+                      {cancelLoading ? "Processing..." : "Cancel Order (Instant Refund)"}
+                    </button>
+                  </div>
+                )}
+                {cancelState.type === "request" && (
+                  <button onClick={() => setShowRequestModal(true)} className="w-full bg-amber-500 text-white py-2 rounded-lg font-bold text-sm hover:bg-amber-600 transition">
+                    Request Cancellation
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* ✅ CANCEL MESSAGE */}
+            {cancelMessage && (
+              <div className={`mt-4 p-3 rounded-lg text-xs ${cancelMessage.type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
+                {cancelMessage.text}
+              </div>
+            )}
           </div>
         )}
 
-        <Link href="/karakata" className="block mt-6 text-sm font-bold text-emerald-700 hover:underline">
+        <Link href="/karakata" className="block mt-6 text-sm font-bold text-emerald-700 hover:underline text-center">
           ← Return to Market
         </Link>
       </div>
+
+      {/* ✅ REQUEST CANCELLATION MODAL */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Request Cancellation</h2>
+            <p className="text-sm text-slate-600 mb-4">The seller has 24 hours to respond. If they don't respond, the system will auto-approve your request.</p>
+            <label className="block text-xs font-bold text-slate-600 mb-1">Reason for cancellation</label>
+            <textarea 
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="e.g., Ordered wrong size, found better price, etc."
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none min-h-[100px]"
+            />
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setShowRequestModal(false)} className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg font-bold text-sm hover:bg-slate-200 transition">
+                Back
+              </button>
+              <button onClick={handleRequestCancel} disabled={cancelLoading} className="flex-1 bg-amber-500 text-white py-2 rounded-lg font-bold text-sm hover:bg-amber-600 transition disabled:opacity-50">
+                {cancelLoading ? "Sending..." : "Submit Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
