@@ -44,11 +44,11 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // 1. Update Order Status to 'paid' and save the real buyer email
+      // 1. Update Order Status to 'escrow_active' and save the real buyer email
       const { error: orderError } = await supabase
         .from("kara_orders")
         .update({ 
-          status: "escrow_active", 
+          status: "escrow_active", // ✅ True escrow state: Funds held, awaiting shipment
           buyer_email: buyerEmail // ✅ Overwrite the guest email with the real one!
         })
         .eq("id", orderId);
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       if (orderError) {
         console.error("❌ Failed to update order status:", orderError);
       } else {
-        console.log(`✅ Order ${orderId} marked as PAID successfully!`);
+        console.log(`✅ Order ${orderId} marked as ESCROW_ACTIVE successfully!`);
       }
 
       // 2. Send Beautiful Order Confirmation Email
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
                   <p>Your funds will be held securely and only released to the seller after you confirm satisfactory delivery. 0% risk to you.</p>
                   <div class="details">
                     <p><strong>Transaction ID:</strong> ${session.id}</p>
-                    <p><strong>Order Status:</strong> Paid & Held in Escrow</p>
+                    <p><strong>Order Status:</strong> Payment Held in Escrow (Awaiting Shipment)</p>
                     <p><strong>Next Step:</strong> The seller is preparing your shipment.</p>
                   </div>
                   <p>Best regards,<br>The KaraKata Team</p>
