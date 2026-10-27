@@ -17,6 +17,7 @@ export default function AddProductPage() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Fashion");
   const [condition, setCondition] = useState("new");
+  const [genderUse, setGenderUse] = useState("unisex"); // ✅ NEW: Gender Use State
 
   // Media
   const [images, setImages] = useState<string[]>([""]);
@@ -87,8 +88,13 @@ export default function AddProductPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           seller_id: sellerId,
-          title, description, category, condition,
-          images: cleanImages, video_url: videoUrl,
+          title, 
+          description, 
+          category, 
+          condition,
+          gender_use: genderUse, // ✅ NEW: Send gender use to API
+          images: cleanImages, 
+          video_url: videoUrl,
           variants: validVariants,
           weight_lbs: weightLbs,
           domestic_shipping: domesticShipping,
@@ -150,7 +156,9 @@ export default function AddProductPage() {
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" 
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              
+              {/* ✅ NEW: 3-Column Grid for Category, Condition, and Gender Use */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
                   <select 
@@ -175,6 +183,21 @@ export default function AddProductPage() {
                     <option value="new">New</option>
                     <option value="used">Used</option>
                     <option value="refurbished">Refurbished</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Gender / Target Use</label>
+                  <select 
+                    value={genderUse} 
+                    onChange={e => setGenderUse(e.target.value)} 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none"
+                  >
+                    <option value="unisex">Unisex / Universal</option>
+                    <option value="men">Men</option>
+                    <option value="women">Women</option>
+                    <option value="boys">Boys</option>
+                    <option value="girls">Girls</option>
+                    <option value="kids">Kids (General)</option>
                   </select>
                 </div>
               </div>
@@ -276,7 +299,7 @@ export default function AddProductPage() {
           {/* Section 4: Shipping */}
           <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900 mb-4">4. Shipping</h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Weight (lbs)</label>
                 <input 
