@@ -112,7 +112,7 @@ export default function AddProductPage() {
   if (!sellerId) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading...</p></div>;
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4">
+    <main className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
       <div className="max-w-4xl mx-auto">
         <Link href="/karakata/sellercenter" className="text-sm font-bold text-emerald-700 hover:underline mb-6 inline-block">← Back to Seller Center</Link>
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Add New Product</h1>
@@ -131,16 +131,33 @@ export default function AddProductPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Product Title *</label>
-                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., Premium Leather Sneakers" className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" required />
+                <input 
+                  type="text" 
+                  value={title} 
+                  onChange={e => setTitle(e.target.value)} 
+                  placeholder="e.g., Premium Leather Sneakers" 
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" 
+                  required 
+                />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Describe the product features, materials, and condition..." className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" />
+                <textarea 
+                  value={description} 
+                  onChange={e => setDescription(e.target.value)} 
+                  rows={4} 
+                  placeholder="Describe the product features, materials, and condition..." 
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" 
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
-                  <select value={category} onChange={e => setCategory(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 outline-none">
+                  <select 
+                    value={category} 
+                    onChange={e => setCategory(e.target.value)} 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none"
+                  >
                     <option value="Fashion">Fashion & Apparel</option>
                     <option value="Electronics">Electronics</option>
                     <option value="Home">Home & Garden</option>
@@ -150,7 +167,11 @@ export default function AddProductPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Condition</label>
-                  <select value={condition} onChange={e => setCondition(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 outline-none">
+                  <select 
+                    value={condition} 
+                    onChange={e => setCondition(e.target.value)} 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none"
+                  >
                     <option value="new">New</option>
                     <option value="used">Used</option>
                     <option value="refurbished">Refurbished</option>
@@ -171,7 +192,7 @@ export default function AddProductPage() {
                     value={img} 
                     onChange={e => handleImageChange(idx, e.target.value)} 
                     placeholder={idx === 0 ? "Main Image URL (Thumbnail)" : `Additional Image ${idx} URL`} 
-                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 outline-none" 
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 outline-none" 
                   />
                   {idx > 0 && (
                     <button type="button" onClick={() => removeImageField(idx)} className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-bold">✕</button>
@@ -182,7 +203,13 @@ export default function AddProductPage() {
             </div>
             <div className="mt-4">
               <label className="block text-sm font-bold text-slate-700 mb-1">Video URL (Optional)</label>
-              <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=... or MP4 link" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 outline-none" />
+              <input 
+                type="url" 
+                value={videoUrl} 
+                onChange={e => setVideoUrl(e.target.value)} 
+                placeholder="https://youtube.com/watch?v=... or MP4 link" 
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 outline-none" 
+              />
             </div>
           </section>
 
@@ -201,11 +228,44 @@ export default function AddProductPage() {
               </div>
               {variants.map((v, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                  <input type="text" value={v.size} onChange={e => handleVariantChange(idx, "size", e.target.value)} placeholder="e.g., 42" className="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm" />
-                  <input type="text" value={v.color} onChange={e => handleVariantChange(idx, "color", e.target.value)} placeholder="e.g., Red" className="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm" />
-                  <input type="number" step="0.01" value={v.price} onChange={e => handleVariantChange(idx, "price", e.target.value)} placeholder="50.00" className="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm" required />
-                  <input type="number" value={v.stock} onChange={e => handleVariantChange(idx, "stock", e.target.value)} placeholder="10" className="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm" required />
-                  <input type="text" value={v.sku} onChange={e => handleVariantChange(idx, "sku", e.target.value)} placeholder="SKU-01" className="col-span-3 rounded border border-slate-300 px-2 py-1.5 text-sm" />
+                  <input 
+                    type="text" 
+                    value={v.size} 
+                    onChange={e => handleVariantChange(idx, "size", e.target.value)} 
+                    placeholder="e.g., 42" 
+                    className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" 
+                  />
+                  <input 
+                    type="text" 
+                    value={v.color} 
+                    onChange={e => handleVariantChange(idx, "color", e.target.value)} 
+                    placeholder="e.g., Red" 
+                    className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" 
+                  />
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={v.price} 
+                    onChange={e => handleVariantChange(idx, "price", e.target.value)} 
+                    placeholder="50.00" 
+                    className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" 
+                    required 
+                  />
+                  <input 
+                    type="number" 
+                    value={v.stock} 
+                    onChange={e => handleVariantChange(idx, "stock", e.target.value)} 
+                    placeholder="10" 
+                    className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" 
+                    required 
+                  />
+                  <input 
+                    type="text" 
+                    value={v.sku} 
+                    onChange={e => handleVariantChange(idx, "sku", e.target.value)} 
+                    placeholder="SKU-01" 
+                    className="col-span-3 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" 
+                  />
                   <button type="button" onClick={() => removeVariantRow(idx)} className="col-span-1 text-red-500 hover:text-red-700 font-bold">✕</button>
                 </div>
               ))}
@@ -219,15 +279,33 @@ export default function AddProductPage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Weight (lbs)</label>
-                <input type="number" step="0.1" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 outline-none" />
+                <input 
+                  type="number" 
+                  step="0.1" 
+                  value={weightLbs} 
+                  onChange={e => setWeightLbs(e.target.value)} 
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Domestic Shipping ($)</label>
-                <input type="number" step="0.01" value={domesticShipping} onChange={e => setDomesticShipping(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 outline-none" />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  value={domesticShipping} 
+                  onChange={e => setDomesticShipping(e.target.value)} 
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">International ($)</label>
-                <input type="number" step="0.01" value={internationalShipping} onChange={e => setInternationalShipping(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-purple-500 outline-none" />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  value={internationalShipping} 
+                  onChange={e => setInternationalShipping(e.target.value)} 
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none" 
+                />
               </div>
             </div>
           </section>
