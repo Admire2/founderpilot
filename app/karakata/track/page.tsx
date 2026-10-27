@@ -203,16 +203,25 @@ export default function TrackOrderPage() {
                         );
                       })}
                   </div>
-                  {order.tracking_number && (
-                    <a 
-                      href={`https://www.fedex.com/fedextrack/?trknbr=${order.tracking_number}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 block text-xs font-bold text-blue-600 hover:underline"
-                    >
-                      View on {order.carrier?.toUpperCase()} website →
-                    </a>
-                  )}
+                     {order.tracking_number && (() => {
+     const carrierLower = order.carrier?.toLowerCase() || '';
+     let trackingUrl = '#';
+     if (carrierLower === 'fedex') trackingUrl = `https://www.fedex.com/fedextrack/?trknbr=${order.tracking_number}`;
+     else if (carrierLower === 'usps') trackingUrl = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${order.tracking_number}`;
+     else if (carrierLower === 'ups') trackingUrl = `https://www.ups.com/track?tracknum=${order.tracking_number}`;
+     else if (carrierLower === 'dhl') trackingUrl = `https://www.dhl.com/en/express/tracking.html?AWB=${order.tracking_number}`;
+     
+     return (
+       <a 
+         href={trackingUrl}
+         target="_blank"
+         rel="noopener noreferrer"
+         className="mt-3 block text-xs font-bold text-blue-600 hover:underline"
+       >
+         View on {order.carrier?.toUpperCase() || 'CARRIER'} website →
+       </a>
+     );
+   })()}
                 </div>
               )}
 
