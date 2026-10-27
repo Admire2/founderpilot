@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Fetch the order
     const { data: order, error: orderError } = await supabase
       .from("kara_orders")
       .select("*")
@@ -38,12 +37,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
 
-    // 2. Verify seller ownership
     if (String(order.seller_id) !== String(seller_id)) {
       return NextResponse.json({ ok: false, error: "Unauthorized: this is not your order" }, { status: 403 });
     }
 
-    // 3. BLOCK shipping if a cancellation request is awaiting review
     if (order.status === "cancellation_requested") {
       return NextResponse.json({
         ok: false,
@@ -51,15 +48,13 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 4. Validate current status
-    if (!["escrow_active", "delivered"].includes(order.status)) {
+    if (!["escrow_active", "delivered", "pending_payment"].includes(order.status)) {
       return NextResponse.json({
         ok: false,
         error: `Cannot ship an order with status: ${order.status}`,
       }, { status: 400 });
     }
 
-    // 5. Require tracking number for real carriers
     const cleanCarrier = String(carrier).toLowerCase();
     const cleanTracking = String(tracking_number || "").trim();
 
@@ -70,7 +65,6 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 6. Update the order
     const { error: updateError } = await supabase
       .from("kara_orders")
       .update({
@@ -86,11 +80,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Database update failed" }, { status: 500 });
     }
 
-    // 7. Email the buyer their tracking details
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://founderpilot-theta.vercel.app";
     const trackPageUrl = `${appUrl}/karakata/track?email=${encodeURIComponent(order.buyer_email || "")}&orderId=${order.stripe_session_id || ""}`;
     const carrierUrl = (TRACKING_URLS[cleanCarrier] || "") + encodeURIComponent(cleanTracking);
 
+    // 1. Email the buyer
     if (order.buyer_email) {
       try {
         await sendMail({
@@ -112,13 +106,50 @@ export async function POST(req: NextRequest) {
           `,
         });
       } catch (emailError) {
-        console.error("Shipping email failed:", emailError);
+        console.error("Shipping email to buyer failed:", emailError);
+      }
+    }
+
+    // ✅ 2. NEW: Email the Seller confirming their shipment update
+    const { data: seller } = await supabase
+      .from("sellers")
+      .select("email")
+      .eq("id", seller_id)
+      .single();
+
+    if (seller?.email) {
+      try {
+        await sendMail({
+          to: seller.email,
+          subject: `✅ Shipment Confirmed - Order #${order.id}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#0f172a;">
+              <h2 style="color:#7c3aed;">✅ Shipment Confirmed!</h2>
+              <p>You have successfully updated the shipping details for Order #${order.id}. The buyer has been automatically notified with their tracking information.</p>
+              <div style="background:#f8fafc;padding:16px;border-radius:8px;margin:20px 0;">
+                <p><strong>Order #:</strong> ${order.id}</p>
+                <p><strong>Carrier:</strong> ${cleanCarrier.toUpperCase()}</p>
+                <p><strong>Tracking #:</strong> ${cleanTracking || "Local Delivery"}</p>
+              </div>
+              <p><strong>What happens next?</strong><br/>
+              1. The buyer receives a tracking email.<br/>
+              2. Once the carrier marks it "Delivered", a 24-hour inspection window begins.<br/>
+              3. If no dispute is filed, funds will automatically release to your connected Stripe account.</p>
+              <p style="text-align:center;margin-top:24px;">
+                <a href="${appUrl}/karakata/sellercenter/orders" style="background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">View All Orders →</a>
+              </p>
+              <p style="color:#64748b;font-size:12px;margin-top:30px;">— The KaraKata Team</p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Seller shipment email failed:", emailError);
       }
     }
 
     return NextResponse.json({
       ok: true,
-      message: "Order marked as shipped. Buyer has been notified.",
+      message: "Order marked as shipped. Buyer and Seller have been notified.",
       tracking_url: carrierUrl,
     });
   } catch (error: any) {
