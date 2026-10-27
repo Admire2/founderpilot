@@ -4,182 +4,104 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-export default function SellerDetailPage() {
+export default function SellerStorefront() {
   const params = useParams();
   const sellerId = params.id as string;
 
   const [seller, setSeller] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [contactForm, setContactForm] = useState({
-    name: "",
-    email: "",
-    subject: "general",
-    message: ""
-  });
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    const fetchSeller = async () => {
-      const { data, error } = await sb
+    const fetchData = async () => {
+      // 1. Fetch Seller Profile
+      const { data: sellerData } = await sb
         .from("sellers")
         .select("*")
-        .eq("id", sellerId)
+        .eq("id", Number(sellerId))
         .single();
-      
-      if (data) {
-        setSeller(data);
-        const { data: reviewsData } = await sb
-          .from("kara_reviews")
-          .select("*")
-          .eq("seller_id", sellerId)
-          .order("created_at", { ascending: false });
-        if (reviewsData) setReviews(reviewsData);
-      }
+
+      // 2. Fetch Seller's Active Products
+      const { data: productsData } = await sb
+        .from("kara_listings")
+        .select("*, sellers:seller_id(shop_name)")
+        .eq("seller_id", Number(sellerId))
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (sellerData) setSeller(sellerData);
+      if (productsData) setProducts(productsData);
       setLoading(false);
     };
-    if (sellerId) fetchSeller();
+    fetchData();
   }, [sellerId]);
 
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSending(true);
-    
-    const { error } = await sb.from("kara_seller_messages").insert({
-      seller_id: parseInt(sellerId),
-      buyer_name: contactForm.name,
-      buyer_email: contactForm.email,
-      subject: contactForm.subject,
-      message: contactForm.message,
-      status: "unread"
-    });
-    
-    if (!error) {
-      setSent(true);
-      setContactForm({ name: "", email: "", subject: "general", message: "" });
-    }
-    setSending(false);
-  };
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading storefront...</p></div>;
+  if (!seller) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="font-bold text-slate-600">Seller not found.</p></div>;
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white flex items-center justify-center">
-        <p className="text-lg">Loading seller details...</p>
-      </main>
-    );
-  }
-
-  if (!seller) {
-    return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl mb-4">Seller not found</p>
-          <Link href="/karakata/sellers" className="text-cyan-400 hover:underline">Back to sellers</Link>
-        </div>
-      </main>
-    );
-  }
-
-  const avgRating = seller.avg_rating || 0;
-  const starCount = Math.round(avgRating);
-  const locationText = seller.city + (seller.country ? ", " + seller.country : "");
+  const imgFor = (l: any) =>
+    l.image_url || l.images?.[0]
+      ? (l.images?.[0] || l.image_url)
+      : `https://image.pollinations.ai/prompt/${encodeURIComponent("professional product photo of " + String(l.title || "product"))}?width=800&height=600&seed=${String(l.id)}&nologo=true`;
 
   return (
-    <main className="min-h-screen bg-slate-950 p-6 text-white">
-      <div className="max-w-6xl mx-auto">
-        <Link href="/karakata/sellers" className="text-sm font-bold text-cyan-400 hover:underline mb-6 inline-block">
-          Back to sellers
-        </Link>
-
-        <div className="rounded-xl bg-slate-800 border border-slate-700 p-8 mb-8">
-          <h1 className="text-4xl font-bold mb-4">{seller.shop_name}</h1>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-400 text-2xl">{"?".repeat(starCount)}{"?".repeat(5 - starCount)}</span>
-              <span className="text-slate-300 text-lg">{avgRating.toFixed(1)} ({reviews.length} reviews)</span>
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      {/* Header / Banner */}
+      <div className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <Link href="/karakata/sellers" className="text-sm font-bold text-emerald-700 hover:underline mb-6 inline-block">← Back to Seller Directory</Link>
+          
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center text-4xl font-bold text-purple-700 border-4 border-white shadow-sm">
+              {seller.shop_name?.charAt(0).toUpperCase() || "S"}
+            </div>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-slate-900">{seller.shop_name}</h1>
+              <p className="text-slate-600 mt-1 flex items-center gap-1">📍 {seller.city || "Unknown"}, {seller.country || "Unknown"}</p>
+              <p className="text-sm text-slate-500 mt-2 max-w-2xl">{seller.craft || "Professional seller on KaraKata"}</p>
+              <div className="flex gap-2 mt-3">
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                  ⭐ {(seller.avg_rating || 5.0).toFixed(1)} Rating
+                </span>
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
+                  🛡️ Verified Seller
+                </span>
+              </div>
             </div>
           </div>
-          {seller.category && <p className="text-slate-400 mb-2">Category: {seller.category}</p>}
-          <p className="text-slate-400">Location: {locationText}</p>
-          {seller.description && <p className="text-slate-300 mt-4">{seller.description}</p>}
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Customer Reviews</h2>
-            {reviews.length === 0 ? (
-              <div className="rounded-xl bg-slate-800 border border-slate-700 p-6 text-center">
-                <p className="text-slate-400">No reviews yet</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {reviews.map((review: any) => {
-                  const rStars = Math.round(review.rating || 0);
-                  return (
-                    <div key={review.id} className="rounded-xl bg-slate-800 border border-slate-700 p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-yellow-400">{"?".repeat(rStars)}{"?".repeat(5 - rStars)}</span>
-                          <span className="font-bold">{review.buyer_name || "Anonymous"}</span>
-                        </div>
-                        <span className="text-xs text-slate-500">{new Date(review.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <p className="text-slate-300">{review.comment || review.message}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+      {/* Products Grid */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-6">Products from this Seller ({products.length})</h2>
+        
+        {products.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
+            <p className="text-slate-500 font-bold">This seller hasn't listed any active products yet.</p>
+            <Link href="/karakata" className="mt-4 inline-block text-purple-600 font-bold hover:underline">Browse the main market →</Link>
           </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Contact Seller</h2>
-            <p className="text-slate-400 mb-6">Have a question, complaint, or feedback? Send a message directly to this seller.</p>
-
-            {sent ? (
-              <div className="rounded-xl bg-emerald-900/30 border border-emerald-500 p-6 text-center">
-                <p className="text-emerald-400 text-lg font-bold mb-2">Message Sent!</p>
-                <p className="text-slate-300">The seller will respond to your message soon.</p>
-                <button onClick={() => setSent(false)} className="mt-4 text-cyan-400 hover:underline">Send another message</button>
-              </div>
-            ) : (
-              <form onSubmit={handleContactSubmit} className="rounded-xl bg-slate-800 border border-slate-700 p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Your Name</label>
-                  <input type="text" required value={contactForm.name} onChange={(e) => setContactForm({...contactForm, name: e.target.value})} className="w-full rounded-lg bg-slate-900 border border-slate-700 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none" placeholder="John Doe" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Your Email</label>
-                  <input type="email" required value={contactForm.email} onChange={(e) => setContactForm({...contactForm, email: e.target.value})} className="w-full rounded-lg bg-slate-900 border border-slate-700 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none" placeholder="john@example.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Subject</label>
-                  <select value={contactForm.subject} onChange={(e) => setContactForm({...contactForm, subject: e.target.value})} className="w-full rounded-lg bg-slate-900 border border-slate-700 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">
-                    <option value="general">General Inquiry</option>
-                    <option value="complaint">Product/Service Complaint</option>
-                    <option value="refund">Refund Request</option>
-                    <option value="shipping">Shipping Issue</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Message</label>
-                  <textarea required rows={5} value={contactForm.message} onChange={(e) => setContactForm({...contactForm, message: e.target.value})} className="w-full rounded-lg bg-slate-900 border border-slate-700 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none resize-none" placeholder="Describe your issue or question..." />
-                </div>
-                <button type="submit" disabled={sending} className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 px-6 py-3 font-bold text-white disabled:opacity-50 transition">
-                  {sending ? "Sending..." : "Send Message"}
-                </button>
-              </form>
-            )}
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {products.map((l: any) => {
+              const price = Number(l.price_usd || l.price || 0);
+              const stock = l.inventory_count ?? 10;
+              return (
+                <Link key={l.id} href={`/karakata/product/${l.id}`} className="group rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-all">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-slate-50 mb-3">
+                    <img src={imgFor(l)} alt={l.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                  <p className="text-lg font-bold text-slate-900">${price.toFixed(2)}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-700 group-hover:text-purple-700 transition">{l.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">{l.category}</p>
+                  <p className="mt-2 text-xs font-bold text-emerald-600">{stock > 0 ? `${stock} in stock` : "Out of stock"}</p>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
