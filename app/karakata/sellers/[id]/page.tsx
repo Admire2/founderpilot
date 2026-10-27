@@ -16,23 +16,27 @@ export default function SellerStorefront() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Fetch Seller Profile
-      const { data: sellerData } = await sb
-        .from("sellers")
-        .select("*")
-        .eq("id", Number(sellerId))
-        .single();
+      try {
+        // ✅ FIX 1: Removed Number() so it searches by the exact UUID string
+        const { data: sellerData } = await sb
+          .from("sellers")
+          .select("*")
+          .eq("id", sellerId)
+          .single();
 
-      // 2. Fetch Seller's Active Products
-      const { data: productsData } = await sb
-        .from("kara_listings")
-        .select("*, sellers:seller_id(shop_name)")
-        .eq("seller_id", Number(sellerId))
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
+        // ✅ FIX 2: Removed Number() and added .or() to catch 'active' OR null statuses
+        const { data: productsData } = await sb
+          .from("kara_listings")
+          .select("*, sellers:seller_id(shop_name)")
+          .eq("seller_id", sellerId)
+          .or("status.eq.active,status.is.null")
+          .order("created_at", { ascending: false });
 
-      if (sellerData) setSeller(sellerData);
-      if (productsData) setProducts(productsData);
+        if (sellerData) setSeller(sellerData);
+        if (productsData) setProducts(productsData);
+      } catch (err) {
+        console.error("Error fetching storefront data:", err);
+      }
       setLoading(false);
     };
     fetchData();
