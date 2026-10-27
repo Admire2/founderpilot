@@ -7,6 +7,8 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_
 
 const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services", "Vehicles & Auto Parts", "Other"];
 const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"];
+const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Refurbished"];
+const GENDERS = ["Unisex / Universal", "Men", "Women", "Boys", "Girls", "Kids (General)"];
 
 export default function SellerCenter() {
   const [step, setStep] = useState(1);
@@ -21,54 +23,42 @@ export default function SellerCenter() {
   const [pMsg, setPMsg] = useState(""); const [pBusy, setPBusy] = useState(false);
   const [cInv, setCInv] = useState(false); const [cFun, setCFun] = useState(false); const [cBi, setCBi] = useState(false);
 
-  // Product State
+  // ✅ UPGRADED Product State (Industry Standard)
   const [title, setTitle] = useState(""); const [pcat, setPcat] = useState(CATS[0]);
   const [price, setPrice] = useState(""); const [lead, setLead] = useState("7");
   const [occ, setOcc] = useState("Everyday"); const [desc, setDesc] = useState("");
+  const [condition, setCondition] = useState("New"); const [gender, setGender] = useState("Unisex / Universal");
+  const [size, setSize] = useState(""); const [color, setColor] = useState("");
+  const [stock, setStock] = useState("1"); const [weight, setWeight] = useState("1");
   const [file, setFile] = useState<any>(null);
   const [lMsg, setLMsg] = useState(""); const [lBusy, setLBusy] = useState(false);
 
-  // SMART ONBOARDING DETECTION: Check database on load
+  // SMART ONBOARDING DETECTION
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
-        // 1. Check for Stripe redirect success
         const params = new URLSearchParams(window.location.search);
-        if (params.get('connect') === 'done') {
-          setStripeSuccess(true);
-        }
+        if (params.get('connect') === 'done') setStripeSuccess(true);
 
-        // 2. FIRST: Check if we explicitly saved the onboarding email
         let userEmail = localStorage.getItem("kara_seller_onboarding_email");
-        
-        // 3. FALLBACK: Get email from Supabase localStorage if not explicitly saved
         if (!userEmail) {
           try {
             for (let i = 0; i < localStorage.length; i++) {
               const k = localStorage.key(i) || "";
               if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) {
                 const j = JSON.parse(localStorage.getItem(k) || "null");
-                if (j && j.user && j.user.email) {
-                  userEmail = j.user.email;
-                  break;
-                }
+                if (j && j.user && j.user.email) { userEmail = j.user.email; break; }
               }
             }
           } catch (e) {}
         }
         
-        // If still no email, just show Step 1
-        if (!userEmail) { 
-          setLoading(false); 
-          return; 
-        }
+        if (!userEmail) { setLoading(false); return; }
 
-        // 4. Check if seller profile exists for this specific email
         const profileRes = await fetch(`/api/karakata/aje?action=report&email=${encodeURIComponent(userEmail)}`);
         const profileData = await profileRes.json();
 
         if (profileData.ok && profileData.seller) {
-          // Profile exists, populate fields with REAL database data
           setShop(profileData.seller.shop_name || "");
           setEmail(profileData.seller.email || userEmail);
           setPhone(profileData.seller.phone || "");
@@ -78,19 +68,12 @@ export default function SellerCenter() {
           setCat(profileData.seller.category || CATS[0]);
           setCraft(profileData.seller.craft || "");
 
-          // 5. Check if they have any listings to determine the step
-          if (profileData.listings && profileData.listings.length > 0) {
-            setStep(3); // Has product, skip to Step 3
-          } else {
-            setStep(2); // Has profile but no product, go to Step 2
-          }
+          if (profileData.listings && profileData.listings.length > 0) setStep(3);
+          else setStep(2);
         }
-      } catch (error) {
-        console.error("Error checking onboarding status:", error);
-      }
+      } catch (error) { console.error("Error checking onboarding status:", error); }
       setLoading(false);
     };
-
     checkOnboardingStatus();
   }, []);
 
@@ -102,11 +85,9 @@ export default function SellerCenter() {
       await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
       const j = await r.json();
       setPMsg(j.ok ? "Profile saved! Kara has queued your welcome email." : (j.error || "Failed."));
-      
-      // 👇 CRITICAL FIX: Explicitly remember the email for page reloads
       if (j.ok) {
         localStorage.setItem("kara_seller_onboarding_email", email);
-        setTimeout(() => setStep(2), 1500); // AUTO-ADVANCE ON SUCCESS
+        setTimeout(() => setStep(2), 1500);
       }
     } catch (e) { setPMsg("Connection error."); }
     setPBusy(false);
@@ -116,16 +97,30 @@ export default function SellerCenter() {
     if (!title.trim() || !desc.trim() || !price.trim()) { setLMsg("Title, description and price are required."); return; }
     setLBusy(true); setLMsg("");
     let url = "";
-    try { if (file) { const path = "list-" + Date.now() + "-" + file.name; const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; } } catch (e) {}
+    try { 
+      if (file) { 
+        const path = "list-" + Date.now() + "-" + file.name; 
+        const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); 
+        if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; 
+      } 
+    } catch (e) {}
+    
     try {
-      const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, title, category: pcat, description: desc, price_usd: price, lead_time_days: lead, image_url: url, occasion: occ }) });
+      // ✅ UPGRADED PAYLOAD: Includes condition, gender, size, color, stock, weight
+      const r = await fetch("/api/karakata/publish", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          email, title, category: pcat, description: desc, price_usd: price, 
+          lead_time_days: lead, image_url: url, occasion: occ,
+          condition, gender_use: gender, size, color, stock_qty: stock, weight_lbs: weight
+        }) 
+      });
       const j = await r.json();
       setLMsg(j.ok ? "Product LIVE on KaraKata Market!" : (j.error || "Failed."));
-      
-      // 👇 CRITICAL FIX: Explicitly remember the email here too, just in case
       if (j.ok) {
         localStorage.setItem("kara_seller_onboarding_email", email);
-        setTimeout(() => setStep(3), 1500); // AUTO-ADVANCE ON SUCCESS
+        setTimeout(() => setStep(3), 1500);
       }
     } catch (e) { setLMsg("Connection error."); }
     setLBusy(false);
@@ -217,11 +212,11 @@ export default function SellerCenter() {
           </div>
         )}
 
-        {/* STEP 2: FIRST LISTING */}
+        {/* ✅ STEP 2: FIRST LISTING (UPGRADED TO INDUSTRY STANDARD) */}
         {step === 2 && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-xl font-bold text-slate-900 mb-1">Step 2: Add Your First Product</h2>
-            <p className="text-sm text-slate-500 mb-6">Upload a photo, set your price, and go live. You can add more later.</p>
+            <p className="text-sm text-slate-500 mb-6">Upload a photo, set your variants, and go live. You can manage advanced inventory later.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
@@ -229,10 +224,23 @@ export default function SellerCenter() {
                 <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-emerald-700 hover:file:bg-emerald-100 transition cursor-pointer" />
               </div>
               <div className="md:col-span-2"><label className={lbl}>Product Title *</label><input value={title} onChange={(e) => setTitle(e.target.value)} className={inp} placeholder="e.g., Handmade Adire Scarf - Indigo" /></div>
+              
               <div><label className={lbl}>Category</label><select value={pcat} onChange={(e) => setPcat(e.target.value)} className={inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
               <div><label className={lbl}>Season / Occasion</label><select value={occ} onChange={(e) => setOcc(e.target.value)} className={inp}>{OCC.map((o) => (<option key={o}>{o}</option>))}</select></div>
+              
+              {/* ✅ NEW INDUSTRY STANDARD FIELDS */}
+              <div><label className={lbl}>Condition</label><select value={condition} onChange={(e) => setCondition(e.target.value)} className={inp}>{CONDITIONS.map((c) => (<option key={c}>{c}</option>))}</select></div>
+              <div><label className={lbl}>Gender / Target Use</label><select value={gender} onChange={(e) => setGender(e.target.value)} className={inp}>{GENDERS.map((g) => (<option key={g}>{g}</option>))}</select></div>
+              
+              <div><label className={lbl}>Size (e.g., M, 42, One Size)</label><input value={size} onChange={(e) => setSize(e.target.value)} className={inp} placeholder="One Size" /></div>
+              <div><label className={lbl}>Color</label><input value={color} onChange={(e) => setColor(e.target.value)} className={inp} placeholder="Indigo" /></div>
+              
               <div><label className={lbl}>Price (USD) *</label><input value={price} onChange={(e) => setPrice(e.target.value)} className={inp} placeholder="45" /></div>
+              <div><label className={lbl}>Stock Quantity *</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className={inp} placeholder="1" /></div>
+              
+              <div><label className={lbl}>Weight (lbs) *</label><input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} className={inp} placeholder="1.0" /></div>
               <div><label className={lbl}>Lead Time (Days)</label><input value={lead} onChange={(e) => setLead(e.target.value)} className={inp} placeholder="7" /></div>
+              
               <div className="md:col-span-2"><label className={lbl}>Description *</label><textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} className={inp} placeholder="Materials, sizes, colors, what makes it special..." /></div>
             </div>
 
@@ -245,10 +253,8 @@ export default function SellerCenter() {
             {lMsg && <p className="mt-3 text-center text-sm font-bold text-emerald-700">{lMsg}</p>}
             
             <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-              <p className="text-xs text-slate-500 mb-2">Prefer AI to write your listings?</p>
-              <Link href="/karakata/studio" className="text-sm font-bold text-cyan-700 hover:underline transition">Open Seller Studio (AI Generator) →</Link>
-              <br />
-              <Link href="/karakata/auto" className="text-sm font-bold text-emerald-700 hover:underline mt-2 inline-block transition">🚗 Selling a vehicle? Open the Auto Desk →</Link>
+              <p className="text-xs text-slate-500 mb-2">Need to list multiple sizes/colors at once?</p>
+              <Link href="/karakata/sellercenter/inventory/new" className="text-sm font-bold text-purple-700 hover:underline transition">Open Advanced Variant Builder →</Link>
             </div>
           </div>
         )}
