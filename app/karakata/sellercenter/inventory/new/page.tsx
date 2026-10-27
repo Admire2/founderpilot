@@ -274,7 +274,7 @@ export default function AddProductPage() {
             <h2 className="text-lg font-bold text-slate-900 mb-4">2. Media Gallery</h2>
             <p className="text-xs text-slate-500 mb-4">Upload high-quality photos. First image will be the main thumbnail.</p>
             <div className="mb-4">
-              <label className="block text-sm font-bold text-slate-700 mb-2">Product Images (JPG, PNG, WebP - Max 5MB each)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Product Images (JPG, PNG, WebP - Max 10MB each)</label>
               <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-purple-500 transition cursor-pointer bg-slate-50">
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" multiple onChange={handleImageFileSelect} className="hidden" id="image-upload" />
                 <label htmlFor="image-upload" className="cursor-pointer block">
