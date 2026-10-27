@@ -41,14 +41,12 @@ export default function Market() {
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   
-  // ✅ NEW: Live Cart State to track exact items and quantities
   const [cart, setCart] = useState<any[]>([]);
   const [cartCount, setCartCount] = useState(0);
   const [addedId, setAddedId] = useState<string | number | null>(null);
   
   const left = useCountdown();
 
-  // ✅ HELPER: Load cart from LocalStorage into React State
   const syncCart = () => {
     try {
       const saved = JSON.parse(localStorage.getItem("kara_cart") || "[]");
@@ -68,14 +66,9 @@ export default function Market() {
         setTerm(query);
         setQ(query);
       }
-      
-      // Initial load
       syncCart();
-
-      // ✅ Listen for cart changes from other tabs/pages
       window.addEventListener("storage", syncCart);
-      window.addEventListener("focus", syncCart); // Refreshes when user switches back to this tab
-
+      window.addEventListener("focus", syncCart);
       return () => {
         window.removeEventListener("storage", syncCart);
         window.removeEventListener("focus", syncCart);
@@ -125,7 +118,6 @@ export default function Market() {
   const deals = filtered.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
-  // ✅ UPDATED: Uses live React state instead of reading LocalStorage directly
   const add = (l: any) => {
     const stock = l.inventory_count ?? 10;
     const currentQty = cart.find((c) => String(c.id) === String(l.id))?.qty || 0;
@@ -159,19 +151,15 @@ export default function Market() {
       });
     }
     
-    // ✅ Update both State and LocalStorage instantly
     setCart(newCart);
     setCartCount(newCart.reduce((a, c) => a + (c.qty || 1), 0));
     localStorage.setItem("kara_cart", JSON.stringify(newCart));
-    
-    // ✅ SHOUT to the browser to update the header badge instantly!
     window.dispatchEvent(new Event("kara_cart_updated"));
     
     setAddedId(l.id);
     setTimeout(() => setAddedId(null), 2000);
   };
 
-  // ✅ HELPER: Gets current cart quantity from live state
   const getCartQty = (itemId: string | number) => {
     const item = cart.find((c) => String(c.id) === String(itemId));
     return item ? (item.qty || 1) : 0;
@@ -217,20 +205,25 @@ export default function Market() {
                 const isMaxedOut = cartQty >= stock;
 
                 return (
-                  <div key={l.id} className="w-56 shrink-0 rounded-lg border border-slate-200 p-3 shadow-sm">
-                    <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-32 w-full rounded object-cover" />
-                    <p className="mt-2 text-xs font-bold text-red-600">{pct}% off <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Limited time deal</span></p>
-                    <p className="mt-1 text-lg font-bold">${p.toFixed(2)}</p>
-                    <p className="text-xs text-slate-500">Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span></p>
-                    <p className="mt-1 line-clamp-2 text-xs">{l.title}</p>
+                  <div key={l.id} className="w-56 shrink-0 rounded-lg border border-slate-200 p-3 shadow-sm flex flex-col">
+                    {/* ✅ LINK TO PRODUCT DETAIL PAGE */}
+                    <Link href={`/karakata/product/${l.id}`} className="block flex-1">
+                      <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-32 w-full rounded object-cover" />
+                      <p className="mt-2 text-xs font-bold text-red-600">{pct}% off <span className="rounded bg-red-600 px-1 py-0.5 text-[10px] text-white">Limited time deal</span></p>
+                      <p className="mt-1 text-lg font-bold">${p.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500">Typical: <span className="line-through">${Number(l.compare_at_usd).toFixed(2)}</span></p>
+                      <p className="mt-1 line-clamp-2 text-xs hover:text-purple-700 transition">{l.title}</p>
+                    </Link>
                     
-                    {isOutOfStock ? (
-                      <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
-                    ) : isMaxedOut ? (
-                      <button disabled className="mt-2 w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
-                    ) : (
-                      <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock - cartQty} left)`}</button>
-                    )}
+                    <div className="mt-2">
+                      {isOutOfStock ? (
+                        <button disabled className="w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
+                      ) : isMaxedOut ? (
+                        <button disabled className="w-full rounded-full py-1 text-xs font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
+                      ) : (
+                        <button onClick={() => add(l)} className={`w-full rounded-full py-1 text-xs font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock - cartQty} left)`}</button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -243,6 +236,7 @@ export default function Market() {
             <h2 className="text-lg font-bold">{cat ? cat : "All products & services"}{sub ? " · " + sub : ""}{term ? " · search: " + term : ""} <span className="text-sm font-normal text-slate-500">({filtered.length} results)</span></h2>
             {(cat || sub || term) && (<button onClick={() => { setCat(null); setSub(null); setTerm(""); setQ(""); }} className="rounded-full border border-slate-300 px-3 py-1 text-xs font-bold hover:border-red-400 hover:text-red-600">✕ Clear filters</button>)}
           </div>
+          
           <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map((l: any) => {
               const stock = l.inventory_count ?? 10;
@@ -252,23 +246,35 @@ export default function Market() {
               const isMaxedOut = cartQty >= stock;
 
               return (
-                <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md">
-                  <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-40 w-full rounded object-cover" />
-                  <p className="mt-2 text-lg font-bold">${priceOf(l).toFixed(2)}</p>
-                  <p className="mt-1 line-clamp-2 text-sm">{l.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">{l.category || "Uncategorized"}{l.subcategory ? " · " + l.subcategory : ""}</p>
+                <div key={l.id} className="rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md transition-all flex flex-col">
+                  {/* ✅ LINK TO PRODUCT DETAIL PAGE */}
+                  <Link href={`/karakata/product/${l.id}`} className="block flex-1">
+                    <img src={imgFor(l)} alt="" onError={(e: any) => { const t = e.currentTarget; if (!t.dataset.fb) { t.dataset.fb = "1"; t.src = "https://image.pollinations.ai/prompt/" + encodeURIComponent("professional product photo of " + String(l.title || "product")) + "?width=800&height=600&seed=" + String(l.id) + "&nologo=true"; } }} className="h-40 w-full rounded object-cover" />
+                    <p className="mt-2 text-lg font-bold">${priceOf(l).toFixed(2)}</p>
+                    <p className="mt-1 line-clamp-2 text-sm hover:text-purple-700 transition">{l.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{l.category || "Uncategorized"}{l.subcategory ? " · " + l.subcategory : ""}</p>
+                  </Link>
                   
-                  {isOutOfStock ? (
-                    <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
-                  ) : isMaxedOut ? (
-                    <button disabled className="mt-2 w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
-                  ) : (
-                    <button onClick={() => add(l)} className={`mt-2 w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock - cartQty} left)`}</button>
-                  )}
+                  <div className="mt-2">
+                    {isOutOfStock ? (
+                      <button disabled className="w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Out of Stock</span><span className="text-[10px] font-normal">Check back later</span></button>
+                    ) : isMaxedOut ? (
+                      <button disabled className="w-full rounded-full py-1.5 text-sm font-bold bg-slate-200 text-slate-500 cursor-not-allowed flex flex-col items-center"><span>Max Limit Reached</span><span className="text-[10px] font-normal">({stock} in cart)</span></button>
+                    ) : (
+                      <button onClick={() => add(l)} className={`w-full rounded-full py-1.5 text-sm font-bold transition-all duration-300 ${isAdded ? "bg-emerald-500 text-white" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>{isAdded ? "Added to Cart ✅" : `Add to cart (${stock - cartQty} left)`}</button>
+                    )}
+                  </div>
                 </div>
               );
             })}
-            {filtered.length === 0 && (<div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4"><p className="font-bold">Nothing matches yet.</p><p className="mt-1 text-sm text-slate-500">{term ? "No products or services match " + term + "." : "Be the first seller here."}</p><Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">🏗️ Build my store free</Link></div>)}
+            
+            {filtered.length === 0 && (
+              <div className="col-span-2 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center md:col-span-4">
+                <p className="font-bold">Nothing matches yet.</p>
+                <p className="mt-1 text-sm text-slate-500">{term ? "No products or services match " + term + "." : "Be the first seller here."}</p>
+                <Link href="/karakata/build" className="mt-3 inline-block rounded-lg bg-amber-400 px-5 py-2 font-bold text-slate-900 hover:bg-amber-300">🏗️ Build my store free</Link>
+              </div>
+            )}
           </div>
         </section>
 
