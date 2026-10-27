@@ -14,13 +14,10 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
-  // Variant Selection State
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [activeVariant, setActiveVariant] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
-  
-  // ✅ NEW: Cart Success State
   const [cartAdded, setCartAdded] = useState(false);
 
   useEffect(() => {
@@ -56,7 +53,6 @@ export default function ProductDetailPage() {
     setActiveVariant(match || variants[0]);
   }, [selectedColor, selectedSize, product]);
 
-  // ✅ UPGRADED: Add specific variant to cart
   const handleAddToCart = () => {
     if (!activeVariant || !product) return;
 
@@ -73,7 +69,7 @@ export default function ProductDetailPage() {
         image_url: mainImage,
         seller_id: product.seller_id,
         qty: 1,
-        variant: { // ✅ NEW: Save the exact variant details!
+        variant: {
           color: activeVariant.color,
           size: activeVariant.size,
           sku: activeVariant.sku
@@ -94,11 +90,8 @@ export default function ProductDetailPage() {
       }
 
       localStorage.setItem("kara_cart", JSON.stringify(savedCart));
-      
-      // ✅ Notify the header/cart component to update instantly
       window.dispatchEvent(new Event("kara_cart_updated"));
       
-      // ✅ Show success feedback
       setCartAdded(true);
       setTimeout(() => setCartAdded(false), 2000);
       
@@ -148,8 +141,10 @@ export default function ProductDetailPage() {
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">{product.title}</h1>
                 <div className="flex items-center gap-4 text-sm text-slate-600">
-                  {/* ✅ OPTION 2 PREP: We will make this a Link in the next step! */}
-                  <span className="flex items-center gap-1">🏪 {product.sellers?.shop_name || "Unknown Seller"}</span>
+                  {/* ✅ UPDATED: Clickable Seller Storefront Link */}
+                  <Link href={`/karakata/sellers/${product.seller_id}`} className="flex items-center gap-1 text-purple-700 font-bold hover:underline transition">
+                    🏪 {product.sellers?.shop_name || "Unknown Seller"}
+                  </Link>
                   <span>📍 {product.sellers?.city}, {product.sellers?.country}</span>
                 </div>
               </div>
@@ -211,7 +206,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* ✅ UPGRADED ADD TO CART BUTTON */}
+              {/* Add to Cart Button */}
               <button 
                 onClick={handleAddToCart}
                 disabled={!activeVariant || Number(activeVariant.stock) === 0 || cartAdded}
