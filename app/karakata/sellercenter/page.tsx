@@ -316,8 +316,8 @@ export default function SellerCenter() {
 
             <div className="flex justify-between items-center">
               <button onClick={() => setStep(2)} className="text-slate-500 font-bold hover:text-slate-800 text-sm transition">← Back</button>
-              <Link href="/karakata/sellercenter" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
-                Go to Seller Dashboard →
+         <Link href="/karakata/sellercenter/dashboard" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
+          Go to Seller Dashboard →
               </Link>
             </div>
           </div>
