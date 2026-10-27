@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ✅ 2. NEW: Email the Seller confirming their shipment update
+    // 2. Email the Seller confirming their shipment update
     const { data: seller } = await supabase
       .from("sellers")
       .select("email")
@@ -145,6 +145,19 @@ export async function POST(req: NextRequest) {
       } catch (emailError) {
         console.error("Seller shipment email failed:", emailError);
       }
+    }
+
+    // ✅ 3. NEW: Trigger EasyPost tracking sync (fire-and-forget, don't block response)
+    if (cleanCarrier !== "local-courier" && cleanTracking) {
+      fetch(`${appUrl}/api/karakata/tracking/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: order.id,
+          tracking_number: cleanTracking,
+          carrier: cleanCarrier,
+        }),
+      }).catch(err => console.error("EasyPost sync trigger failed:", err));
     }
 
     return NextResponse.json({
