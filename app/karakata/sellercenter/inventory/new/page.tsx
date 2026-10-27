@@ -37,30 +37,47 @@ export default function AddProductPage() {
 
   useEffect(() => {
     const init = async () => {
+      console.log("🔍 [DEBUG] Initializing page...");
       const { data: { session } } = await sb.auth.getSession();
       if (!session?.user) {
+        console.warn("⚠️ [DEBUG] No session found, redirecting to auth.");
         router.push("/auth?callbackUrl=/karakata/sellercenter/inventory/new");
         return;
       }
+      console.log("✅ [DEBUG] User authenticated:", session.user.email);
       const { data: sellerData } = await sb.from("sellers").select("id").eq("email", session.user.email).single();
-      if (sellerData) setSellerId(sellerData.id);
+      if (sellerData) {
+        console.log("✅ [DEBUG] Seller ID found:", sellerData.id);
+        setSellerId(sellerData.id);
+      } else {
+        console.error("❌ [DEBUG] Seller profile not found for email:", session.user.email);
+      }
     };
     init();
   }, [router]);
 
   const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("👀 [DEBUG] File input changed!");
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    console.log("👀 [DEBUG] Raw files object:", files);
+    
+    if (!files || files.length === 0) {
+      console.warn("⚠️ [DEBUG] No files selected.");
+      return;
+    }
 
     const newFiles: File[] = [];
     const newPreviews: string[] = [];
 
     Array.from(files).forEach((file) => {
+      console.log(`👀 [DEBUG] Checking file: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
       if (!file.type.startsWith("image/")) {
+        console.error(`❌ [DEBUG] Rejected: ${file.name} is not an image.`);
         setMessage({ type: "error", text: `${file.name} is not an image file.` });
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
+        console.error(`❌ [DEBUG] Rejected: ${file.name} is too large (${file.size} bytes).`);
         setMessage({ type: "error", text: `${file.name} is too large. Max 5MB.` });
         return;
       }
@@ -68,6 +85,7 @@ export default function AddProductPage() {
       newPreviews.push(URL.createObjectURL(file));
     });
 
+    console.log("✅ [DEBUG] Files accepted. Total new files:", newFiles.length);
     setImageFiles((prev) => [...prev, ...newFiles]);
     setImagePreviews((prev) => [...prev, ...newPreviews]);
     setMessage(null);
@@ -79,17 +97,18 @@ export default function AddProductPage() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ✅ BULLETPROOF UPLOAD FUNCTION
   const uploadImagesToStorage = async (): Promise<string[]> => {
+    console.log("🚀 [DEBUG] uploadImagesToStorage called. Total files:", imageFiles.length);
     if (imageFiles.length === 0) return [];
     setUploadingImages(true);
     const uploadedUrls: string[] = [];
 
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
-      console.log(`📤 Attempting to upload: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+      console.log(`📤 [DEBUG] Attempting to upload: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
       
       const fileName = `listings/${Date.now()}-${i}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+      console.log(`📤 [DEBUG] Target path: kara/${fileName}`);
 
       try {
         const { data, error } = await sb.storage
@@ -101,18 +120,18 @@ export default function AddProductPage() {
           });
 
         if (error) {
-          console.error("❌ Supabase Upload Error:", error);
+          console.error("❌ [DEBUG] Supabase Upload Error Object:", error);
           throw error;
         }
 
         const { data: { publicUrl } } = sb.storage.from("kara").getPublicUrl(fileName);
-        console.log(`✅ Successfully uploaded: ${publicUrl}`);
+        console.log(`✅ [DEBUG] Successfully uploaded: ${publicUrl}`);
         uploadedUrls.push(publicUrl);
       } catch (error: any) {
-        console.error("❌ Upload failed for", file.name, error);
+        console.error("❌ [DEBUG] Upload failed for", file.name, error);
         setMessage({ 
           type: "error", 
-          text: `Failed to upload ${file.name}. Check browser console (F12) for details. Error: ${error.message}` 
+          text: `Failed to upload ${file.name}. Error: ${error.message}. Check Console (F12) for details.` 
         });
         setUploadingImages(false);
         return [];
@@ -120,6 +139,7 @@ export default function AddProductPage() {
     }
 
     setUploadingImages(false);
+    console.log("✅ [DEBUG] All uploads complete. Returning URLs:", uploadedUrls);
     return uploadedUrls;
   };
 
@@ -134,16 +154,19 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🚀 [DEBUG] Form submitted!");
     setLoading(true);
     setMessage(null);
 
     if (!title.trim()) {
+      console.warn("⚠️ [DEBUG] Blocked: Title is empty.");
       setMessage({ type: "error", text: "Product title is required." });
       setLoading(false);
       return;
     }
 
     if (imageFiles.length === 0) {
+      console.warn("⚠️ [DEBUG] Blocked: No images selected. imageFiles length:", imageFiles.length);
       setMessage({ type: "error", text: "Please upload at least one product image." });
       setLoading(false);
       return;
@@ -151,22 +174,23 @@ export default function AddProductPage() {
 
     const validVariants = variants.filter(v => v.price && v.stock);
     if (validVariants.length === 0) {
+      console.warn("⚠️ [DEBUG] Blocked: No valid variants.");
       setMessage({ type: "error", text: "Please add at least one variant with price and stock." });
       setLoading(false);
       return;
     }
 
     try {
-      console.log("🚀 Starting image upload process...");
+      console.log("🚀 [DEBUG] Starting image upload process...");
       const uploadedUrls = await uploadImagesToStorage();
       
       if (uploadedUrls.length === 0) {
-        console.log("⚠️ Upload returned empty array, aborting save.");
+        console.log("⚠️ [DEBUG] Upload returned empty array, aborting save.");
         setLoading(false);
         return;
       }
 
-      console.log("💾 Saving product to database with URLs:", uploadedUrls);
+      console.log("💾 [DEBUG] Saving product to database with URLs:", uploadedUrls);
       const res = await fetch("/api/karakata/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,6 +203,8 @@ export default function AddProductPage() {
       });
       
       const data = await res.json();
+      console.log("📥 [DEBUG] API Response:", data);
+      
       if (data.ok) {
         setMessage({ type: "success", text: "✅ Product created successfully!" });
         imagePreviews.forEach(url => URL.revokeObjectURL(url));
@@ -187,14 +213,14 @@ export default function AddProductPage() {
         setMessage({ type: "error", text: data.error || "Failed to save product." });
       }
     } catch (err: any) {
-      console.error("💥 Fatal error during submit:", err);
+      console.error("💥 [DEBUG] Fatal error during submit:", err);
       setMessage({ type: "error", text: "Network error. Check console." });
     } finally {
       setLoading(false);
     }
   };
 
-  if (!sellerId) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading...</p></div>;
+  if (!sellerId) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading seller profile...</p></div>;
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
@@ -219,7 +245,7 @@ export default function AddProductPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Describe the product features, materials, and condition..." className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" />
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Describe the product features..." className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -281,11 +307,6 @@ export default function AddProductPage() {
                 📤 Uploading images to KaraKata storage...
               </div>
             )}
-
-            <div className="mt-4">
-              <label className="block text-sm font-bold text-slate-700 mb-1">Video URL (Optional)</label>
-              <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 outline-none" />
-            </div>
           </section>
 
           <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -305,15 +326,6 @@ export default function AddProductPage() {
                 </div>
               ))}
               <button type="button" onClick={addVariantRow} className="text-sm font-bold text-purple-600 hover:underline mt-2">+ Add Another Variant</button>
-            </div>
-          </section>
-
-          <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">4. Shipping</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div><label className="block text-sm font-bold text-slate-700 mb-1">Weight (lbs)</label><input type="number" step="0.1" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none" /></div>
-              <div><label className="block text-sm font-bold text-slate-700 mb-1">Domestic Shipping ($)</label><input type="number" step="0.01" value={domesticShipping} onChange={e => setDomesticShipping(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none" /></div>
-              <div><label className="block text-sm font-bold text-slate-700 mb-1">International ($)</label><input type="number" step="0.01" value={internationalShipping} onChange={e => setInternationalShipping(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none" /></div>
             </div>
           </section>
 
