@@ -76,9 +76,9 @@ export default function AddProductPage() {
         setMessage({ type: "error", text: `${file.name} is not an image file.` });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 10 * 1024 * 1024) {
         console.error(`❌ [DEBUG] Rejected: ${file.name} is too large (${file.size} bytes).`);
-        setMessage({ type: "error", text: `${file.name} is too large. Max 5MB.` });
+        setMessage({ type: "error", text: `${file.name} is too large. Max 10MB.` });
         return;
       }
       newFiles.push(file);
