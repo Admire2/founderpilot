@@ -6,6 +6,24 @@ import Link from "next/link";
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
+// ✅ MASTER CATEGORY LIST (Exact match from Seller Onboarding)
+const CATS = [
+  "Jewelry & Gems", 
+  "Fashion & Clothing", 
+  "Shoes & Leather", 
+  "Electronics", 
+  "Electrical & Solar", 
+  "Home & Kitchen", 
+  "Groceries & Consumables", 
+  "Beauty & Personal Care", 
+  "Health & Wellness", 
+  "Baby & Kids", 
+  "Sports & Outdoors", 
+  "Artisan Services", 
+  "Vehicles & Auto Parts", 
+  "Other"
+];
+
 export default function AddProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -15,9 +33,9 @@ export default function AddProductPage() {
   // Basic Info
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Fashion");
+  const [category, setCategory] = useState(CATS[0]); // ✅ Synced default
   const [condition, setCondition] = useState("new");
-  const [genderUse, setGenderUse] = useState("unisex"); // ✅ NEW: Gender Use State
+  const [genderUse, setGenderUse] = useState("unisex");
 
   // Media
   const [images, setImages] = useState<string[]>([""]);
@@ -92,7 +110,7 @@ export default function AddProductPage() {
           description, 
           category, 
           condition,
-          gender_use: genderUse, // ✅ NEW: Send gender use to API
+          gender_use: genderUse,
           images: cleanImages, 
           video_url: videoUrl,
           variants: validVariants,
@@ -157,7 +175,7 @@ export default function AddProductPage() {
                 />
               </div>
               
-              {/* ✅ NEW: 3-Column Grid for Category, Condition, and Gender Use */}
+              {/* ✅ UPDATED: 3-Column Grid using the MASTER CATS array */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
@@ -166,11 +184,9 @@ export default function AddProductPage() {
                     onChange={e => setCategory(e.target.value)} 
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-purple-500 outline-none"
                   >
-                    <option value="Fashion">Fashion & Apparel</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Home">Home & Garden</option>
-                    <option value="Beauty">Beauty & Health</option>
-                    <option value="Other">Other</option>
+                    {CATS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
