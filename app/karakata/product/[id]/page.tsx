@@ -19,12 +19,15 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [activeVariant, setActiveVariant] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
+  
+  // ✅ NEW: Cart Success State
+  const [cartAdded, setCartAdded] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
       const { data, error } = await sb
         .from("kara_listings")
-        .select("*, sellers(shop_name, city, country)")
+        .select("*, sellers:seller_id(shop_name, city, country)")
         .eq("id", Number(id))
         .single();
 
@@ -32,7 +35,6 @@ export default function ProductDetailPage() {
         setProduct(data);
         setMainImage(data.images?.[0] || data.image_url || "/placeholder.jpg");
         
-        // Initialize variants
         const variants = data.metadata?.variants || [];
         if (variants.length > 0) {
           setSelectedColor(variants[0].color);
@@ -45,7 +47,6 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [id]);
 
-  // Update active variant when selections change
   useEffect(() => {
     if (!product?.metadata?.variants) return;
     const variants = product.metadata.variants;
@@ -55,18 +56,64 @@ export default function ProductDetailPage() {
     setActiveVariant(match || variants[0]);
   }, [selectedColor, selectedSize, product]);
 
+  // ✅ UPGRADED: Add specific variant to cart
+  const handleAddToCart = () => {
+    if (!activeVariant || !product) return;
+
+    try {
+      const savedCart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
+      const existingIndex = savedCart.findIndex((c: any) => String(c.id) === String(product.id));
+      
+      const cartItem = {
+        id: product.id,
+        listing_id: product.id,
+        title: product.title,
+        price_usd: Number(activeVariant.price),
+        price: Number(activeVariant.price),
+        image_url: mainImage,
+        seller_id: product.seller_id,
+        qty: 1,
+        variant: { // ✅ NEW: Save the exact variant details!
+          color: activeVariant.color,
+          size: activeVariant.size,
+          sku: activeVariant.sku
+        },
+        it: { 
+          title: product.title, 
+          price_usd: Number(activeVariant.price), 
+          price: Number(activeVariant.price), 
+          image_url: mainImage, 
+          seller_id: product.seller_id 
+        }
+      };
+
+      if (existingIndex > -1) {
+        savedCart[existingIndex].qty += 1;
+      } else {
+        savedCart.push(cartItem);
+      }
+
+      localStorage.setItem("kara_cart", JSON.stringify(savedCart));
+      
+      // ✅ Notify the header/cart component to update instantly
+      window.dispatchEvent(new Event("kara_cart_updated"));
+      
+      // ✅ Show success feedback
+      setCartAdded(true);
+      setTimeout(() => setCartAdded(false), 2000);
+      
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      alert("There was an error adding this item to your cart.");
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading product...</p></div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="font-bold text-slate-600">Product not found.</p></div>;
 
   const variants = product.metadata?.variants || [];
   const availableColors = [...new Set(variants.map((v: any) => v.color))];
   const availableSizes = [...new Set(variants.map((v: any) => v.size))];
-
-  const handleAddToCart = () => {
-    if (!activeVariant) return;
-    // TODO: Integrate with your cart context here
-    alert(`✅ Added to Cart:\n${product.title}\nColor: ${activeVariant.color}\nSize: ${activeVariant.size}\nSKU: ${activeVariant.sku}\nPrice: $${Number(activeVariant.price).toFixed(2)}`);
-  };
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
@@ -101,6 +148,7 @@ export default function ProductDetailPage() {
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">{product.title}</h1>
                 <div className="flex items-center gap-4 text-sm text-slate-600">
+                  {/* ✅ OPTION 2 PREP: We will make this a Link in the next step! */}
                   <span className="flex items-center gap-1">🏪 {product.sellers?.shop_name || "Unknown Seller"}</span>
                   <span>📍 {product.sellers?.city}, {product.sellers?.country}</span>
                 </div>
@@ -118,7 +166,6 @@ export default function ProductDetailPage() {
 
               {/* Variant Selectors */}
               <div className="space-y-4">
-                {/* Color */}
                 <div>
                   <p className="text-sm font-bold text-slate-700 mb-2">Color: <span className="text-slate-900">{selectedColor}</span></p>
                   <div className="flex flex-wrap gap-2">
@@ -138,12 +185,10 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
 
-                {/* Size */}
                 <div>
                   <p className="text-sm font-bold text-slate-700 mb-2">Size: <span className="text-slate-900">{selectedSize}</span></p>
                   <div className="flex flex-wrap gap-2">
                     {availableSizes.map((size: string) => {
-                      // Check if this size is available for the selected color
                       const isAvailable = variants.some((v: any) => v.color === selectedColor && v.size === size && Number(v.stock) > 0);
                       return (
                         <button
@@ -166,12 +211,22 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
+              {/* ✅ UPGRADED ADD TO CART BUTTON */}
               <button 
                 onClick={handleAddToCart}
-                disabled={!activeVariant || Number(activeVariant.stock) === 0}
-                className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-200"
+                disabled={!activeVariant || Number(activeVariant.stock) === 0 || cartAdded}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                  cartAdded 
+                    ? "bg-emerald-500 text-white shadow-emerald-200" 
+                    : "bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200"
+                }`}
               >
-                {Number(activeVariant?.stock) === 0 ? "Out of Stock" : `Add to Cart - $${Number(activeVariant?.price).toFixed(2)}`}
+                {Number(activeVariant?.stock) === 0 
+                  ? "Out of Stock" 
+                  : cartAdded 
+                    ? "✅ Added to Cart!" 
+                    : `Add to Cart - $${Number(activeVariant?.price).toFixed(2)}`
+                }
               </button>
 
               <div className="border-t border-slate-200 pt-6">
