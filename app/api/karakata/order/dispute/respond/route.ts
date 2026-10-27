@@ -56,14 +56,15 @@ export async function POST(req: NextRequest) {
     const existingEvidence = Array.isArray(order.dispute_evidence) ? order.dispute_evidence : [];
     const updatedEvidence = [...existingEvidence, evidenceItem];
 
-    // 6. Update the order
-    await supabase
-      .from("kara_orders")
-      .update({
-        dispute_evidence: updatedEvidence,
-        dispute_resolution: "under_review",
-      })
-      .eq("id", order_id);
+   // 6. Update the order
+await supabase
+  .from("kara_orders")
+  .update({
+    status: "dispute_under_review", // ✅ THIS IS THE MAGIC LINE
+    dispute_evidence: updatedEvidence,
+    dispute_resolution: "under_review",
+  })
+  .eq("id", order_id);
 
     // 7. Email the buyer
     if (order.buyer_email) {
