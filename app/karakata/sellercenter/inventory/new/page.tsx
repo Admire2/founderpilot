@@ -17,6 +17,7 @@ export default function AddProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [sellerId, setSellerId] = useState<string | number | null>(null);
+  const [sellerEmail, setSellerEmail] = useState(""); // ✅ NEW: Store email for API fallback
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [title, setTitle] = useState("");
@@ -37,47 +38,44 @@ export default function AddProductPage() {
 
   useEffect(() => {
     const init = async () => {
-      console.log("🔍 [DEBUG] Initializing page...");
       const { data: { session } } = await sb.auth.getSession();
       if (!session?.user) {
-        console.warn("⚠️ [DEBUG] No session found, redirecting to auth.");
         router.push("/auth?callbackUrl=/karakata/sellercenter/inventory/new");
         return;
       }
-      console.log("✅ [DEBUG] User authenticated:", session.user.email);
-      const { data: sellerData } = await sb.from("sellers").select("id").eq("email", session.user.email).single();
+      
+      setSellerEmail(session.user.email);
+
+      // ✅ PERMANENT FIX: Always grab the MOST RECENT seller profile for this email
+      const { data: sellerData } = await sb
+        .from("sellers")
+        .select("id")
+        .eq("email", session.user.email)
+        .order("created_at", { ascending: false }) // Grabs the newest store first!
+        .single();
+        
       if (sellerData) {
-        console.log("✅ [DEBUG] Seller ID found:", sellerData.id);
         setSellerId(sellerData.id);
       } else {
-        console.error("❌ [DEBUG] Seller profile not found for email:", session.user.email);
+        console.error("❌ Seller profile not found for email:", session.user.email);
       }
     };
     init();
   }, [router]);
 
   const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("👀 [DEBUG] File input changed!");
     const files = e.target.files;
-    console.log("👀 [DEBUG] Raw files object:", files);
-    
-    if (!files || files.length === 0) {
-      console.warn("⚠️ [DEBUG] No files selected.");
-      return;
-    }
+    if (!files || files.length === 0) return;
 
     const newFiles: File[] = [];
     const newPreviews: string[] = [];
 
     Array.from(files).forEach((file) => {
-      console.log(`👀 [DEBUG] Checking file: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
       if (!file.type.startsWith("image/")) {
-        console.error(`❌ [DEBUG] Rejected: ${file.name} is not an image.`);
         setMessage({ type: "error", text: `${file.name} is not an image file.` });
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        console.error(`❌ [DEBUG] Rejected: ${file.name} is too large (${file.size} bytes).`);
         setMessage({ type: "error", text: `${file.name} is too large. Max 10MB.` });
         return;
       }
@@ -85,7 +83,6 @@ export default function AddProductPage() {
       newPreviews.push(URL.createObjectURL(file));
     });
 
-    console.log("✅ [DEBUG] Files accepted. Total new files:", newFiles.length);
     setImageFiles((prev) => [...prev, ...newFiles]);
     setImagePreviews((prev) => [...prev, ...newPreviews]);
     setMessage(null);
@@ -98,20 +95,16 @@ export default function AddProductPage() {
   };
 
   const uploadImagesToStorage = async (): Promise<string[]> => {
-    console.log("🚀 [DEBUG] uploadImagesToStorage called. Total files:", imageFiles.length);
     if (imageFiles.length === 0) return [];
     setUploadingImages(true);
     const uploadedUrls: string[] = [];
 
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
-      console.log(`📤 [DEBUG] Attempting to upload: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
-      
       const fileName = `listings/${Date.now()}-${i}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-      console.log(`📤 [DEBUG] Target path: kara/${fileName}`);
 
       try {
-        const { data, error } = await sb.storage
+        const { error } = await sb.storage
           .from("kara")
           .upload(fileName, file, { 
             upsert: true, 
@@ -119,19 +112,14 @@ export default function AddProductPage() {
             contentType: file.type 
           });
 
-        if (error) {
-          console.error("❌ [DEBUG] Supabase Upload Error Object:", error);
-          throw error;
-        }
+        if (error) throw error;
 
         const { data: { publicUrl } } = sb.storage.from("kara").getPublicUrl(fileName);
-        console.log(`✅ [DEBUG] Successfully uploaded: ${publicUrl}`);
         uploadedUrls.push(publicUrl);
       } catch (error: any) {
-        console.error("❌ [DEBUG] Upload failed for", file.name, error);
         setMessage({ 
           type: "error", 
-          text: `Failed to upload ${file.name}. Error: ${error.message}. Check Console (F12) for details.` 
+          text: `Failed to upload ${file.name}. Error: ${error.message}` 
         });
         setUploadingImages(false);
         return [];
@@ -139,7 +127,6 @@ export default function AddProductPage() {
     }
 
     setUploadingImages(false);
-    console.log("✅ [DEBUG] All uploads complete. Returning URLs:", uploadedUrls);
     return uploadedUrls;
   };
 
@@ -154,19 +141,16 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("🚀 [DEBUG] Form submitted!");
     setLoading(true);
     setMessage(null);
 
     if (!title.trim()) {
-      console.warn("⚠️ [DEBUG] Blocked: Title is empty.");
       setMessage({ type: "error", text: "Product title is required." });
       setLoading(false);
       return;
     }
 
     if (imageFiles.length === 0) {
-      console.warn("⚠️ [DEBUG] Blocked: No images selected. imageFiles length:", imageFiles.length);
       setMessage({ type: "error", text: "Please upload at least one product image." });
       setLoading(false);
       return;
@@ -174,28 +158,25 @@ export default function AddProductPage() {
 
     const validVariants = variants.filter(v => v.price && v.stock);
     if (validVariants.length === 0) {
-      console.warn("⚠️ [DEBUG] Blocked: No valid variants.");
       setMessage({ type: "error", text: "Please add at least one variant with price and stock." });
       setLoading(false);
       return;
     }
 
     try {
-      console.log("🚀 [DEBUG] Starting image upload process...");
       const uploadedUrls = await uploadImagesToStorage();
       
       if (uploadedUrls.length === 0) {
-        console.log("⚠️ [DEBUG] Upload returned empty array, aborting save.");
         setLoading(false);
         return;
       }
 
-      console.log("💾 [DEBUG] Saving product to database with URLs:", uploadedUrls);
       const res = await fetch("/api/karakata/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           seller_id: sellerId,
+          seller_email: sellerEmail, // ✅ BULLETPROOF: Send email for API fallback lookup
           title, description, category, condition, gender_use: genderUse,
           images: uploadedUrls, video_url: videoUrl, variants: validVariants,
           weight_lbs: weightLbs, domestic_shipping: domesticShipping, international_shipping: internationalShipping
@@ -203,7 +184,6 @@ export default function AddProductPage() {
       });
       
       const data = await res.json();
-      console.log("📥 [DEBUG] API Response:", data);
       
       if (data.ok) {
         setMessage({ type: "success", text: "✅ Product created successfully!" });
@@ -213,7 +193,6 @@ export default function AddProductPage() {
         setMessage({ type: "error", text: data.error || "Failed to save product." });
       }
     } catch (err: any) {
-      console.error("💥 [DEBUG] Fatal error during submit:", err);
       setMessage({ type: "error", text: "Network error. Check console." });
     } finally {
       setLoading(false);
@@ -322,7 +301,7 @@ export default function AddProductPage() {
                   <input type="number" step="0.01" value={v.price} onChange={e => handleVariantChange(idx, "price", e.target.value)} placeholder="50.00" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" required />
                   <input type="number" value={v.stock} onChange={e => handleVariantChange(idx, "stock", e.target.value)} placeholder="10" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" required />
                   <input type="text" value={v.sku} onChange={e => handleVariantChange(idx, "sku", e.target.value)} placeholder="SKU-01" className="col-span-3 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" />
-                  <button type="button" onClick={() => removeVariantRow(idx)} className="col-span-1 text-red-500 hover:text-red-700 font-bold">✕</button>
+                  <button type="button" onClick={() => removeVariantRow(idx)} className="col-span-1 text-red-500 hover:text-red-700 font-bold"></button>
                 </div>
               ))}
               <button type="button" onClick={addVariantRow} className="text-sm font-bold text-purple-600 hover:underline mt-2">+ Add Another Variant</button>
