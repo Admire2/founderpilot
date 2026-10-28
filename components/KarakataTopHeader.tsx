@@ -35,7 +35,8 @@ export default function KarakataTopHeader() {
       </form>
       
       <div className="flex items-center gap-3 text-xs font-bold text-white">
-        <Link href="/karakata/sellercenter" className="hover:text-amber-400 transition whitespace-nowrap font-bold text-amber-400">
+        {/* ✅ UPDATED: Points directly to the Dashboard */}
+        <Link href="/karakata/sellercenter/dashboard" className="hover:text-amber-400 transition whitespace-nowrap font-bold text-amber-400">
           Seller Center
         </Link>
         <Link href="/karakata/sellers" className="hover:text-amber-400 transition whitespace-nowrap">
@@ -45,7 +46,6 @@ export default function KarakataTopHeader() {
           Build your Store 
         </Link>
         
-        {/* ✅ REPLACED: Simple "Cart" text with the live CartBadge component */}
         <CartBadge />
       </div>
     </header>
