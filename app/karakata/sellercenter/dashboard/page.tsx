@@ -6,7 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-// Navigation Items
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/karakata/sellercenter/dashboard", icon: "📊" },
   { name: "Add Product", href: "/karakata/sellercenter/inventory/new", icon: "➕" },
@@ -30,7 +29,6 @@ export default function SellerDashboard() {
         return;
       }
 
-      // ✅ Fetch the MOST RECENT seller profile
       const { data: sellerData } = await sb
         .from("sellers")
         .select("*")
@@ -39,12 +37,11 @@ export default function SellerDashboard() {
         .single();
 
       if (!sellerData) {
-        router.push("/karakata/sellercenter"); // Redirect to onboarding if no profile
+        router.push("/karakata/sellercenter");
         return;
       }
       setSeller(sellerData);
 
-      // ✅ Fetch Dashboard Metrics
       const [ordersRes, listingsRes] = await Promise.all([
         sb.from("kara_orders").select("id, status, total_amount, created_at, buyer_email").eq("seller_id", sellerData.id).order("created_at", { ascending: false }),
         sb.from("kara_listings").select("id").eq("seller_id", sellerData.id)
@@ -53,7 +50,6 @@ export default function SellerDashboard() {
       const orders = ordersRes.data || [];
       const products = listingsRes.data || [];
 
-      // Calculate Stats
       const revenue = orders
         .filter(o => o.status === "completed" || o.status === "delivered")
         .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
@@ -61,14 +57,8 @@ export default function SellerDashboard() {
       const activeOrders = orders.filter(o => ["escrow_active", "shipped", "dispute_open"].includes(o.status)).length;
       const pendingShip = orders.filter(o => o.status === "escrow_active").length;
 
-      setStats({
-        revenue,
-        activeOrders,
-        pendingShip,
-        products: products.length
-      });
-
-      setRecentOrders(orders.slice(0, 5)); // Last 5 orders
+      setStats({ revenue, activeOrders, pendingShip, products: products.length });
+      setRecentOrders(orders.slice(0, 5));
       setLoading(false);
     };
 
@@ -81,7 +71,6 @@ export default function SellerDashboard() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* ✅ SIDEBAR NAVIGATION */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full">
         <div className="p-6 border-b border-slate-200">
           <Link href="/karakata/sellercenter/dashboard" className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -104,7 +93,6 @@ export default function SellerDashboard() {
           ))}
         </nav>
 
-        {/* ✅ UPDATED: Prioritize returning to Dashboard */}
         <div className="p-4 border-t border-slate-200 space-y-2">
           {seller && (
             <Link href={`/karakata/sellers/${seller.id}`} className="block w-full text-center px-4 py-2 text-sm font-bold text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition">
@@ -120,9 +108,7 @@ export default function SellerDashboard() {
         </div>
       </aside>
 
-      {/* ✅ MAIN CONTENT AREA */}
       <main className="flex-1 ml-64 p-8">
-        {/* Header */}
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Welcome back, {seller.shop_name || "Seller"}! 👋</h1>
@@ -133,28 +119,31 @@ export default function SellerDashboard() {
           </Link>
         </header>
 
-        {/* Stats Grid */}
+        {/* ✅ CLICKABLE STATS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <Link href="/karakata/sellercenter/orders" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition cursor-pointer group">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Revenue</p>
-            <p className="text-3xl font-bold text-emerald-600 mt-2">{formatCurrency(stats.revenue)}</p>
-            <p className="text-xs text-slate-400 mt-1">From completed orders</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-3xl font-bold text-emerald-600 mt-2 group-hover:text-emerald-700">{formatCurrency(stats.revenue)}</p>
+            <p className="text-xs text-slate-400 mt-1">From completed orders →</p>
+          </Link>
+          
+          <Link href="/karakata/sellercenter/orders" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition cursor-pointer group">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Orders</p>
-            <p className="text-3xl font-bold text-blue-600 mt-2">{stats.activeOrders}</p>
-            <p className="text-xs text-slate-400 mt-1">In progress or shipped</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-3xl font-bold text-blue-600 mt-2 group-hover:text-blue-700">{stats.activeOrders}</p>
+            <p className="text-xs text-slate-400 mt-1">In progress or shipped →</p>
+          </Link>
+          
+          <Link href="/karakata/sellercenter/orders" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-300 transition cursor-pointer group">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pending Shipments</p>
-            <p className="text-3xl font-bold text-amber-600 mt-2">{stats.pendingShip}</p>
-            <p className="text-xs text-slate-400 mt-1">Awaiting your action</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-3xl font-bold text-amber-600 mt-2 group-hover:text-amber-700">{stats.pendingShip}</p>
+            <p className="text-xs text-slate-400 mt-1">Awaiting your action →</p>
+          </Link>
+          
+          <Link href="/karakata/sellercenter/inventory/new" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-purple-300 transition cursor-pointer group">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Products</p>
-            <p className="text-3xl font-bold text-purple-600 mt-2">{stats.products}</p>
-            <p className="text-xs text-slate-400 mt-1">Active listings</p>
-          </div>
+            <p className="text-3xl font-bold text-purple-600 mt-2 group-hover:text-purple-700">{stats.products}</p>
+            <p className="text-xs text-slate-400 mt-1">Add or manage listings →</p>
+          </Link>
         </div>
 
         {/* Recent Orders Table */}
