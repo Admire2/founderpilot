@@ -30,7 +30,7 @@ export default function SellerMessages() {
 
       const threadList = Object.values(threadMap).map((msgs: any[]) => ({
         thread_id: msgs[0].thread_id || msgs[0].id,
-        buyer_id: msgs[0].buyer_id || null, // ✅ Keep it null if missing, don't use "Unknown ID" string
+        buyer_id: msgs[0].buyer_id || null,
         buyer_name: msgs[0].buyer_name,
         subject: msgs[0].subject,
         messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
@@ -64,9 +64,8 @@ export default function SellerMessages() {
       return;
     }
 
-    // ✅ CRITICAL FIX: Prevent replying to legacy threads with missing buyer_id
-    if (!selectedThread.buyer_id || selectedThread.buyer_id === "Unknown ID") {
-      alert("⚠️ This is an old conversation thread with missing buyer data. For security and privacy, please ask the buyer to send a new message from their account so you can reply securely.");
+    if (!selectedThread.buyer_id) {
+      alert("⚠️ This is a legacy thread with missing buyer data. Please ask the buyer to send a new message.");
       return;
     }
 
@@ -75,7 +74,7 @@ export default function SellerMessages() {
     const { error: insertError } = await sb.from("kara_seller_messages").insert({
       thread_id: selectedThread.thread_id,
       seller_id: sellerId,
-      buyer_id: selectedThread.buyer_id, // ✅ Now guaranteed to be a valid UUID
+      buyer_id: selectedThread.buyer_id,
       buyer_name: selectedThread.buyer_name,
       subject: selectedThread.subject,
       message: reply,
@@ -89,42 +88,37 @@ export default function SellerMessages() {
       return;
     }
 
-    await sb
-      .from("kara_seller_messages")
-      .update({ status: "read" })
-      .eq("thread_id", selectedThread.thread_id)
-      .eq("sender_type", "buyer");
+    await sb.from("kara_seller_messages").update({ status: "read" }).eq("thread_id", selectedThread.thread_id).eq("sender_type", "buyer");
+
+    // ✅ INDUSTRY STANDARD: Trigger the email notification API
+    try {
+      await fetch("/api/karakata/notify-buyer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyer_id: selectedThread.buyer_id,
+          seller_id: sellerId,
+          thread_id: selectedThread.thread_id
+        })
+      });
+    } catch (err) {
+      console.warn("Notification trigger failed, but message was saved.", err);
+    }
 
     setReply("");
     await fetchThreads();
     
-    const { data } = await sb
-      .from("kara_seller_messages")
-      .select("id, thread_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at")
-      .eq("thread_id", selectedThread.thread_id)
-      .order("created_at", { ascending: true });
-      
+    const { data } = await sb.from("kara_seller_messages").select("id, thread_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
     if (data) {
-      setSelectedThread({
-        ...selectedThread,
-        messages: data,
-        last_message: data[data.length - 1],
-        unread_count: 0
-      });
+      setSelectedThread({ ...selectedThread, messages: data, last_message: data[data.length - 1], unread_count: 0 });
     }
 
     setSending(false);
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
-        <p className="text-slate-600">Loading messages...</p>
-      </main>
-    );
-  }
+  if (loading) return <main className="min-h-screen bg-slate-50 p-6 flex items-center justify-center"><p className="text-slate-600">Loading messages...</p></main>;
 
-  const shortenId = (id: string | null) => id ? `${id.slice(0, 8)}...${id.slice(-4)}` : "N/A (Legacy Thread)";
+  const shortenId = (id: string | null) => id ? `${id.slice(0, 8)}...${id.slice(-4)}` : "N/A (Legacy)";
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -151,16 +145,10 @@ export default function SellerMessages() {
                 <div className="p-6 text-center text-slate-500 text-sm">No messages yet</div>
               ) : (
                 threads.map((thread) => (
-                  <button
-                    key={thread.thread_id}
-                    onClick={() => setSelectedThread(thread)}
-                    className={`w-full text-left p-4 hover:bg-slate-50 transition ${selectedThread?.thread_id === thread.thread_id ? "bg-emerald-50 border-l-4 border-emerald-500" : ""}`}
-                  >
+                  <button key={thread.thread_id} onClick={() => setSelectedThread(thread)} className={`w-full text-left p-4 hover:bg-slate-50 transition ${selectedThread?.thread_id === thread.thread_id ? "bg-emerald-50 border-l-4 border-emerald-500" : ""}`}>
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-bold text-sm text-slate-900 truncate">{thread.buyer_name}</p>
-                      {thread.unread_count > 0 && (
-                        <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{thread.unread_count}</span>
-                      )}
+                      {thread.unread_count > 0 && <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{thread.unread_count}</span>}
                     </div>
                     <p className="text-xs text-slate-600 truncate">{thread.subject}</p>
                     <p className="text-[10px] text-slate-400 mt-1">{new Date(thread.last_message.created_at).toLocaleDateString()}</p>
@@ -177,14 +165,13 @@ export default function SellerMessages() {
                   <h2 className="font-bold text-slate-900">{selectedThread.subject}</h2>
                   <p className="text-xs text-slate-500">From: {selectedThread.buyer_name}</p>
                   <p className="text-[10px] text-slate-500 mt-1 font-mono">Buyer ID: {shortenId(selectedThread.buyer_id)}</p>
-                  
-                  {selectedThread.buyer_id && selectedThread.buyer_id !== "Unknown ID" ? (
+                  {selectedThread.buyer_id ? (
                     <p className="text-[10px] text-amber-600 mt-2 font-bold bg-amber-50 p-2 rounded border border-amber-200">
-                      🔒 Privacy Protected: Direct emails are hidden. Reference this Buyer ID for all grievance resolutions. Only KaraKata Admin can access contact details.
+                      🔒 Privacy Protected: Direct emails are hidden. Reference this Buyer ID for all grievance resolutions.
                     </p>
                   ) : (
                     <p className="text-[10px] text-rose-600 mt-2 font-bold bg-rose-50 p-2 rounded border border-rose-200">
-                      ⚠️ Legacy Thread: This conversation was created before our new secure messaging system. Please ask the buyer to send a new message from their account to enable secure replies.
+                      ⚠️ Legacy Thread: Missing buyer data.
                     </p>
                   )}
                 </div>
@@ -202,43 +189,23 @@ export default function SellerMessages() {
                 </div>
 
                 <div className="p-4 border-t border-slate-200">
-                  {selectedThread.buyer_id && selectedThread.buyer_id !== "Unknown ID" ? (
+                  {selectedThread.buyer_id ? (
                     <>
-                      <textarea
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                        placeholder="Type your reply to the buyer..."
-                        rows={3}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
+                      <textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Type your reply to the buyer..." rows={3} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                       <div className="flex justify-end gap-2 mt-2">
-                        <button
-                          onClick={() => setSelectedThread(null)}
-                          className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                        >
-                          Close
-                        </button>
-                        <button
-                          onClick={handleReply}
-                          disabled={sending || !reply.trim()}
-                          className="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
-                        >
-                          {sending ? "Sending..." : "Send Reply"}
-                        </button>
+                        <button onClick={() => setSelectedThread(null)} className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50">Close</button>
+                        <button onClick={handleReply} disabled={sending || !reply.trim()} className="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">{sending ? "Sending..." : "Send Reply"}</button>
                       </div>
                     </>
                   ) : (
                     <div className="p-4 bg-slate-100 rounded-lg text-center">
                       <p className="text-sm font-bold text-slate-600">Replying is disabled for legacy threads.</p>
-                      <p className="text-xs text-slate-500 mt-1">Please contact the buyer through the platform to start a new, secure conversation.</p>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <div className="p-12 text-center text-slate-500">
-                <p className="text-lg">Select a conversation to view messages</p>
-              </div>
+              <div className="p-12 text-center text-slate-500"><p className="text-lg">Select a conversation to view messages</p></div>
             )}
           </div>
         </div>
