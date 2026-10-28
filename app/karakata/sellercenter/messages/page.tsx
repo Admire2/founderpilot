@@ -12,7 +12,35 @@ export default function SellerMessages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sellerEmail, setSellerEmail] = useState("");
-  const [sellerId, setSellerId] = useState<string | number | null>(null); // ✅ NEW: Store seller ID
+  const [sellerId, setSellerId] = useState<string | number | null>(null);
+
+  // ✅ HELPER: Fetch and format threads (PRIVACY: Fetch buyer_id, NOT buyer_email)
+  const fetchThreads = async () => {
+    const { data } = await sb
+      .from("kara_seller_messages")
+      .select("id, thread_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at")
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      const threadMap: Record<string, any[]> = {};
+      data.forEach((msg: any) => {
+        const tid = msg.thread_id || msg.id;
+        if (!threadMap[tid]) threadMap[tid] = [];
+        threadMap[tid].push(msg);
+      });
+
+      const threadList = Object.values(threadMap).map((msgs: any[]) => ({
+        thread_id: msgs[0].thread_id || msgs[0].id,
+        buyer_id: msgs[0].buyer_id || "Unknown ID",
+        buyer_name: msgs[0].buyer_name,
+        subject: msgs[0].subject,
+        messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+        last_message: msgs[msgs.length - 1],
+        unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "buyer").length,
+      }));
+      setThreads(threadList);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -20,82 +48,69 @@ export default function SellerMessages() {
       const email = session?.user?.email || "";
       setSellerEmail(email);
 
-      // ✅ FIX: Fetch the actual seller ID for this email
       if (email) {
         const { data: sellerData } = await sb.from("sellers").select("id").eq("email", email).single();
-        if (sellerData) {
-          setSellerId(sellerData.id);
-        }
+        if (sellerData) setSellerId(sellerData.id);
       }
 
-      // Fetch all messages
-      const { data, error } = await sb
-        .from("kara_seller_messages")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (data) {
-        // Group messages into threads by thread_id
-        const threadMap: Record<string, any[]> = {};
-        data.forEach((msg: any) => {
-          const tid = msg.thread_id || msg.id;
-          if (!threadMap[tid]) threadMap[tid] = [];
-          threadMap[tid].push(msg);
-        });
-
-        const threadList = Object.values(threadMap).map((msgs: any[]) => ({
-          thread_id: msgs[0].thread_id || msgs[0].id,
-          buyer_name: msgs[0].buyer_name,
-          buyer_email: msgs[0].buyer_email,
-          subject: msgs[0].subject,
-          messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-          last_message: msgs[msgs.length - 1],
-          unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "buyer").length,
-        }));
-
-        setThreads(threadList);
-      }
+      await fetchThreads();
       setLoading(false);
     };
     init();
   }, []);
 
   const handleReply = async () => {
-    if (!reply.trim() || !selectedThread) return;
-    
-    // ✅ FIX: Prevent sending if seller ID is missing
-    if (!sellerId) {
-      alert("Seller profile not found. Please complete your seller onboarding first.");
+    if (!reply.trim() || !selectedThread || !sellerId) {
+      if (!sellerId) alert("Seller profile not found. Please complete onboarding.");
       return;
     }
 
     setSending(true);
 
-    const { error } = await sb.from("kara_seller_messages").insert({
+    // ✅ PRIVACY FIX: Insert buyer_id, NOT buyer_email
+    const { error: insertError } = await sb.from("kara_seller_messages").insert({
       thread_id: selectedThread.thread_id,
-      seller_id: sellerId, // ✅ FIX: Use the actual seller ID instead of null!
+      seller_id: sellerId,
+      buyer_id: selectedThread.buyer_id, // ✅ Secure ID reference
       buyer_name: selectedThread.buyer_name,
-      buyer_email: selectedThread.buyer_email,
       subject: selectedThread.subject,
       message: reply,
       sender_type: "seller",
-      status: "replied"
+      status: "read"
     });
 
-    if (!error) {
-      // Mark all buyer messages in this thread as read
-      await sb
-        .from("kara_seller_messages")
-        .update({ status: "read" })
-        .eq("thread_id", selectedThread.thread_id)
-        .eq("sender_type", "buyer");
-
-      setReply("");
-      // Refresh threads
-      window.location.reload();
-    } else {
-      alert("Failed to send reply: " + error.message);
+    if (insertError) {
+      alert("Failed to send reply: " + insertError.message);
+      setSending(false);
+      return;
     }
+
+    // Mark all buyer messages in this thread as "read" to clear the badge
+    await sb
+      .from("kara_seller_messages")
+      .update({ status: "read" })
+      .eq("thread_id", selectedThread.thread_id)
+      .eq("sender_type", "buyer");
+
+    // Instantly update the UI without a jarring page reload
+    setReply("");
+    await fetchThreads();
+    
+    const { data } = await sb
+      .from("kara_seller_messages")
+      .select("id, thread_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at")
+      .eq("thread_id", selectedThread.thread_id)
+      .order("created_at", { ascending: true });
+      
+    if (data) {
+      setSelectedThread({
+        ...selectedThread,
+        messages: data,
+        last_message: data[data.length - 1],
+        unread_count: 0
+      });
+    }
+
     setSending(false);
   };
 
@@ -106,6 +121,9 @@ export default function SellerMessages() {
       </main>
     );
   }
+
+  // Helper to shorten ID for display (e.g., "a1b2c3d4...")
+  const shortenId = (id: string) => id ? `${id.slice(0, 8)}...${id.slice(-4)}` : "N/A";
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -158,8 +176,12 @@ export default function SellerMessages() {
               <>
                 <div className="p-4 border-b border-slate-200 bg-slate-50">
                   <h2 className="font-bold text-slate-900">{selectedThread.subject}</h2>
-                  <p className="text-xs text-slate-500">From: {selectedThread.buyer_name} (Buyer)</p>
-                  <p className="text-[10px] text-amber-600 mt-1">Note: Buyer email is hidden for privacy. KaraKata will forward your reply.</p>
+                  <p className="text-xs text-slate-500">From: {selectedThread.buyer_name}</p>
+                  {/* ✅ PRIVACY ENFORCED: Show Buyer ID, NOT Email */}
+                  <p className="text-[10px] text-slate-500 mt-1 font-mono">Buyer ID: {shortenId(selectedThread.buyer_id)}</p>
+                  <p className="text-[10px] text-amber-600 mt-2 font-bold bg-amber-50 p-2 rounded border border-amber-200">
+                    🔒 Privacy Protected: Direct emails are hidden. Reference this Buyer ID for all grievance resolutions. Only KaraKata Admin can access contact details.
+                  </p the="text-[10px] text-amber-600 mt-1 font-bold">
                 </div>
 
                 <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
