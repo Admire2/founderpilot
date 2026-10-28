@@ -14,7 +14,6 @@ export default function SellerMessages() {
   const [sellerEmail, setSellerEmail] = useState("");
   const [sellerId, setSellerId] = useState<string | number | null>(null);
 
-  // ✅ HELPER: Fetch and format threads (PRIVACY: Fetch buyer_id, NOT buyer_email)
   const fetchThreads = async () => {
     const { data } = await sb
       .from("kara_seller_messages")
@@ -67,11 +66,10 @@ export default function SellerMessages() {
 
     setSending(true);
 
-    // ✅ PRIVACY FIX: Insert buyer_id, NOT buyer_email
     const { error: insertError } = await sb.from("kara_seller_messages").insert({
       thread_id: selectedThread.thread_id,
       seller_id: sellerId,
-      buyer_id: selectedThread.buyer_id, // ✅ Secure ID reference
+      buyer_id: selectedThread.buyer_id,
       buyer_name: selectedThread.buyer_name,
       subject: selectedThread.subject,
       message: reply,
@@ -85,14 +83,12 @@ export default function SellerMessages() {
       return;
     }
 
-    // Mark all buyer messages in this thread as "read" to clear the badge
     await sb
       .from("kara_seller_messages")
       .update({ status: "read" })
       .eq("thread_id", selectedThread.thread_id)
       .eq("sender_type", "buyer");
 
-    // Instantly update the UI without a jarring page reload
     setReply("");
     await fetchThreads();
     
@@ -122,7 +118,6 @@ export default function SellerMessages() {
     );
   }
 
-  // Helper to shorten ID for display (e.g., "a1b2c3d4...")
   const shortenId = (id: string) => id ? `${id.slice(0, 8)}...${id.slice(-4)}` : "N/A";
 
   return (
@@ -141,7 +136,6 @@ export default function SellerMessages() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Threads List */}
           <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-200 bg-slate-50">
               <h2 className="font-bold text-slate-700">Conversations ({threads.length})</h2>
@@ -170,18 +164,18 @@ export default function SellerMessages() {
             </div>
           </div>
 
-          {/* Message Thread */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {selectedThread ? (
               <>
                 <div className="p-4 border-b border-slate-200 bg-slate-50">
                   <h2 className="font-bold text-slate-900">{selectedThread.subject}</h2>
                   <p className="text-xs text-slate-500">From: {selectedThread.buyer_name}</p>
-                  {/* ✅ PRIVACY ENFORCED: Show Buyer ID, NOT Email */}
                   <p className="text-[10px] text-slate-500 mt-1 font-mono">Buyer ID: {shortenId(selectedThread.buyer_id)}</p>
+                  
+                  {/* ✅ FIXED: Cleaned up the HTML tag */}
                   <p className="text-[10px] text-amber-600 mt-2 font-bold bg-amber-50 p-2 rounded border border-amber-200">
                     🔒 Privacy Protected: Direct emails are hidden. Reference this Buyer ID for all grievance resolutions. Only KaraKata Admin can access contact details.
-                  </p the="text-[10px] text-amber-600 mt-1 font-bold">
+                  </p>
                 </div>
 
                 <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
