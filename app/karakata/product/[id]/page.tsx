@@ -13,6 +13,7 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [buyerId, setBuyerId] = useState<string | null>(null); // ✅ NEW: Track logged-in buyer
   
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -20,8 +21,17 @@ export default function ProductDetailPage() {
   const [mainImage, setMainImage] = useState<string>("");
   const [cartAdded, setCartAdded] = useState(false);
 
+  // ✅ NEW: Contact Seller Modal State
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [sendingInquiry, setSendingInquiry] = useState(false);
+
   useEffect(() => {
     const fetchProduct = async () => {
+      // ✅ NEW: Get buyer session
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) setBuyerId(session.user.id);
+
       const { data, error } = await sb
         .from("kara_listings")
         .select("*, sellers:seller_id(shop_name, city, country)")
@@ -101,6 +111,38 @@ export default function ProductDetailPage() {
     }
   };
 
+  // ✅ NEW: Handle Contact Seller Inquiry
+  const handleSendInquiry = async () => {
+    if (!contactMessage.trim()) return;
+    if (!buyerId) {
+      router.push(`/auth?callbackUrl=/karakata/product/${id}`);
+      return;
+    }
+
+    setSendingInquiry(true);
+    const threadId = crypto.randomUUID(); 
+
+    const { error } = await sb.from("kara_seller_messages").insert({
+      thread_id: threadId,
+      seller_id: product.seller_id,
+      buyer_id: buyerId,
+      buyer_name: "Buyer", 
+      subject: `Inquiry about: ${product.title}`,
+      message: contactMessage,
+      sender_type: "buyer",
+      status: "unread"
+    });
+
+    if (!error) {
+      setContactMessage("");
+      setShowContactModal(false);
+      alert("✅ Message sent securely! The seller will reply shortly.");
+    } else {
+      alert("Failed to send message: " + error.message);
+    }
+    setSendingInquiry(false);
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading product...</p></div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="font-bold text-slate-600">Product not found.</p></div>;
 
@@ -141,7 +183,6 @@ export default function ProductDetailPage() {
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">{product.title}</h1>
                 <div className="flex items-center gap-4 text-sm text-slate-600">
-                  {/* ✅ UPDATED: Clickable Seller Storefront Link */}
                   <Link href={`/karakata/sellers/${product.seller_id}`} className="flex items-center gap-1 text-purple-700 font-bold hover:underline transition">
                     🏪 {product.sellers?.shop_name || "Unknown Seller"}
                   </Link>
@@ -155,7 +196,7 @@ export default function ProductDetailPage() {
                   ${activeVariant ? Number(activeVariant.price).toFixed(2) : Number(product.price_usd).toFixed(2)}
                 </p>
                 {activeVariant && Number(activeVariant.stock) < 5 && (
-                  <p className="text-sm text-red-600 font-bold mt-2">⚠️ Only {activeVariant.stock} left in stock!</p>
+                  <p className="text-sm text-red-600 font-bold mt-2">️ Only {activeVariant.stock} left in stock!</p>
                 )}
               </div>
 
@@ -206,23 +247,34 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Add to Cart Button */}
-              <button 
-                onClick={handleAddToCart}
-                disabled={!activeVariant || Number(activeVariant.stock) === 0 || cartAdded}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-                  cartAdded 
-                    ? "bg-emerald-500 text-white shadow-emerald-200" 
-                    : "bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200"
-                }`}
-              >
-                {Number(activeVariant?.stock) === 0 
-                  ? "Out of Stock" 
-                  : cartAdded 
-                    ? "✅ Added to Cart!" 
-                    : `Add to Cart - $${Number(activeVariant?.price).toFixed(2)}`
-                }
-              </button>
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {/* Add to Cart Button */}
+                <button 
+                  onClick={handleAddToCart}
+                  disabled={!activeVariant || Number(activeVariant.stock) === 0 || cartAdded}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                    cartAdded 
+                      ? "bg-emerald-500 text-white shadow-emerald-200" 
+                      : "bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200"
+                  }`}
+                >
+                  {Number(activeVariant?.stock) === 0 
+                    ? "Out of Stock" 
+                    : cartAdded 
+                      ? "✅ Added to Cart!" 
+                      : `Add to Cart - $${Number(activeVariant?.price).toFixed(2)}`
+                  }
+                </button>
+
+                {/* ✅ NEW: Contact Seller Button */}
+                <button 
+                  onClick={() => setShowContactModal(true)}
+                  className="w-full py-3 rounded-xl font-bold text-sm border-2 border-slate-200 text-slate-700 hover:border-purple-300 hover:text-purple-700 hover:bg-purple-50 transition flex items-center justify-center gap-2"
+                >
+                   Contact Seller with Questions
+                </button>
+              </div>
 
               <div className="border-t border-slate-200 pt-6">
                 <h3 className="text-lg font-bold text-slate-900 mb-3">Description</h3>
@@ -232,6 +284,50 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ✅ NEW: CONTACT SELLER MODAL */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Contact {product.sellers?.shop_name}</h2>
+                <p className="text-xs text-slate-500 mt-1">Regarding: <span className="font-semibold text-slate-700">{product.title}</span></p>
+              </div>
+              <button onClick={() => setShowContactModal(false)} className="text-slate-400 hover:text-slate-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-[11px] text-amber-800 font-bold flex items-center gap-1">
+                🔒 Secure & Anonymous: Your email is hidden. The seller will reply via your KaraKata message center.
+              </p>
+            </div>
+
+            <textarea
+              value={contactMessage}
+              onChange={(e) => setContactMessage(e.target.value)}
+              placeholder="Hi, I have a question about the size, weight, or shipping of this item..."
+              rows={4}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
+            />
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowContactModal(false)} className="flex-1 py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition">
+                Cancel
+              </button>
+              <button 
+                onClick={handleSendInquiry} 
+                disabled={sendingInquiry || !contactMessage.trim()} 
+                className="flex-1 py-2.5 rounded-lg bg-purple-600 text-sm font-bold text-white hover:bg-purple-700 transition disabled:opacity-50"
+              >
+                {sendingInquiry ? "Sending..." : "Send Message"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
