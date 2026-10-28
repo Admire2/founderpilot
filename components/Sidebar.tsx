@@ -31,10 +31,10 @@ const RocketIcon = () => (
 export default function Sidebar() {
   const pathname = usePathname();
   
-  // Each item now has an iconColor (for the icon itself) and activeColor (for the background when clicked)
+  // ✅ UPDATED: Seller Center now points directly to the Dashboard
   const navItems = [
     { href: "/karakata", label: "KaraKata Market", Icon: CartIcon, iconColor: "text-amber-500", activeColor: "bg-amber-500", title: "Shopping Cart" },
-    { href: "/karakata/sellercenter", label: "Seller Center", Icon: StoreIcon, iconColor: "text-emerald-500", activeColor: "bg-emerald-600", title: "Manage your store" },
+    { href: "/karakata/sellercenter/dashboard", label: "Seller Center", Icon: StoreIcon, iconColor: "text-emerald-500", activeColor: "bg-emerald-600", title: "Manage your store" },
     { href: "/karakata/sellers", label: "Browse Sellers", Icon: UsersIcon, iconColor: "text-indigo-500", activeColor: "bg-indigo-600", title: "Discover sellers" },
     { href: "/suite/business", label: "Business Suite", Icon: BriefcaseIcon, iconColor: "text-cyan-500", activeColor: "bg-cyan-600", title: "Business Tools" },
     { href: "/suite/engineering", label: "Engineering Suite", Icon: WrenchIcon, iconColor: "text-yellow-400", activeColor: "bg-yellow-500", title: "Engineering Tools" },
@@ -64,7 +64,6 @@ export default function Sidebar() {
                   : "text-slate-300 hover:bg-slate-800"
               }`}
             >
-              {/* The icon gets its own permanent theme color */}
               <span className={item.iconColor}>
                 <item.Icon />
               </span>
