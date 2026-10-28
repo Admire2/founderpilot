@@ -1,16 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services", "Vehicles & Auto Parts", "Other"];
 const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"];
-const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Refurbished"];
-const GENDERS = ["Unisex / Universal", "Men", "Women", "Boys", "Girls", "Kids (General)"];
 
 export default function SellerCenter() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [stripeSuccess, setStripeSuccess] = useState(false);
@@ -23,22 +23,21 @@ export default function SellerCenter() {
   const [pMsg, setPMsg] = useState(""); const [pBusy, setPBusy] = useState(false);
   const [cInv, setCInv] = useState(false); const [cFun, setCFun] = useState(false); const [cBi, setCBi] = useState(false);
 
-  // ✅ UPGRADED Product State (Industry Standard)
+  // Product State
   const [title, setTitle] = useState(""); const [pcat, setPcat] = useState(CATS[0]);
   const [price, setPrice] = useState(""); const [lead, setLead] = useState("7");
   const [occ, setOcc] = useState("Everyday"); const [desc, setDesc] = useState("");
-  const [condition, setCondition] = useState("New"); const [gender, setGender] = useState("Unisex / Universal");
-  const [size, setSize] = useState(""); const [color, setColor] = useState("");
-  const [stock, setStock] = useState("1"); const [weight, setWeight] = useState("1");
   const [file, setFile] = useState<any>(null);
   const [lMsg, setLMsg] = useState(""); const [lBusy, setLBusy] = useState(false);
 
-  // SMART ONBOARDING DETECTION
+  // ✅ SMART ONBOARDING DETECTION & REDIRECTION
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('connect') === 'done') setStripeSuccess(true);
+        if (params.get('connect') === 'done') {
+          setStripeSuccess(true);
+        }
 
         let userEmail = localStorage.getItem("kara_seller_onboarding_email");
         if (!userEmail) {
@@ -47,35 +46,39 @@ export default function SellerCenter() {
               const k = localStorage.key(i) || "";
               if (k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > 0) {
                 const j = JSON.parse(localStorage.getItem(k) || "null");
-                if (j && j.user && j.user.email) { userEmail = j.user.email; break; }
+                if (j && j.user && j.user.email) {
+                  userEmail = j.user.email;
+                  break;
+                }
               }
             }
           } catch (e) {}
         }
         
-        if (!userEmail) { setLoading(false); return; }
+        if (!userEmail) { 
+          setLoading(false); 
+          return; 
+        }
 
         const profileRes = await fetch(`/api/karakata/aje?action=report&email=${encodeURIComponent(userEmail)}`);
         const profileData = await profileRes.json();
 
-        if (profileData.ok && profileData.seller) {
-          setShop(profileData.seller.shop_name || "");
-          setEmail(profileData.seller.email || userEmail);
-          setPhone(profileData.seller.phone || "");
-          setWa(profileData.seller.whatsapp || "");
-          setCity(profileData.seller.city || "");
-          setCountry(profileData.seller.country || "");
-          setCat(profileData.seller.category || CATS[0]);
-          setCraft(profileData.seller.craft || "");
-
-          if (profileData.listings && profileData.listings.length > 0) setStep(3);
-          else setStep(2);
+        // ✅ SMART REDIRECTION: If they already have a shop profile, send them straight to the dashboard!
+        if (profileData.ok && profileData.seller && profileData.seller.shop_name) {
+          router.push("/karakata/sellercenter/dashboard");
+          return;
         }
-      } catch (error) { console.error("Error checking onboarding status:", error); }
-      setLoading(false);
+
+        // If no profile exists, stay on Step 1 to let them onboard
+        setLoading(false);
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+        setLoading(false);
+      }
     };
+
     checkOnboardingStatus();
-  }, []);
+  }, [router]);
 
   const saveProfile = async () => {
     if (!shop.trim() || !email.trim()) { setPMsg("Shop name and email are required."); return; }
@@ -85,6 +88,7 @@ export default function SellerCenter() {
       await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
       const j = await r.json();
       setPMsg(j.ok ? "Profile saved! Kara has queued your welcome email." : (j.error || "Failed."));
+      
       if (j.ok) {
         localStorage.setItem("kara_seller_onboarding_email", email);
         setTimeout(() => setStep(2), 1500);
@@ -97,27 +101,12 @@ export default function SellerCenter() {
     if (!title.trim() || !desc.trim() || !price.trim()) { setLMsg("Title, description and price are required."); return; }
     setLBusy(true); setLMsg("");
     let url = "";
-    try { 
-      if (file) { 
-        const path = "list-" + Date.now() + "-" + file.name; 
-        const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); 
-        if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; 
-      } 
-    } catch (e) {}
-    
+    try { if (file) { const path = "list-" + Date.now() + "-" + file.name; const up = await sb.storage.from("kara").upload(path, file, { upsert: true }); if (!up.error) url = sb.storage.from("kara").getPublicUrl(path).data.publicUrl; } } catch (e) {}
     try {
-      // ✅ UPGRADED PAYLOAD: Includes condition, gender, size, color, stock, weight
-      const r = await fetch("/api/karakata/publish", { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({ 
-          email, title, category: pcat, description: desc, price_usd: price, 
-          lead_time_days: lead, image_url: url, occasion: occ,
-          condition, gender_use: gender, size, color, stock_qty: stock, weight_lbs: weight
-        }) 
-      });
+      const r = await fetch("/api/karakata/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, title, category: pcat, description: desc, price_usd: price, lead_time_days: lead, image_url: url, occasion: occ }) });
       const j = await r.json();
       setLMsg(j.ok ? "Product LIVE on KaraKata Market!" : (j.error || "Failed."));
+      
       if (j.ok) {
         localStorage.setItem("kara_seller_onboarding_email", email);
         setTimeout(() => setStep(3), 1500);
@@ -132,7 +121,7 @@ export default function SellerCenter() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-slate-600 font-bold animate-pulse">Loading your seller dashboard...</p>
+        <p className="text-slate-600 font-bold animate-pulse">Checking your seller status...</p>
       </main>
     );
   }
@@ -143,9 +132,7 @@ export default function SellerCenter() {
       <div className="border-b border-slate-200 bg-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
         <Link href="/karakata" className="text-sm font-bold text-emerald-700 hover:underline flex items-center gap-1">← Back to Market</Link>
         <div className="flex gap-3">
-          <Link href="/karakata/sellercenter/orders" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 transition">Orders</Link>
-          <Link href="/karakata/sellercenter/messages" className="rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-200 transition">Messages</Link>
-          <Link href="/karakata/sellercenter/shipping" className="rounded-lg bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-200 transition">Shipping Profiles</Link>
+          <Link href="/karakata/sellercenter/dashboard" className="rounded-lg bg-purple-100 px-4 py-2 text-sm font-bold text-purple-700 hover:bg-purple-200 transition">Go to Dashboard</Link>
         </div>
       </div>
 
@@ -212,11 +199,11 @@ export default function SellerCenter() {
           </div>
         )}
 
-        {/* ✅ STEP 2: FIRST LISTING (UPGRADED TO INDUSTRY STANDARD) */}
+        {/* STEP 2: FIRST LISTING */}
         {step === 2 && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-xl font-bold text-slate-900 mb-1">Step 2: Add Your First Product</h2>
-            <p className="text-sm text-slate-500 mb-6">Upload a photo, set your variants, and go live. You can manage advanced inventory later.</p>
+            <p className="text-sm text-slate-500 mb-6">Upload a photo, set your price, and go live. You can add more later.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
@@ -224,23 +211,10 @@ export default function SellerCenter() {
                 <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-emerald-700 hover:file:bg-emerald-100 transition cursor-pointer" />
               </div>
               <div className="md:col-span-2"><label className={lbl}>Product Title *</label><input value={title} onChange={(e) => setTitle(e.target.value)} className={inp} placeholder="e.g., Handmade Adire Scarf - Indigo" /></div>
-              
               <div><label className={lbl}>Category</label><select value={pcat} onChange={(e) => setPcat(e.target.value)} className={inp}>{CATS.map((c) => (<option key={c}>{c}</option>))}</select></div>
               <div><label className={lbl}>Season / Occasion</label><select value={occ} onChange={(e) => setOcc(e.target.value)} className={inp}>{OCC.map((o) => (<option key={o}>{o}</option>))}</select></div>
-              
-              {/* ✅ NEW INDUSTRY STANDARD FIELDS */}
-              <div><label className={lbl}>Condition</label><select value={condition} onChange={(e) => setCondition(e.target.value)} className={inp}>{CONDITIONS.map((c) => (<option key={c}>{c}</option>))}</select></div>
-              <div><label className={lbl}>Gender / Target Use</label><select value={gender} onChange={(e) => setGender(e.target.value)} className={inp}>{GENDERS.map((g) => (<option key={g}>{g}</option>))}</select></div>
-              
-              <div><label className={lbl}>Size (e.g., M, 42, One Size)</label><input value={size} onChange={(e) => setSize(e.target.value)} className={inp} placeholder="One Size" /></div>
-              <div><label className={lbl}>Color</label><input value={color} onChange={(e) => setColor(e.target.value)} className={inp} placeholder="Indigo" /></div>
-              
               <div><label className={lbl}>Price (USD) *</label><input value={price} onChange={(e) => setPrice(e.target.value)} className={inp} placeholder="45" /></div>
-              <div><label className={lbl}>Stock Quantity *</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className={inp} placeholder="1" /></div>
-              
-              <div><label className={lbl}>Weight (lbs) *</label><input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} className={inp} placeholder="1.0" /></div>
               <div><label className={lbl}>Lead Time (Days)</label><input value={lead} onChange={(e) => setLead(e.target.value)} className={inp} placeholder="7" /></div>
-              
               <div className="md:col-span-2"><label className={lbl}>Description *</label><textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} className={inp} placeholder="Materials, sizes, colors, what makes it special..." /></div>
             </div>
 
@@ -316,8 +290,8 @@ export default function SellerCenter() {
 
             <div className="flex justify-between items-center">
               <button onClick={() => setStep(2)} className="text-slate-500 font-bold hover:text-slate-800 text-sm transition">← Back</button>
-         <Link href="/karakata/sellercenter/dashboard" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
-          Go to Seller Dashboard →
+              <Link href="/karakata/sellercenter/dashboard" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
+                Go to Seller Dashboard →
               </Link>
             </div>
           </div>
