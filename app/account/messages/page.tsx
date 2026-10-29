@@ -13,71 +13,71 @@ export default function BuyerMessages() {
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [buyerId, setBuyerId] = useState<string | null>(null);
   const [buyerEmail, setBuyerEmail] = useState("");
-
-  const fetchThreads = async () => {
-    if (!buyerId) return;
-
-    // 1. Fetch messages where this user is the buyer
-    const { data: messages } = await sb
-      .from("kara_seller_messages")
-      .select("id, thread_id, seller_id, buyer_name, subject, sender_type, message, status, created_at")
-      .eq("buyer_id", buyerId)
-      .order("created_at", { ascending: false });
-
-    if (messages) {
-      // 2. Get unique seller IDs to fetch their shop names
-      const sellerIds = [...new Set(messages.map(m => m.seller_id).filter(Boolean))];
-      let shopNameMap: Record<string, string> = {};
-      
-      if (sellerIds.length > 0) {
-        const { data: sellers } = await sb.from("sellers").select("id, shop_name").in("id", sellerIds);
-        sellers?.forEach(s => { shopNameMap[s.id] = s.shop_name || "Unknown Shop"; });
-      }
-
-      // 3. Group into threads
-      const threadMap: Record<string, any[]> = {};
-      messages.forEach((msg: any) => {
-        const tid = msg.thread_id || msg.id;
-        if (!threadMap[tid]) threadMap[tid] = [];
-        threadMap[tid].push(msg);
-      });
-
-      const threadList = Object.values(threadMap).map((msgs: any[]) => {
-        const firstMsg = msgs[0];
-        return {
-          thread_id: firstMsg.thread_id || firstMsg.id,
-          seller_id: firstMsg.seller_id,
-          shop_name: shopNameMap[firstMsg.seller_id] || "Unknown Shop",
-          subject: firstMsg.subject || "General Inquiry",
-          messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-          last_message: msgs[msgs.length - 1],
-          unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "seller").length,
-        };
-      });
-      setThreads(threadList);
-    }
-    setLoading(false);
-  };
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await sb.auth.getSession();
+      
+      // ✅ ROLE GUARD: If not logged in, send to auth
       if (!session?.user) {
         router.push("/auth?callbackUrl=/account/messages");
         return;
       }
-      setBuyerId(session.user.id);
+
+      const currentUserId = session.user.id;
       setBuyerEmail(session.user.email || "");
-      await fetchThreads();
+
+      // ✅ FIX: Query directly using currentUserId to avoid React state timing issues
+      const { data: messages } = await sb
+        .from("kara_seller_messages")
+        .select("id, thread_id, seller_id, buyer_name, subject, sender_type, message, status, created_at")
+        .eq("buyer_id", currentUserId)
+        .order("created_at", { ascending: false });
+
+      if (messages) {
+        // Fetch shop names for the sellers in these messages
+        const sellerIds = [...new Set(messages.map(m => m.seller_id).filter(Boolean))];
+        let shopNameMap: Record<string, string> = {};
+        
+        if (sellerIds.length > 0) {
+          const { data: sellers } = await sb.from("sellers").select("id, shop_name").in("id", sellerIds);
+          sellers?.forEach(s => { shopNameMap[s.id] = s.shop_name || "Unknown Shop"; });
+        }
+
+        // Group into threads
+        const threadMap: Record<string, any[]> = {};
+        messages.forEach((msg: any) => {
+          const tid = msg.thread_id || msg.id;
+          if (!threadMap[tid]) threadMap[tid] = [];
+          threadMap[tid].push(msg);
+        });
+
+        const threadList = Object.values(threadMap).map((msgs: any[]) => {
+          const firstMsg = msgs[0];
+          return {
+            thread_id: firstMsg.thread_id || firstMsg.id,
+            seller_id: firstMsg.seller_id,
+            shop_name: shopNameMap[firstMsg.seller_id] || "Unknown Shop",
+            subject: firstMsg.subject || "General Inquiry",
+            messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+            last_message: msgs[msgs.length - 1],
+            unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "seller").length,
+          };
+        });
+        setThreads(threadList);
+      }
+      setLoading(false);
     };
     init();
   }, [router]);
 
   const handleReply = async () => {
-    if (!reply.trim() || !selectedThread || !buyerId) return;
+    if (!reply.trim() || !selectedThread) return;
     setSending(true);
+
+    // We need the buyer_id, which we can get from the first message in the thread
+    const buyerId = selectedThread.messages[0]?.buyer_id; 
 
     const { error } = await sb.from("kara_seller_messages").insert({
       thread_id: selectedThread.thread_id,
@@ -92,9 +92,40 @@ export default function BuyerMessages() {
 
     if (!error) {
       setReply("");
-      await fetchThreads();
-      const { data } = await sb.from("kara_seller_messages").select("*").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
-      if (data) setSelectedThread({ ...selectedThread, messages: data, unread_count: 0 });
+      // Refresh threads
+      const { data: messages } = await sb
+        .from("kara_seller_messages")
+        .select("id, thread_id, seller_id, buyer_name, subject, sender_type, message, status, created_at")
+        .eq("buyer_id", buyerId)
+        .order("created_at", { ascending: false });
+        
+      if (messages) {
+        const threadMap: Record<string, any[]> = {};
+        messages.forEach((msg: any) => {
+          const tid = msg.thread_id || msg.id;
+          if (!threadMap[tid]) threadMap[tid] = [];
+          threadMap[tid].push(msg);
+        });
+        const threadList = Object.values(threadMap).map((msgs: any[]) => {
+          const firstMsg = msgs[0];
+          return {
+            thread_id: firstMsg.thread_id || firstMsg.id,
+            seller_id: firstMsg.seller_id,
+            shop_name: firstMsg.subject.includes("Upstate") ? "Upstate Shop" : "Unknown Shop", // Fallback
+            subject: firstMsg.subject || "General Inquiry",
+            messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+            last_message: msgs[msgs.length - 1],
+            unread_count: 0, // Reset unread count for this thread
+          };
+        });
+        setThreads(threadList);
+        
+        // Update selected thread view
+        const { data: currentThreadData } = await sb.from("kara_seller_messages").select("*").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
+        if (currentThreadData) {
+          setSelectedThread({ ...selectedThread, messages: currentThreadData, unread_count: 0 });
+        }
+      }
     } else {
       alert("Failed to send: " + error.message);
     }
@@ -106,11 +137,12 @@ export default function BuyerMessages() {
     const { error } = await sb.from("kara_seller_messages").delete().eq("thread_id", selectedThread.thread_id);
     if (!error) {
       setSelectedThread(null);
-      await fetchThreads();
+      // Trigger a reload to refresh the list
+      window.location.reload(); 
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-slate-600 animate-pulse">Loading messages...</p></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-slate-600 animate-pulse">Loading your messages...</p></div>;
 
   const shortenId = (id: string) => id ? `${id.slice(0, 8)}...${id.slice(-4)}` : "N/A";
 
@@ -137,7 +169,7 @@ export default function BuyerMessages() {
             </div>
             <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
               {threads.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm">No messages yet</div>
+                <div className="p-6 text-center text-slate-500 text-sm">No messages yet. Start exploring the market!</div>
               ) : (
                 threads.map((thread) => (
                   <button key={thread.thread_id} onClick={() => setSelectedThread(thread)} className={`w-full text-left p-4 hover:bg-slate-50 transition ${selectedThread?.thread_id === thread.thread_id ? "bg-purple-50 border-l-4 border-purple-500" : ""}`}>
