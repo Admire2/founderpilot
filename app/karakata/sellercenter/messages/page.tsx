@@ -16,7 +16,6 @@ export default function SellerMessages() {
   const [sellerEmail, setSellerEmail] = useState("");
   const [sellerId, setSellerId] = useState<string | number | null>(null);
 
-  // ✅ CRITICAL FIX: Accept sellerId as an argument so we don't wait for React state
   const fetchThreads = async (currentSellerId: string | number) => {
     const { data } = await sb
       .from("kara_seller_messages")
@@ -27,7 +26,6 @@ export default function SellerMessages() {
     if (data) {
       const sellerIds = [...new Set(data.map(msg => msg.seller_id).filter(Boolean))];
       let shopNameMap: Record<string, string> = {};
-      
       if (sellerIds.length > 0) {
         const { data: sellers } = await sb.from("sellers").select("id, shop_name").in("id", sellerIds);
         sellers?.forEach(s => { shopNameMap[String(s.id)] = s.shop_name || "Unknown Shop"; });
@@ -62,25 +60,19 @@ export default function SellerMessages() {
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await sb.auth.getSession();
-      
       if (!session?.user) {
         router.push("/auth?callbackUrl=/account/messages");
         return;
       }
-
       const email = session.user.email;
       setSellerEmail(email);
 
       const { data: sellerData } = await sb.from("sellers").select("id").eq("email", email).single();
-      
       if (!sellerData) {
         router.push("/account"); 
         return;
       }
-      
       setSellerId(sellerData.id);
-      
-      // ✅ CRITICAL FIX: Pass the ID directly to the function immediately!
       await fetchThreads(sellerData.id); 
     };
     init();
@@ -92,6 +84,17 @@ export default function SellerMessages() {
       alert("⚠️ Legacy thread.");
       return;
     }
+
+    // ✅ INDUSTRY STANDARD: Block PII (Emails, Phone Numbers, External Apps)
+    const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(reply);
+    const hasPhone = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,}/.test(reply);
+    const hasKeywords = /\b(whatsapp|telegram|call me|email me|phone number|outside kara)\b/i.test(reply);
+
+    if (hasEmail || hasPhone || hasKeywords) {
+      alert("⚠️ SECURITY ALERT: For your safety and to maintain KaraKata Escrow Protection, sharing personal contact information (emails, phone numbers, or external apps) is strictly prohibited. Please keep all communication within this chat.");
+      return; // 🛑 STOP: Do not send the message
+    }
+
     setSending(true);
     
     const { error: insertError } = await sb.from("kara_seller_messages").insert({
