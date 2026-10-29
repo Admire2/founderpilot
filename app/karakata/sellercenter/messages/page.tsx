@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // ✅ Added router for redirection
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default function SellerMessages() {
-  const router = useRouter(); // ✅ Initialize router
+  const router = useRouter();
   const [threads, setThreads] = useState<any[]>([]);
   const [selectedThread, setSelectedThread] = useState<any>(null);
   const [reply, setReply] = useState("");
@@ -17,9 +17,14 @@ export default function SellerMessages() {
   const [sellerId, setSellerId] = useState<string | number | null>(null);
 
   const fetchThreads = async () => {
+    // ✅ CRITICAL SECURITY FIX: Do not fetch if we don't have a seller ID
+    if (!sellerId) return;
+
+    // ✅ CRITICAL SECURITY FIX: Only fetch messages where seller_id matches the logged-in seller
     const { data } = await sb
       .from("kara_seller_messages")
       .select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at, seller_id")
+      .eq("seller_id", sellerId) 
       .order("created_at", { ascending: false });
 
     if (data) {
@@ -46,7 +51,7 @@ export default function SellerMessages() {
           buyer_name: firstMsg.buyer_name,
           buyer_email: firstMsg.buyer_email,
           subject: firstMsg.subject,
-          shop_name: shopNameMap[firstMsg.seller_id] || "My Store",
+          shop_name: shopNameMap[firstMsg.seller_id] || "Unknown Shop",
           messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
           last_message: msgs[msgs.length - 1],
           unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "buyer").length,
@@ -60,7 +65,6 @@ export default function SellerMessages() {
     const init = async () => {
       const { data: { session } } = await sb.auth.getSession();
       
-      // ✅ ROLE GUARD: If not logged in, send to auth
       if (!session?.user) {
         router.push("/auth?callbackUrl=/account/messages");
         return;
@@ -73,22 +77,16 @@ export default function SellerMessages() {
       const { data: sellerData } = await sb.from("sellers").select("id").eq("email", email).single();
       
       if (!sellerData) {
-        // NOT A SELLER! Redirect immediately to the Buyer Message Center
-        console.log("User is a buyer, redirecting to /account/messages");
-        router.push("/account/messages");
+        router.push("/account"); // Redirect buyers to their buyer hub
         return;
       }
       
-      // If we get here, they ARE a seller. Proceed as normal.
       setSellerId(sellerData.id);
       await fetchThreads();
       setLoading(false);
     };
     init();
   }, [router]);
-
-  // ... (Keep the rest of the handleReply, handleDeleteThread, and JSX exactly as it was in the previous version) ...
-  // For brevity, I am including the full component below so you can just copy-paste the whole thing.
 
   const handleReply = async () => {
     if (!reply.trim() || !selectedThread || !sellerId) {
@@ -100,34 +98,61 @@ export default function SellerMessages() {
       return;
     }
     setSending(true);
+    
     const { error: insertError } = await sb.from("kara_seller_messages").insert({
-      thread_id: selectedThread.thread_id, seller_id: sellerId, buyer_id: selectedThread.buyer_id,
-      buyer_name: selectedThread.buyer_name, buyer_email: selectedThread.buyer_email,
-      subject: selectedThread.subject, message: reply, sender_type: "seller", status: "read"
+      thread_id: selectedThread.thread_id, 
+      seller_id: sellerId, 
+      buyer_id: selectedThread.buyer_id,
+      buyer_name: selectedThread.buyer_name, 
+      buyer_email: selectedThread.buyer_email,
+      subject: selectedThread.subject, 
+      message: reply, 
+      sender_type: "seller", 
+      status: "read"
     });
-    if (insertError) { alert("Failed to send reply: " + insertError.message); setSending(false); return; }
+
+    if (insertError) { 
+      alert("Failed to send reply: " + insertError.message); 
+      setSending(false); 
+      return; 
+    }
+
     await sb.from("kara_seller_messages").update({ status: "read" }).eq("thread_id", selectedThread.thread_id).eq("sender_type", "buyer");
+
     try {
       await fetch("/api/karakata/notify-buyer", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ buyer_id: selectedThread.buyer_id, seller_id: sellerId, thread_id: selectedThread.thread_id })
       });
-    } catch (err) { console.warn("Notification trigger failed", err); }
+    } catch (err) { 
+      console.warn("Notification trigger failed", err); 
+    }
+
     setReply("");
     await fetchThreads();
+    
     const { data } = await sb.from("kara_seller_messages").select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at, seller_id").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
     if (data) setSelectedThread({ ...selectedThread, messages: data, last_message: data[data.length - 1], unread_count: 0 });
+    
     setSending(false);
   };
 
   const handleDeleteThread = async () => {
     if (!selectedThread || !confirm("Delete this entire conversation?")) return;
     const { error } = await sb.from("kara_seller_messages").delete().eq("thread_id", selectedThread.thread_id);
-    if (!error) { setSelectedThread(null); await fetchThreads(); } 
-    else { alert("Failed to delete: " + error.message); }
+    if (!error) { 
+      setSelectedThread(null); 
+      await fetchThreads(); 
+    } else { 
+      alert("Failed to delete: " + error.message); 
+    }
   };
 
   if (loading) return <main className="min-h-screen bg-slate-50 p-6 flex items-center justify-center"><p className="text-slate-600 animate-pulse">Checking your account type...</p></main>;
+
+  // If they were redirected, this won't render, but good fallback
+  if (!sellerId) return <main className="min-h-screen bg-slate-50 p-6 flex items-center justify-center"><p className="text-slate-600">Redirecting...</p></main>;
 
   const shortenId = (id: string | null) => id ? `${id.slice(0, 8)}...${id.slice(-4)}` : "N/A";
 
