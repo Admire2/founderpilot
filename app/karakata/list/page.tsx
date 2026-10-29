@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services"];
 export default function ManualList() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [cat, setCat] = useState(CATS[0]);
   const [desc, setDesc] = useState("");
@@ -30,7 +32,12 @@ export default function ManualList() {
   const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm";
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-white">
-      <Link href="/suite/marketplace" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">← Marketplace Suite</Link>
+      <button 
+        onClick={() => window.history.length > 1 ? router.back() : router.push('/karakata/build')} 
+        className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:text-cyan-300 transition"
+      >
+        ← Back
+      </button>
       <h1 className="text-3xl font-bold text-amber-300">📝 List Your Product (Free)</h1>
       <p className="mt-1 text-sm text-slate-400">Upload a photo, write your own title/description, set your price. Publish live instantly. Zero cost, zero credits. Want AI to write it for you? Use Seller Studio (2 cr).</p>
       <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
