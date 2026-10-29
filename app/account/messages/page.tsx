@@ -37,7 +37,7 @@ export default function BuyerMessages() {
 
       const { data: messages, error } = await sb
         .from("kara_seller_messages")
-        .select("id, thread_id, seller_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at")
+        .select("id, thread_id, seller_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at")
         .eq("buyer_id", currentUserId)
         .order("created_at", { ascending: false });
 
@@ -88,11 +88,13 @@ export default function BuyerMessages() {
 
     const buyerId = selectedThread.messages[0]?.buyer_id; 
 
+    // ✅ INDUSTRY STANDARD FIX: Explicitly save "Buyer" as name, and the real email for Admin/Resend
     const { error } = await sb.from("kara_seller_messages").insert({
       thread_id: selectedThread.thread_id,
       seller_id: selectedThread.seller_id,
       buyer_id: buyerId,
-      buyer_name: buyerEmail.split('@')[0],
+      buyer_name: "Buyer",          // ✅ Always display as "Buyer" to the seller
+      buyer_email: buyerEmail,       // ✅ Save the real email for system notifications
       subject: selectedThread.subject,
       message: reply,
       sender_type: "buyer",
@@ -103,7 +105,7 @@ export default function BuyerMessages() {
       setReply("");
       const { data: messages } = await sb
         .from("kara_seller_messages")
-        .select("id, thread_id, seller_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at")
+        .select("id, thread_id, seller_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at")
         .eq("buyer_id", buyerId)
         .order("created_at", { ascending: false });
         
