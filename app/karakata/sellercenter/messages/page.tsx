@@ -17,7 +17,7 @@ export default function SellerMessages() {
   const fetchThreads = async () => {
     const { data } = await sb
       .from("kara_seller_messages")
-      .select("id, thread_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at")
+      .select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at")
       .order("created_at", { ascending: false });
 
     if (data) {
@@ -32,6 +32,7 @@ export default function SellerMessages() {
         thread_id: msgs[0].thread_id || msgs[0].id,
         buyer_id: msgs[0].buyer_id || null,
         buyer_name: msgs[0].buyer_name,
+        buyer_email: msgs[0].buyer_email,
         subject: msgs[0].subject,
         messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
         last_message: msgs[msgs.length - 1],
@@ -76,6 +77,7 @@ export default function SellerMessages() {
       seller_id: sellerId,
       buyer_id: selectedThread.buyer_id,
       buyer_name: selectedThread.buyer_name,
+      buyer_email: selectedThread.buyer_email,
       subject: selectedThread.subject,
       message: reply,
       sender_type: "seller",
@@ -90,7 +92,6 @@ export default function SellerMessages() {
 
     await sb.from("kara_seller_messages").update({ status: "read" }).eq("thread_id", selectedThread.thread_id).eq("sender_type", "buyer");
 
-    // ✅ INDUSTRY STANDARD: Trigger the email notification API
     try {
       await fetch("/api/karakata/notify-buyer", {
         method: "POST",
@@ -108,12 +109,27 @@ export default function SellerMessages() {
     setReply("");
     await fetchThreads();
     
-    const { data } = await sb.from("kara_seller_messages").select("id, thread_id, buyer_id, buyer_name, subject, sender_type, message, status, created_at").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
+    const { data } = await sb.from("kara_seller_messages").select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
     if (data) {
       setSelectedThread({ ...selectedThread, messages: data, last_message: data[data.length - 1], unread_count: 0 });
     }
 
     setSending(false);
+  };
+
+  // ✅ NEW: Delete Thread Function
+  const handleDeleteThread = async () => {
+    if (!selectedThread || !confirm("Are you sure you want to delete this entire conversation? This cannot be undone.")) return;
+    
+    // Delete all messages in this thread
+    const { error } = await sb.from("kara_seller_messages").delete().eq("thread_id", selectedThread.thread_id);
+    
+    if (!error) {
+      setSelectedThread(null);
+      await fetchThreads(); // Refresh the list
+    } else {
+      alert("Failed to delete thread: " + error.message);
+    }
   };
 
   if (loading) return <main className="min-h-screen bg-slate-50 p-6 flex items-center justify-center"><p className="text-slate-600">Loading messages...</p></main>;
@@ -161,20 +177,33 @@ export default function SellerMessages() {
           <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {selectedThread ? (
               <>
-                <div className="p-4 border-b border-slate-200 bg-slate-50">
-                  <h2 className="font-bold text-slate-900">{selectedThread.subject}</h2>
-                  <p className="text-xs text-slate-500">From: {selectedThread.buyer_name}</p>
-                  <p className="text-[10px] text-slate-500 mt-1 font-mono">Buyer ID: {shortenId(selectedThread.buyer_id)}</p>
-                  {selectedThread.buyer_id ? (
-                    <p className="text-[10px] text-amber-600 mt-2 font-bold bg-amber-50 p-2 rounded border border-amber-200">
-                      🔒 Privacy Protected: Direct emails are hidden. Reference this Buyer ID for all grievance resolutions.
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-rose-600 mt-2 font-bold bg-rose-50 p-2 rounded border border-rose-200">
-                      ⚠️ Legacy Thread: Missing buyer data.
-                    </p>
-                  )}
+                <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-start">
+                  <div>
+                    <h2 className="font-bold text-slate-900">{selectedThread.subject}</h2>
+                    <p className="text-xs text-slate-500">From: {selectedThread.buyer_name}</p>
+                    <p className="text-[10px] text-slate-500 mt-1 font-mono">Buyer ID: {shortenId(selectedThread.buyer_id)}</p>
+                  </div>
+                  {/* ✅ NEW: Delete Thread Button (The "X") */}
+                  <button 
+                    onClick={handleDeleteThread}
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
+                    title="Delete this entire conversation"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                 </div>
+
+                {selectedThread.buyer_id ? (
+                  <p className="text-[10px] text-amber-600 font-bold bg-amber-50 p-2 border-b border-amber-200">
+                    🔒 Privacy Protected: Direct emails are hidden. Reference this Buyer ID for all grievance resolutions.
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-rose-600 font-bold bg-rose-50 p-2 border-b border-rose-200">
+                    ⚠️ Legacy Thread: Missing buyer data.
+                  </p>
+                )}
 
                 <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
                   {selectedThread.messages.map((msg: any) => (
@@ -193,7 +222,7 @@ export default function SellerMessages() {
                     <>
                       <textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Type your reply to the buyer..." rows={3} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                       <div className="flex justify-end gap-2 mt-2">
-                        <button onClick={() => setSelectedThread(null)} className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50">Close</button>
+                        <button onClick={handleDeleteThread} className="px-4 py-2 rounded-lg border border-red-300 text-sm font-bold text-red-600 hover:bg-red-50 transition">Delete Thread</button>
                         <button onClick={handleReply} disabled={sending || !reply.trim()} className="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">{sending ? "Sending..." : "Send Reply"}</button>
                       </div>
                     </>
