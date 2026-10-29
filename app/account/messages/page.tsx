@@ -15,7 +15,6 @@ export default function BuyerMessages() {
   const [sending, setSending] = useState(false);
   const [buyerEmail, setBuyerEmail] = useState("");
 
-  // ✅ BULLETPROOF ID SHORTENER: Handles numbers, strings, null, and undefined safely
   const shortenId = (id: any) => {
     if (id === null || id === undefined) return "N/A";
     const str = String(id);
@@ -26,12 +25,10 @@ export default function BuyerMessages() {
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await sb.auth.getSession();
-      
       if (!session?.user) {
         router.push("/auth?callbackUrl=/account/messages");
         return;
       }
-
       const currentUserId = session.user.id;
       setBuyerEmail(session.user.email || "");
 
@@ -46,13 +43,9 @@ export default function BuyerMessages() {
       if (messages) {
         const sellerIds = [...new Set(messages.map(m => m.seller_id).filter(Boolean))];
         let shopNameMap: Record<string, string> = {};
-        
         if (sellerIds.length > 0) {
           const { data: sellers } = await sb.from("sellers").select("id, shop_name").in("id", sellerIds);
-          sellers?.forEach(s => { 
-            // ✅ Safely convert ID to string for the map key
-            shopNameMap[String(s.id)] = s.shop_name || "Unknown Shop"; 
-          });
+          sellers?.forEach(s => { shopNameMap[String(s.id)] = s.shop_name || "Unknown Shop"; });
         }
 
         const threadMap: Record<string, any[]> = {};
@@ -67,7 +60,6 @@ export default function BuyerMessages() {
           return {
             thread_id: firstMsg.thread_id || firstMsg.id,
             seller_id: firstMsg.seller_id,
-            // ✅ Safely lookup using stringified ID
             shop_name: shopNameMap[String(firstMsg.seller_id)] || "Unknown Shop",
             subject: firstMsg.subject || "General Inquiry",
             messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
@@ -84,17 +76,26 @@ export default function BuyerMessages() {
 
   const handleReply = async () => {
     if (!reply.trim() || !selectedThread) return;
-    setSending(true);
 
+    // ✅ INDUSTRY STANDARD: Block PII (Emails, Phone Numbers, External Apps)
+    const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(reply);
+    const hasPhone = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,}/.test(reply);
+    const hasKeywords = /\b(whatsapp|telegram|call me|email me|phone number|outside kara)\b/i.test(reply);
+
+    if (hasEmail || hasPhone || hasKeywords) {
+      alert("⚠️ SECURITY ALERT: For your safety and to maintain KaraKata Escrow Protection, sharing personal contact information (emails, phone numbers, or external apps) is strictly prohibited. Please keep all communication within this chat.");
+      return; // 🛑 STOP: Do not send the message
+    }
+
+    setSending(true);
     const buyerId = selectedThread.messages[0]?.buyer_id; 
 
-    // ✅ INDUSTRY STANDARD FIX: Explicitly save "Buyer" as name, and the real email for Admin/Resend
     const { error } = await sb.from("kara_seller_messages").insert({
       thread_id: selectedThread.thread_id,
       seller_id: selectedThread.seller_id,
       buyer_id: buyerId,
-      buyer_name: "Buyer",          // ✅ Always display as "Buyer" to the seller
-      buyer_email: buyerEmail,       // ✅ Save the real email for system notifications
+      buyer_name: "Buyer",
+      buyer_email: buyerEmail,
       subject: selectedThread.subject,
       message: reply,
       sender_type: "buyer",
@@ -177,7 +178,6 @@ export default function BuyerMessages() {
                 <div className="p-6 text-center text-slate-500 text-sm">No messages yet. Start exploring the market!</div>
               ) : (
                 threads.map((thread) => (
-                  // ✅ Safely convert thread_id to string for React key and comparison
                   <button 
                     key={String(thread.thread_id)} 
                     onClick={() => setSelectedThread(thread)} 
@@ -209,11 +209,9 @@ export default function BuyerMessages() {
                     </svg>
                   </button>
                 </div>
-                
                 <p className="text-[10px] text-amber-600 font-bold bg-amber-50 p-2 border-b border-amber-200">
                   🔒 Privacy Protected: Your email is hidden from the seller. Reference this Seller ID for grievance resolutions.
                 </p>
-
                 <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
                   {selectedThread.messages.map((msg: any) => (
                     <div key={msg.id} className={`rounded-lg p-3 ${msg.sender_type === "seller" ? "bg-slate-100 ml-0 mr-8" : "bg-purple-50 ml-8 mr-0 border border-purple-200"}`}>
@@ -225,7 +223,6 @@ export default function BuyerMessages() {
                     </div>
                   ))}
                 </div>
-
                 <div className="p-4 border-t border-slate-200">
                   <textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Type your reply to the seller..." rows={3} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                   <div className="flex justify-end gap-2 mt-2">
