@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import WalletBar from "@/components/WalletBar";
 import { createClient } from "@supabase/supabase-js";
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 const CATS = ["Jewelry & Gems", "Fashion & Clothing", "Shoes & Leather", "Electronics", "Electrical & Solar", "Home & Kitchen", "Groceries & Consumables", "Beauty & Personal Care", "Health & Wellness", "Baby & Kids", "Sports & Outdoors", "Artisan Services", "Other"];
 export default function Studio() {
+  const router = useRouter();
   const [words, setWords] = useState("");
   const [cat, setCat] = useState(CATS[0]);
   const [customCategory, setCustomCategory] = useState("");
@@ -46,9 +48,14 @@ export default function Studio() {
   const inp = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm";
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-white">
-      <Link href="/suite/marketplace" className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:underline">← Marketplace Suite</Link>
+      <button 
+        onClick={() => window.history.length > 1 ? router.back() : router.push('/karakata/build')} 
+        className="mb-3 inline-block text-sm font-bold text-cyan-400 hover:text-cyan-300 transition"
+      >
+        ← Back
+      </button>
       <WalletBar />
-      <h1 className="text-3xl font-bold text-amber-300">🧑🍳 Seller Studio (AI Listing Generator)</h1>
+      <h1 className="text-3xl font-bold text-amber-300">🧑‍🍳 Seller Studio (AI Listing Generator)</h1>
       <p className="mt-1 text-sm text-slate-400">AI writes your listing for you: title, description, tags, benchmarked price. 2 credits. Prefer to write it yourself for free? Use manual listing instead. New to KaraKata? Build your WHOLE storefront free with AI: <a href="/karakata/build" style={{ color: "#fbbf24", fontWeight: 700 }}>Build my store free →</a></p>
       <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
         <p className="text-sm font-bold text-amber-200">01 · YOUR PRODUCT, ROUGHLY</p>
