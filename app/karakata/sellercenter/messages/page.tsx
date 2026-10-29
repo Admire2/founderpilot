@@ -85,13 +85,22 @@ export default function SellerMessages() {
       return;
     }
 
-    // ✅ INDUSTRY STANDARD: Block PII (Emails, Phone Numbers, External Apps)
+    // ✅ UPGRADED INDUSTRY STANDARD: Catch Obfuscation & Off-Platform Intent
     const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(reply);
     const hasPhone = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,}/.test(reply);
-    const hasKeywords = /\b(whatsapp|telegram|call me|email me|phone number|outside kara)\b/i.test(reply);
+    
+    // Catch "at gmail", "dot com", "at yahoo", etc.
+    const hasObfuscatedEmail = /\b(at|dot)\s+(gmail|yahoo|hotmail|outlook|aol|icloud)\b/i.test(reply);
+    
+    // Catch spelled-out phone numbers (e.g., "zero eight zero") by checking for 3+ number words
+    const numberWords = reply.match(/\b(zero|one|two|three|four|five|six|seven|eight|nine)\b/gi);
+    const hasSpelledOutPhone = numberWords && numberWords.length >= 3;
+    
+    // Catch direct off-platform requests
+    const hasOffPlatformIntent = /\b(reach out|my number|call me|text me|whatsapp|telegram|outside kara)\b/i.test(reply);
 
-    if (hasEmail || hasPhone || hasKeywords) {
-      alert("⚠️ SECURITY ALERT: For your safety and to maintain KaraKata Escrow Protection, sharing personal contact information (emails, phone numbers, or external apps) is strictly prohibited. Please keep all communication within this chat.");
+    if (hasEmail || hasPhone || hasObfuscatedEmail || hasSpelledOutPhone || hasOffPlatformIntent) {
+      alert("⚠️ SECURITY ALERT: For your safety and to maintain KaraKata Escrow Protection, sharing personal contact information (including spelled-out numbers or obfuscated emails) is strictly prohibited. Please keep all communication within this chat.");
       return; // 🛑 STOP: Do not send the message
     }
 
