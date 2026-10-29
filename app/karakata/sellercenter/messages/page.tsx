@@ -15,12 +15,24 @@ export default function SellerMessages() {
   const [sellerId, setSellerId] = useState<string | number | null>(null);
 
   const fetchThreads = async () => {
+    // ✅ Fetch seller_id along with message data
     const { data } = await sb
       .from("kara_seller_messages")
-      .select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at")
+      .select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at, seller_id")
       .order("created_at", { ascending: false });
 
     if (data) {
+      // ✅ Efficiently fetch shop names for all unique seller_ids in this batch
+      const sellerIds = [...new Set(data.map(msg => msg.seller_id).filter(Boolean))];
+      let shopNameMap: Record<string, string> = {};
+      
+      if (sellerIds.length > 0) {
+        const { data: sellers } = await sb.from("sellers").select("id, shop_name").in("id", sellerIds);
+        sellers?.forEach(s => { 
+          shopNameMap[s.id] = s.shop_name || "Unknown Shop"; 
+        });
+      }
+
       const threadMap: Record<string, any[]> = {};
       data.forEach((msg: any) => {
         const tid = msg.thread_id || msg.id;
@@ -28,16 +40,20 @@ export default function SellerMessages() {
         threadMap[tid].push(msg);
       });
 
-      const threadList = Object.values(threadMap).map((msgs: any[]) => ({
-        thread_id: msgs[0].thread_id || msgs[0].id,
-        buyer_id: msgs[0].buyer_id || null,
-        buyer_name: msgs[0].buyer_name,
-        buyer_email: msgs[0].buyer_email,
-        subject: msgs[0].subject,
-        messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-        last_message: msgs[msgs.length - 1],
-        unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "buyer").length,
-      }));
+      const threadList = Object.values(threadMap).map((msgs: any[]) => {
+        const firstMsg = msgs[0];
+        return {
+          thread_id: firstMsg.thread_id || firstMsg.id,
+          buyer_id: firstMsg.buyer_id || null,
+          buyer_name: firstMsg.buyer_name,
+          buyer_email: firstMsg.buyer_email,
+          subject: firstMsg.subject,
+          shop_name: shopNameMap[firstMsg.seller_id] || "My Store", // ✅ NEW: Dynamically mapped shop name
+          messages: msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+          last_message: msgs[msgs.length - 1],
+          unread_count: msgs.filter((m: any) => m.status === "unread" && m.sender_type === "buyer").length,
+        };
+      });
       setThreads(threadList);
     }
   };
@@ -109,7 +125,7 @@ export default function SellerMessages() {
     setReply("");
     await fetchThreads();
     
-    const { data } = await sb.from("kara_seller_messages").select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
+    const { data } = await sb.from("kara_seller_messages").select("id, thread_id, buyer_id, buyer_name, buyer_email, subject, sender_type, message, status, created_at, seller_id").eq("thread_id", selectedThread.thread_id).order("created_at", { ascending: true });
     if (data) {
       setSelectedThread({ ...selectedThread, messages: data, last_message: data[data.length - 1], unread_count: 0 });
     }
@@ -117,16 +133,14 @@ export default function SellerMessages() {
     setSending(false);
   };
 
-  // ✅ NEW: Delete Thread Function
   const handleDeleteThread = async () => {
     if (!selectedThread || !confirm("Are you sure you want to delete this entire conversation? This cannot be undone.")) return;
     
-    // Delete all messages in this thread
     const { error } = await sb.from("kara_seller_messages").delete().eq("thread_id", selectedThread.thread_id);
     
     if (!error) {
       setSelectedThread(null);
-      await fetchThreads(); // Refresh the list
+      await fetchThreads();
     } else {
       alert("Failed to delete thread: " + error.message);
     }
@@ -152,6 +166,7 @@ export default function SellerMessages() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Threads List */}
           <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-200 bg-slate-50">
               <h2 className="font-bold text-slate-700">Conversations ({threads.length})</h2>
@@ -161,12 +176,18 @@ export default function SellerMessages() {
                 <div className="p-6 text-center text-slate-500 text-sm">No messages yet</div>
               ) : (
                 threads.map((thread) => (
-                  <button key={thread.thread_id} onClick={() => setSelectedThread(thread)} className={`w-full text-left p-4 hover:bg-slate-50 transition ${selectedThread?.thread_id === thread.thread_id ? "bg-emerald-50 border-l-4 border-emerald-500" : ""}`}>
+                  <button 
+                    key={thread.thread_id} 
+                    onClick={() => setSelectedThread(thread)} 
+                    className={`w-full text-left p-4 hover:bg-slate-50 transition ${selectedThread?.thread_id === thread.thread_id ? "bg-emerald-50 border-l-4 border-emerald-500" : ""}`}
+                  >
+                    {/* ✅ UPDATED: Prominently display the Shop Name */}
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-bold text-sm text-slate-900 truncate">{thread.buyer_name}</p>
+                      <p className="font-bold text-sm text-slate-900 truncate">{thread.shop_name}</p>
                       {thread.unread_count > 0 && <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{thread.unread_count}</span>}
                     </div>
-                    <p className="text-xs text-slate-600 truncate">{thread.subject}</p>
+                    <p className="text-xs text-slate-600 truncate">From: {thread.buyer_name}</p>
+                    <p className="text-xs text-purple-600 truncate font-medium mt-1">{thread.subject}</p>
                     <p className="text-[10px] text-slate-400 mt-1">{new Date(thread.last_message.created_at).toLocaleDateString()}</p>
                   </button>
                 ))
@@ -174,6 +195,7 @@ export default function SellerMessages() {
             </div>
           </div>
 
+          {/* Message Thread */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {selectedThread ? (
               <>
@@ -183,7 +205,6 @@ export default function SellerMessages() {
                     <p className="text-xs text-slate-500">From: {selectedThread.buyer_name}</p>
                     <p className="text-[10px] text-slate-500 mt-1 font-mono">Buyer ID: {shortenId(selectedThread.buyer_id)}</p>
                   </div>
-                  {/* ✅ NEW: Delete Thread Button (The "X") */}
                   <button 
                     onClick={handleDeleteThread}
                     className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
