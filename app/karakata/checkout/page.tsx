@@ -153,6 +153,10 @@ export default function CheckoutPage() {
       });
       const data = await response.json();
       if (data.ok && data.url) {
+        // ✅ MAGIC TRICK: Save email to session storage for post-purchase account creation
+        if (!isLoggedIn) {
+          sessionStorage.setItem("kara_guest_checkout_email", buyerEmail);
+        }
         window.location.href = data.url;
       } else {
         alert(data.error || "Failed to initialize checkout.");
