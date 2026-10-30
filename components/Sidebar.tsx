@@ -31,16 +31,16 @@ const RocketIcon = () => (
 export default function Sidebar() {
   const pathname = usePathname();
   
-  // ✅ INDUSTRY STANDARD: Removed individual rainbow colors for a clean, uniform monochromatic look
+  // ✅ UPDATED: Seller Center now points directly to the Dashboard
   const navItems = [
-    { href: "/karakata", label: "KaraKata Market", Icon: CartIcon, title: "Shopping Cart" },
-    { href: "/karakata/sellercenter/dashboard", label: "Seller Center", Icon: StoreIcon, title: "Manage your store" },
-    { href: "/karakata/sellers", label: "Browse Sellers", Icon: UsersIcon, title: "Discover sellers" },
-    { href: "/suite/business", label: "Business Suite", Icon: BriefcaseIcon, title: "Business Tools" },
-    { href: "/suite/engineering", label: "Engineering Suite", Icon: WrenchIcon, title: "Engineering Tools" },
-    { href: "/suite/healthcare", label: "Healthcare Suite", Icon: HospitalIcon, title: "Healthcare Tools" },
-    { href: "/suite/kaws", label: "KAWS", Icon: GlobeIcon, title: "KaraKata AI Web Services" },
-    { href: "/launch", label: "Launch", Icon: RocketIcon, title: "Launch Your Project" },
+    { href: "/karakata", label: "KaraKata Market", Icon: CartIcon, iconColor: "text-amber-500", activeColor: "bg-amber-500", title: "Shopping Cart" },
+    { href: "/karakata/sellercenter/dashboard", label: "Seller Center", Icon: StoreIcon, iconColor: "text-emerald-500", activeColor: "bg-emerald-600", title: "Manage your store" },
+    { href: "/karakata/sellers", label: "Browse Sellers", Icon: UsersIcon, iconColor: "text-indigo-500", activeColor: "bg-indigo-600", title: "Discover sellers" },
+    { href: "/suite/business", label: "Business Suite", Icon: BriefcaseIcon, iconColor: "text-cyan-500", activeColor: "bg-cyan-600", title: "Business Tools" },
+    { href: "/suite/engineering", label: "Engineering Suite", Icon: WrenchIcon, iconColor: "text-yellow-400", activeColor: "bg-yellow-500", title: "Engineering Tools" },
+    { href: "/suite/healthcare", label: "Healthcare Suite", Icon: HospitalIcon, iconColor: "text-rose-500", activeColor: "bg-rose-500", title: "Healthcare Tools" },
+    { href: "/suite/kaws", label: "KAWS", Icon: GlobeIcon, iconColor: "text-cyan-400", activeColor: "bg-cyan-600", title: "KaraKata AI Web Services" },
+    { href: "/launch", label: "Launch", Icon: RocketIcon, iconColor: "text-purple-500", activeColor: "bg-purple-600", title: "Launch Your Project" },
   ];
 
   return (
@@ -58,15 +58,13 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               title={item.title}
-              // ✅ INDUSTRY STANDARD: Slate-400 by default, pure white text + brand background when active/hovered
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive 
-                  ? "bg-amber-500 text-white shadow-lg" 
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  ? `${item.activeColor} text-white shadow-lg` 
+                  : "text-slate-300 hover:bg-slate-800"
               }`}
             >
-              {/* ✅ text-current ensures the icon perfectly matches the text color (white when active, slate-400 when not) */}
-              <span className="text-current">
+              <span className={item.iconColor}>
                 <item.Icon />
               </span>
               <span className="font-medium text-sm">{item.label}</span>
