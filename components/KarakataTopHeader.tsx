@@ -34,15 +34,15 @@ export default function KarakataTopHeader() {
         </button>
       </form>
       
-      {/* ✅ INDUSTRY STANDARD: Uniform slate-300 default, turning pure white on hover */}
-      <div className="flex items-center gap-4 text-sm font-medium">
-        <Link href="/karakata/sellercenter/dashboard" className="text-slate-300 hover:text-white transition whitespace-nowrap">
+      <div className="flex items-center gap-3 text-xs font-bold text-white">
+        {/* ✅ UPDATED: Points directly to the Dashboard */}
+        <Link href="/karakata/sellercenter/dashboard" className="hover:text-amber-400 transition whitespace-nowrap font-bold text-amber-400">
           Seller Center
         </Link>
-        <Link href="/karakata/sellers" className="text-slate-300 hover:text-white transition whitespace-nowrap">
+        <Link href="/karakata/sellers" className="hover:text-amber-400 transition whitespace-nowrap">
           Sellers
         </Link>
-        <Link href="/karakata/build" className="text-slate-300 hover:text-white transition whitespace-nowrap">
+        <Link href="/karakata/build" className="hover:text-amber-400 transition text-amber-400 whitespace-nowrap">
           Build your Store 
         </Link>
         
