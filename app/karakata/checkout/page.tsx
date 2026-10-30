@@ -19,7 +19,10 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   
+  // ✅ INDUSTRY STANDARD: Guest Contact Info State
   const [buyerEmail, setBuyerEmail] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
+  const [createAccount, setCreateAccount] = useState(true); // Pre-checked for higher conversion
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   const [shippingCountry, setShippingCountry] = useState("Nigeria");
@@ -129,9 +132,10 @@ export default function CheckoutPage() {
   const finalTotal = grandTotal + escrowFee;
 
   const handleCheckout = async () => {
+    // ✅ INDUSTRY STANDARD: Block transaction if no valid email is provided
     if (!buyerEmail || !buyerEmail.includes("@")) {
-      alert("Please enter a valid email address to receive your order confirmation and tracking updates.");
-      return;
+      alert("⚠️ Please provide a valid email address to receive your order confirmation and tracking updates.");
+      return; // 🛑 STOP: Do not proceed to payment
     }
 
     setProcessing(true);
@@ -142,7 +146,9 @@ export default function CheckoutPage() {
         body: JSON.stringify({ 
           cart, subtotal, shippingCost, shippingCountry, grandTotal, escrowFee, 
           seller_id: cart[0]?.seller_id,
-          buyer_email: buyerEmail.trim().toLowerCase() 
+          buyer_email: buyerEmail.trim().toLowerCase(),
+          buyer_phone: buyerPhone.trim(),
+          create_account: createAccount && !isLoggedIn // Pass flag to create account post-purchase
         }),
       });
       const data = await response.json();
@@ -174,6 +180,7 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold text-slate-900 mb-8">Secure Checkout</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* LEFT COLUMN: Order Summary */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h2 className="text-xl font-bold mb-4">Order Summary ({cart.length} items)</h2>
@@ -205,13 +212,17 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* RIGHT COLUMN: Contact & Payment */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sticky top-6">
-              <h2 className="text-xl font-bold mb-6">Payment Details</h2>
-              <div className="space-y-3 text-sm mb-6">
-                
-                {/* ✅ SMART EMAIL INPUT: Auto-filled if logged in, editable if guest */}
-                <div className="mb-4">
+              
+              {/* ✅ INDUSTRY STANDARD: Step 1 - Contact Information */}
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span className="bg-emerald-100 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                Contact Information
+              </h2>
+              <div className="space-y-4 mb-6">
+                <div>
                   <label className="text-xs font-bold text-slate-600 mb-1 block">
                     Email Address <span className="text-rose-500">*</span>
                     {isLoggedIn && <span className="ml-2 text-emerald-600 font-normal">(Logged in)</span>}
@@ -226,15 +237,51 @@ export default function CheckoutPage() {
                     }`}
                     required
                   />
-                  <p className="text-xs text-slate-500 mt-1">We will send your receipt and tracking updates here.</p>
+                  <p className="text-xs text-slate-500 mt-1">We'll send your order confirmation and tracking updates here.</p>
                 </div>
 
-                <div className="mb-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-600 mb-1 block">Phone Number (Optional)</label>
+                  <input 
+                    type="tel" 
+                    value={buyerPhone}
+                    onChange={(e) => setBuyerPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000" 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">For SMS delivery updates.</p>
+                </div>
+
+                {/* ✅ INDUSTRY STANDARD: Guest Account Creation Prompt */}
+                {!isLoggedIn && (
+                  <label className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input 
+                      type="checkbox" 
+                      checked={createAccount} 
+                      onChange={(e) => setCreateAccount(e.target.checked)} 
+                      className="mt-1 rounded text-emerald-600 focus:ring-emerald-500" 
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Create a free KaraKata account</p>
+                      <p className="text-xs text-slate-500">Save your info for faster checkout next time. We'll send a secure link to set a password after your order.</p>
+                    </div>
+                  </label>
+                )}
+
+                <div className="pt-2">
                   <label className="text-xs font-bold text-slate-600 mb-1 block">Shipping Destination</label>
                   <select value={shippingCountry} onChange={(e) => handleCountryChange(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition">
                     {COUNTRIES.map((c) => (<option key={c} value={c}>{c}</option>))}
                   </select>
                 </div>
+              </div>
+
+              {/* ✅ INDUSTRY STANDARD: Step 2 - Payment Details */}
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span className="bg-emerald-100 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                Payment Details
+              </h2>
+              <div className="space-y-3 text-sm mb-6">
                 <div className="flex justify-between border-t border-slate-100 pt-3"><span className="text-slate-600">Subtotal</span><span className="font-bold">${subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span className="text-slate-600">Shipping</span><span className="font-bold text-emerald-700">${shippingCost.toFixed(2)}</span></div>
                 
