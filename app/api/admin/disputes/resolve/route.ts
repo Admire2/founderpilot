@@ -7,24 +7,38 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { order_id, action, admin_note, admin_email } = body;
+    const { order_id, action, admin_note } = body;
+
+    // ✅ 1. VERIFY REAL ADMIN SESSION (No more hardcoded passcodes)
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
-    // ✅ Admin authentication
-    const key = body.key;
-    if (key !== (process.env.ADMIN_PASSCODE || "founder2026")) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    // Get the session from the request cookies
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: No token provided" }, { status: 401 });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await sb.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: Invalid session" }, { status: 401 });
+    }
+
+    // Check if user is actually an admin
+    const { data: profile } = await sb.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") {
+      return NextResponse.json({ ok: false, error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
     if (!order_id || !["release_to_seller", "refund_buyer"].includes(action)) {
       return NextResponse.json({ ok: false, error: "Invalid request" }, { status: 400 });
     }
 
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // ✅ Fetch the order
+    // ✅ 2. FETCH THE ORDER
     const { data: order, error: orderErr } = await sb
       .from("kara_orders")
       .select("*")
@@ -35,11 +49,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
 
-    let newStatus = "";
-    let resolution = "";
-
+    // ✅ 3. EXECUTE ACTION & LOG TO AUDIT TRAIL
     if (action === "refund_buyer") {
-      // ✅ REFUND: Use Stripe to refund the buyer
       if (!order.stripe_payment_intent) {
         return NextResponse.json({ ok: false, error: "Cannot refund: missing payment intent" }, { status: 400 });
       }
@@ -48,32 +59,27 @@ export async function POST(req: Request) {
         payment_intent: order.stripe_payment_intent,
       });
 
-      newStatus = "refunded";
-      resolution = `Admin refund: ${admin_note || "Refunded by admin"}`;
-
       await sb.from("kara_orders").update({
         status: "refunded",
         dispute_resolution: "admin_refund",
         refund_id: refund.id,
         admin_note: admin_note || "",
         resolved_at: new Date().toISOString(),
-        resolved_by: admin_email || "admin"
+        resolved_by: user.email
       }).eq("id", order_id);
 
-      // ✅ Email buyer about refund
-      if (order.buyer_email) {
-        await sb.from("kara_emails").insert({
-          email: order.buyer_email,
-          kind: "order_refunded",
-          subject: `✅ Admin Refund Issued - Order #${order.id}`,
-          body: `<p>Your order has been refunded by KaraKata Admin. Refund ID: ${refund.id}. Please allow 5-10 business days.</p>`
-        });
-      }
+      // 🛡️ WRITE TO AUDIT LOG
+      await sb.from("admin_audit_logs").insert({
+        admin_id: user.id,
+        admin_email: user.email,
+        action_type: "REFUND_BUYER",
+        target_id: order_id,
+        details: { refund_id: refund.id, amount: order.total_amount, reason: admin_note }
+      });
 
       return NextResponse.json({ ok: true, message: "Refund issued", refund_id: refund.id });
 
     } else {
-      // ✅ RELEASE: Pay the seller via Stripe Connect
       const { data: seller } = await sb.from("sellers").select("stripe_account_id").eq("id", order.seller_id).single();
       
       if (!seller?.stripe_account_id) {
@@ -90,26 +96,22 @@ export async function POST(req: Request) {
         description: `KaraKata order payout - Admin released`,
       });
 
-      newStatus = "completed";
-      resolution = `Admin release: ${admin_note || "Released to seller by admin"}`;
-
       await sb.from("kara_orders").update({
         status: "completed",
         dispute_resolution: "admin_release",
         admin_note: admin_note || "",
         resolved_at: new Date().toISOString(),
-        resolved_by: admin_email || "admin"
+        resolved_by: user.email
       }).eq("id", order_id);
 
-      // ✅ Email both parties
-      if (order.buyer_email) {
-        await sb.from("kara_emails").insert({
-          email: order.buyer_email,
-          kind: "order_resolved",
-          subject: `📋 Dispute Resolved - Order #${order.id}`,
-          body: `<p>KaraKata Admin has resolved your dispute. Funds have been released to the seller per our review.</p>`
-        });
-      }
+      // 🛡️ WRITE TO AUDIT LOG
+      await sb.from("admin_audit_logs").insert({
+        admin_id: user.id,
+        admin_email: user.email,
+        action_type: "RELEASE_SELLER",
+        target_id: order_id,
+        details: { payout_amount: payoutAmount, reason: admin_note }
+      });
 
       return NextResponse.json({ ok: true, message: "Funds released to seller" });
     }
