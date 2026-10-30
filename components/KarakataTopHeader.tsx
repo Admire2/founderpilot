@@ -34,15 +34,15 @@ export default function KarakataTopHeader() {
         </button>
       </form>
       
-      <div className="flex items-center gap-3 text-xs font-bold">
-        {/* ✅ PERFECTLY UNIFORM: All links now share the exact same amber color and hover effect */}
-        <Link href="/karakata/sellercenter/dashboard" className="text-amber-400 hover:text-amber-300 transition whitespace-nowrap">
+      {/* ✅ INDUSTRY STANDARD: Uniform slate-300 default, turning pure white on hover */}
+      <div className="flex items-center gap-4 text-sm font-medium">
+        <Link href="/karakata/sellercenter/dashboard" className="text-slate-300 hover:text-white transition whitespace-nowrap">
           Seller Center
         </Link>
-        <Link href="/karakata/sellers" className="text-amber-400 hover:text-amber-300 transition whitespace-nowrap">
+        <Link href="/karakata/sellers" className="text-slate-300 hover:text-white transition whitespace-nowrap">
           Sellers
         </Link>
-        <Link href="/karakata/build" className="text-amber-400 hover:text-amber-300 transition whitespace-nowrap">
+        <Link href="/karakata/build" className="text-slate-300 hover:text-white transition whitespace-nowrap">
           Build your Store 
         </Link>
         
