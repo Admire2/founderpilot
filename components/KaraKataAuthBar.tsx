@@ -47,9 +47,10 @@ export default function KaraKataAuthBar() {
 
   if (!user) {
     return (
-      <Link href="/auth" className="flex flex-col items-end hover:text-amber-300 transition">
+      // ✅ INDUSTRY STANDARD: Subtle gray subtitle, bold amber title
+      <Link href="/auth" className="flex flex-col items-end hover:opacity-80 transition">
         <span className="text-[10px] text-slate-300">Hello, sign in</span>
-        <span className="text-sm font-bold text-white">Account & Lists</span>
+        <span className="text-sm font-bold text-amber-400">Account & Lists</span>
       </Link>
     );
   }
@@ -63,7 +64,7 @@ export default function KaraKataAuthBar() {
         </span>
         <button
           onClick={handleLogout}
-          className="text-[10px] font-bold text-slate-300 hover:text-white border border-slate-600 hover:border-amber-400 px-2 py-0.5 rounded transition"
+          className="text-[10px] font-bold text-slate-300 hover:text-amber-400 border border-slate-600 hover:border-amber-400 px-2 py-0.5 rounded transition"
         >
           Logout
         </button>
