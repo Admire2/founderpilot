@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
@@ -30,14 +30,55 @@ export async function POST(req: Request) {
     if (orderErr || !order) return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
 
     const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const userAgent = req.headers.get("user-agent") || "unknown";
+
+    // ✅ FETCH RICH ADMIN PROFILE DATA FOR ENTERPRISE AUDIT TRAIL
+    const { data: adminProfile } = await sbAdmin
+      .from("profiles")
+      .select("full_name, job_title, department, office_location")
+      .eq("id", user.id)
+      .single();
 
     if (action === "refund_buyer") {
       if (!order.stripe_payment_intent) return NextResponse.json({ ok: false, error: "Cannot refund: missing payment intent" }, { status: 400 });
       const refund = await stripe.refunds.create({ payment_intent: order.stripe_payment_intent });
 
-      await sbAdmin.from("kara_orders").update({ status: "refunded", dispute_resolution: "admin_refund", refund_id: refund.id, admin_note: admin_note || "", resolved_at: new Date().toISOString(), resolved_by: user.email }).eq("id", order_id);
+      await sbAdmin.from("kara_orders").update({ 
+        status: "refunded", 
+        dispute_resolution: "admin_refund", 
+        refund_id: refund.id, 
+        admin_note: admin_note || "", 
+        resolved_at: new Date().toISOString(), 
+        resolved_by: user.email 
+      }).eq("id", order_id);
 
-      await sbAdmin.from("admin_audit_logs").insert({ admin_id: user.id, admin_email: user.email, action_type: "REFUND_BUYER", target_id: order_id, details: { refund_id: refund.id, amount: order.total_amount, reason: admin_note }, ip_address: ip });
+      // ✅ ENHANCED AUDIT LOG INSERT
+      await sbAdmin.from("admin_audit_logs").insert({ 
+        admin_id: user.id, 
+        admin_email: user.email,
+        admin_name: adminProfile?.full_name || user.email,
+        admin_role: profile?.role || "admin",
+        admin_department: adminProfile?.department || "Unknown",
+        admin_office: adminProfile?.office_location || "Remote",
+        action_type: "REFUND_BUYER", 
+        target_id: order_id, 
+        details: { 
+          refund_id: refund.id, 
+          amount: order.total_amount, 
+          reason: admin_note,
+          buyer_email: order.buyer_email,
+          seller_id: order.seller_id
+        }, 
+        ip_address: ip,
+        user_agent: userAgent,
+        mfa_verified: true,
+        action_context: {
+          order_status_before: order.status,
+          order_status_after: "refunded",
+          escrow_amount: order.escrow_amount,
+          payment_intent: order.stripe_payment_intent
+        }
+      });
       return NextResponse.json({ ok: true, message: "Refund issued", refund_id: refund.id });
 
     } else {
@@ -47,9 +88,40 @@ export async function POST(req: Request) {
       const payoutAmount = Math.round((Number(order.total_amount) - Number(order.escrow_amount)) * 100);
       await stripe.transfers.create({ amount: payoutAmount, currency: "usd", destination: seller.stripe_account_id, transfer_group: order.id, description: "KaraKata order payout - Admin released" });
 
-      await sbAdmin.from("kara_orders").update({ status: "completed", dispute_resolution: "admin_release", admin_note: admin_note || "", resolved_at: new Date().toISOString(), resolved_by: user.email }).eq("id", order_id);
+      await sbAdmin.from("kara_orders").update({ 
+        status: "completed", 
+        dispute_resolution: "admin_release", 
+        admin_note: admin_note || "", 
+        resolved_at: new Date().toISOString(), 
+        resolved_by: user.email 
+      }).eq("id", order_id);
 
-      await sbAdmin.from("admin_audit_logs").insert({ admin_id: user.id, admin_email: user.email, action_type: "RELEASE_SELLER", target_id: order_id, details: { payout_amount: payoutAmount, reason: admin_note }, ip_address: ip });
+      // ✅ ENHANCED AUDIT LOG INSERT
+      await sbAdmin.from("admin_audit_logs").insert({ 
+        admin_id: user.id, 
+        admin_email: user.email,
+        admin_name: adminProfile?.full_name || user.email,
+        admin_role: profile?.role || "admin",
+        admin_department: adminProfile?.department || "Unknown",
+        admin_office: adminProfile?.office_location || "Remote",
+        action_type: "RELEASE_SELLER", 
+        target_id: order_id, 
+        details: { 
+          payout_amount: payoutAmount, 
+          reason: admin_note,
+          buyer_email: order.buyer_email,
+          seller_id: order.seller_id
+        }, 
+        ip_address: ip,
+        user_agent: userAgent,
+        mfa_verified: true,
+        action_context: {
+          order_status_before: order.status,
+          order_status_after: "completed",
+          escrow_amount: order.escrow_amount,
+          payout_amount: payoutAmount
+        }
+      });
       return NextResponse.json({ ok: true, message: "Funds released to seller" });
     }
   } catch (err: any) {
