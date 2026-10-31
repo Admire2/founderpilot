@@ -9,27 +9,24 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { order_id, action, admin_note } = body;
 
-    // ✅ 1. VERIFY REAL ADMIN SESSION (No more hardcoded passcodes)
-    const sb = createClient(
+    // ✅ 1. VERIFY REAL ADMIN AUTH
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: No token provided" }, { status: 401 });
+    }
+    const token = authHeader.split(" ")[1];
+
+    const sbAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
-    // Get the session from the request cookies
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ ok: false, error: "Unauthorized: No token provided" }, { status: 401 });
-    }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await sb.auth.getUser(token);
-
+    const { data: { user }, error: authError } = await sbAdmin.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ ok: false, error: "Unauthorized: Invalid session" }, { status: 401 });
     }
 
-    // Check if user is actually an admin
-    const { data: profile } = await sb.from("profiles").select("role").eq("id", user.id).single();
+    const { data: profile } = await sbAdmin.from("profiles").select("role").eq("id", user.id).single();
     if (profile?.role !== "admin") {
       return NextResponse.json({ ok: false, error: "Forbidden: Admin access required" }, { status: 403 });
     }
@@ -39,7 +36,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ 2. FETCH THE ORDER
-    const { data: order, error: orderErr } = await sb
+    const { data: order, error: orderErr } = await sbAdmin
       .from("kara_orders")
       .select("*")
       .eq("id", order_id)
@@ -48,6 +45,8 @@ export async function POST(req: Request) {
     if (orderErr || !order) {
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
+
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
 
     // ✅ 3. EXECUTE ACTION & LOG TO AUDIT TRAIL
     if (action === "refund_buyer") {
@@ -59,7 +58,7 @@ export async function POST(req: Request) {
         payment_intent: order.stripe_payment_intent,
       });
 
-      await sb.from("kara_orders").update({
+      await sbAdmin.from("kara_orders").update({
         status: "refunded",
         dispute_resolution: "admin_refund",
         refund_id: refund.id,
@@ -69,18 +68,19 @@ export async function POST(req: Request) {
       }).eq("id", order_id);
 
       // 🛡️ WRITE TO AUDIT LOG
-      await sb.from("admin_audit_logs").insert({
+      await sbAdmin.from("admin_audit_logs").insert({
         admin_id: user.id,
         admin_email: user.email,
         action_type: "REFUND_BUYER",
         target_id: order_id,
-        details: { refund_id: refund.id, amount: order.total_amount, reason: admin_note }
+        details: { refund_id: refund.id, amount: order.total_amount, reason: admin_note },
+        ip_address: ip
       });
 
       return NextResponse.json({ ok: true, message: "Refund issued", refund_id: refund.id });
 
     } else {
-      const { data: seller } = await sb.from("sellers").select("stripe_account_id").eq("id", order.seller_id).single();
+      const { data: seller } = await sbAdmin.from("sellers").select("stripe_account_id").eq("id", order.seller_id).single();
       
       if (!seller?.stripe_account_id) {
         return NextResponse.json({ ok: false, error: "Seller has no Stripe account" }, { status: 400 });
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
         description: `KaraKata order payout - Admin released`,
       });
 
-      await sb.from("kara_orders").update({
+      await sbAdmin.from("kara_orders").update({
         status: "completed",
         dispute_resolution: "admin_release",
         admin_note: admin_note || "",
@@ -105,12 +105,13 @@ export async function POST(req: Request) {
       }).eq("id", order_id);
 
       // 🛡️ WRITE TO AUDIT LOG
-      await sb.from("admin_audit_logs").insert({
+      await sbAdmin.from("admin_audit_logs").insert({
         admin_id: user.id,
         admin_email: user.email,
         action_type: "RELEASE_SELLER",
         target_id: order_id,
-        details: { payout_amount: payoutAmount, reason: admin_note }
+        details: { payout_amount: payoutAmount, reason: admin_note },
+        ip_address: ip
       });
 
       return NextResponse.json({ ok: true, message: "Funds released to seller" });
