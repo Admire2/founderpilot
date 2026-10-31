@@ -196,9 +196,18 @@ export default function AdminPage() {
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-2xl">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Grant Credits</h2>
             <div className="space-y-4">
-              <div><label className="text-xs font-bold text-slate-600 mb-1 block">User Email</label><input type="email" value={creditsEmail} onChange={(e) => setCreditsEmail(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="user@example.com" /></div>
-              <div><label className="text-xs font-bold text-slate-600 mb-1 block">Amount</label><input type="number" value={creditsAmount} onChange={(e) => setCreditsAmount(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="50" /></div>
-              <div><label className="text-xs font-bold text-slate-600 mb-1 block">Reason</label><input type="text" value={creditsReason} onChange={(e) => setCreditsReason(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="e.g., Apology for downtime" /></div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">User Email</label>
+                <input type="email" value={creditsEmail} onChange={(e) => setCreditsEmail(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none" placeholder="user@example.com" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">Amount</label>
+                <input type="number" value={creditsAmount} onChange={(e) => setCreditsAmount(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none" placeholder="50" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">Reason</label>
+                <input type="text" value={creditsReason} onChange={(e) => setCreditsReason(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none" placeholder="e.g., Apology for downtime" />
+              </div>
               <button onClick={handleGrant} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition">Grant Credits</button>
               {creditsMsg && <p className="text-sm font-bold text-center text-emerald-700">{creditsMsg}</p>}
             </div>
