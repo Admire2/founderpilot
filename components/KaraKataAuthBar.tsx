@@ -1,3 +1,8 @@
+import { usePathname } from "next/navigation";
+
+// Inside the component function, add this right at the top:
+const pathname = usePathname();
+if (pathname?.startsWith("/admin")) return null;
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
