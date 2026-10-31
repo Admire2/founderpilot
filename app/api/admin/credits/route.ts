@@ -1,49 +1,71 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const email = String(body.email || "").toLowerCase();
-    const amount = Number(body.amount) || 0;
-    const reason = body.reason || "Admin grant";
-    
-    if (!email || amount <= 0) {
-      return NextResponse.json({ error: "email and positive amount required" }, { status: 400 });
+    const { email, amount, reason } = body;
+
+    // ✅ 1. VERIFY REAL ADMIN AUTH
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: No token provided" }, { status: 401 });
     }
-    
-    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-    
-    // Get or create credits record
-    let { data } = await sb.from("credits").select("*").eq("email", email).single();
-    if (!data) {
-      const ins = await sb.from("credits").insert({ email, balance: 0, pack_balance: amount, plan: "free" }).select().single();
-      data = ins.data;
-    } else {
-      // Add to pack_balance (purchased/granted credits are permanent)
-      const newPack = (data.pack_balance || 0) + amount;
-      await sb.from("credits").update({ pack_balance: newPack }).eq("email", email);
+    const token = authHeader.split(" ")[1];
+
+    const sbAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: { user }, error: authError } = await sbAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: Invalid session" }, { status: 401 });
     }
+
+    const { data: profile } = await sbAdmin.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") {
+      return NextResponse.json({ ok: false, error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
+    if (!email || !amount || amount <= 0) {
+      return NextResponse.json({ ok: false, error: "Invalid email or amount" }, { status: 400 });
+    }
+
+    // ✅ 2. FIND USER AND GRANT CREDITS
+    const { data: targetUser } = await sbAdmin.from("profiles").select("id, email").eq("email", email).single();
     
-    // LOG THE GRANT TO LEDGER
-    await sb.from("credit_transactions").insert({
-      email,
-      type: "admin_grant",
-      amount: amount, // Positive = credits IN
-      source: "admin_panel",
-      description: reason,
-      metadata: { granted_by: body.admin_email || "unknown" }
+    if (!targetUser) {
+      return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+    }
+
+    // Note: Adjust 'credits' or 'wallet_balance' column name to match your actual schema
+    const { error: updateError } = await sbAdmin
+      .from("profiles")
+      .update({ credits: (targetUser.credits || 0) + Number(amount) })
+      .eq("id", targetUser.id);
+
+    if (updateError) throw updateError;
+
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+
+    // 🛡️ 3. WRITE TO AUDIT LOG
+    await sbAdmin.from("admin_audit_logs").insert({
+      admin_id: user.id,
+      admin_email: user.email,
+      action_type: "GRANT_CREDITS",
+      target_id: targetUser.id,
+      details: { target_email: email, amount_granted: amount, reason: reason || "Admin grant" },
+      ip_address: ip
     });
-    
+
     return NextResponse.json({ 
-      success: true, 
-      email, 
-      granted: amount, 
-      newPackBalance: (data.pack_balance || 0) + amount 
+      ok: true, 
+      message: `Successfully granted ${amount} credits to ${email}` 
     });
-    
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+
+  } catch (err: any) {
+    console.error("Admin credits error:", err);
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
