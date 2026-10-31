@@ -79,11 +79,22 @@ export default function AdminPage() {
     setLoading(false);
   };
 
+  // ✅ BULLETPROOF FIX: Nuke ghost factors before enrolling
   const start2FAEnrollment = async () => {
     setLoading(true); setErrorMsg("");
     try {
-      const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp" });
+      const { data: existingFactorsData } = await sb.auth.mfa.listFactors();
+      const existingFactors = existingFactorsData?.factors || [];
+      
+      // Destroy any stuck factors
+      for (const factor of existingFactors) {
+        await sb.auth.mfa.unenroll({ factorId: factor.id });
+      }
+
+      // Enroll new factor with a specific name to prevent blank-name 422 errors
+      const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "KaraKata Admin" });
       if (error) throw error;
+      
       setMfaFactorId(data.id);
       setQrCodeUrl(data.totp.qr_code);
       setTotpSecret(data.totp.secret);
@@ -175,9 +186,7 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-amber-400 mb-2">🔐 KaraKata Admin</h1>
           <p className="text-sm text-slate-400 mb-6">Secure login required</p>
           <div className="space-y-4">
-            {/* ✅ Added autoComplete="off" to prevent browser autofill */}
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Admin Email" autoComplete="off" className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white focus:border-amber-400 focus:outline-none" />
-            {/* ✅ Added autoComplete="new-password" to prevent browser autofill */}
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} placeholder="Password" autoComplete="new-password" className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white focus:border-amber-400 focus:outline-none" />
             {errorMsg && <p className="text-sm font-bold text-rose-400">{errorMsg}</p>}
             <button onClick={handleLogin} disabled={loading} className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-bold hover:bg-amber-400 transition disabled:opacity-50">{loading ? "Verifying..." : "Access Dashboard →"}</button>
