@@ -5,20 +5,31 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    // ✅ Admin authentication (same passcode as your existing admin panel)
-    const url = new URL(req.url);
-    const key = url.searchParams.get("key");
-    if (key !== (process.env.ADMIN_PASSCODE || "founder2026")) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    // ✅ 1. VERIFY REAL ADMIN AUTH (No more hardcoded passcodes)
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: No token provided" }, { status: 401 });
     }
+    const token = authHeader.split(" ")[1];
 
-    const sb = createClient(
+    // Use Service Role to bypass RLS for admin queries, but we validate the JWT first
+    const sbAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // ✅ Fetch ALL orders in dispute states
-    const { data: disputes, error } = await sb
+    const { data: { user }, error: authError } = await sbAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized: Invalid session" }, { status: 401 });
+    }
+
+    const { data: profile } = await sbAdmin.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") {
+      return NextResponse.json({ ok: false, error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
+    // ✅ 2. FETCH ALL DISPUTES
+    const { data: disputes, error } = await sbAdmin
       .from("kara_orders")
       .select("*")
       .in("status", ["dispute_open", "dispute_under_review"])
@@ -26,16 +37,16 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
-    // ✅ Fetch seller details for each dispute
+    // ✅ 3. FETCH SELLER DETAILS FOR CONTEXT
     const sellerIds = [...new Set(disputes?.map(d => d.seller_id).filter(Boolean))];
     let sellerMap: Record<string, any> = {};
     if (sellerIds.length > 0) {
-      const { data: sellers } = await sb.from("sellers").select("id, shop_name, email").in("id", sellerIds);
+      const { data: sellers } = await sbAdmin.from("sellers").select("id, shop_name, email").in("id", sellerIds);
       sellers?.forEach(s => { sellerMap[String(s.id)] = s; });
     }
 
-    // ✅ Calculate escrow health metrics
-    const { data: allEscrow } = await sb
+    // ✅ 4. CALCULATE ESCROW METRICS
+    const { data: allEscrow } = await sbAdmin
       .from("kara_orders")
       .select("total_amount, escrow_amount, status")
       .in("status", ["escrow_active", "shipped", "dispute_open", "dispute_under_review"]);
