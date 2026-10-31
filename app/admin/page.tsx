@@ -341,7 +341,8 @@ export default function AdminPage() {
                   </div>
                   <div className="border-t border-slate-200 pt-4">
                     <h3 className="font-bold text-slate-900 mb-3">⚖️ Your Decision</h3>
-                    <textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Admin notes (required for audit trail)..." rows={3} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm mb-3 focus:border-amber-500 focus:outline-none" />
+                    {/* ✅ FIXED: Added bg-white and text-slate-900 to make text visible */}
+                    <textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Admin notes (required for audit trail)..." rows={3} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 mb-3 focus:border-amber-500 focus:outline-none" />
                     <div className="grid grid-cols-2 gap-3">
                       <button onClick={() => setAction("refund_buyer")} disabled={!adminNote.trim() || resolving} className="bg-rose-600 text-white py-3 rounded-lg font-bold hover:bg-rose-700 disabled:opacity-50">💸 Refund Buyer</button>
                       <button onClick={() => setAction("release_to_seller")} disabled={!adminNote.trim() || resolving} className="bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 disabled:opacity-50">💰 Release to Seller</button>
@@ -360,7 +361,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ✅ ENTERPRISE-GRADE AUDIT LOG TABLE */}
         {activeTab === "audit" && (
           <div>
             <div className="flex justify-between items-center mb-4">
