@@ -1,10 +1,17 @@
 "use client";
 import { useState } from "react";
+import { usePathname } from "next/navigation"; // ✅ Added usePathname
 import Link from "next/link";
 import CartBadge from "@/components/CartBadge";
 
 export default function KarakataTopHeader() {
+  const pathname = usePathname(); // ✅ Get current path
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ✅ Hide this header completely when on any /admin route
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +39,6 @@ export default function KarakataTopHeader() {
         </button>
       </form>
       
-      {/* ✅ FIXED: Removed parent text-white, and explicitly set text-amber-400 on EVERY link */}
       <div className="flex items-center gap-4 text-sm font-bold">
         <Link href="/karakata/sellercenter/dashboard" className="text-amber-400 hover:text-amber-300 transition whitespace-nowrap">
           Seller Center
