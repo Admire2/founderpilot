@@ -175,8 +175,10 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-amber-400 mb-2">🔐 KaraKata Admin</h1>
           <p className="text-sm text-slate-400 mb-6">Secure login required</p>
           <div className="space-y-4">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Admin Email" className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white focus:border-amber-400 focus:outline-none" />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} placeholder="Password" className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white focus:border-amber-400 focus:outline-none" />
+            {/* ✅ Added autoComplete="off" to prevent browser autofill */}
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Admin Email" autoComplete="off" className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white focus:border-amber-400 focus:outline-none" />
+            {/* ✅ Added autoComplete="new-password" to prevent browser autofill */}
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} placeholder="Password" autoComplete="new-password" className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white focus:border-amber-400 focus:outline-none" />
             {errorMsg && <p className="text-sm font-bold text-rose-400">{errorMsg}</p>}
             <button onClick={handleLogin} disabled={loading} className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-bold hover:bg-amber-400 transition disabled:opacity-50">{loading ? "Verifying..." : "Access Dashboard →"}</button>
           </div>
@@ -341,7 +343,6 @@ export default function AdminPage() {
                   </div>
                   <div className="border-t border-slate-200 pt-4">
                     <h3 className="font-bold text-slate-900 mb-3">⚖️ Your Decision</h3>
-                    {/* ✅ FIXED: Added bg-white and text-slate-900 to make text visible */}
                     <textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Admin notes (required for audit trail)..." rows={3} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 mb-3 focus:border-amber-500 focus:outline-none" />
                     <div className="grid grid-cols-2 gap-3">
                       <button onClick={() => setAction("refund_buyer")} disabled={!adminNote.trim() || resolving} className="bg-rose-600 text-white py-3 rounded-lg font-bold hover:bg-rose-700 disabled:opacity-50">💸 Refund Buyer</button>
