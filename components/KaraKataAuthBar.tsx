@@ -1,12 +1,7 @@
-import { usePathname } from "next/navigation";
-
-// Inside the component function, add this right at the top:
-const pathname = usePathname();
-if (pathname?.startsWith("/admin")) return null;
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient(
@@ -15,6 +10,14 @@ const sb = createClient(
 );
 
 export default function KaraKataAuthBar() {
+  // ✅ 1. Call the hook INSIDE the component
+  const pathname = usePathname();
+  
+  // ✅ 2. Hide this component completely on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -52,7 +55,6 @@ export default function KaraKataAuthBar() {
 
   if (!user) {
     return (
-      // ✅ INDUSTRY STANDARD: Subtle gray subtitle, bold amber title
       <Link href="/auth" className="flex flex-col items-end hover:opacity-80 transition">
         <span className="text-[10px] text-slate-300">Hello, sign in</span>
         <span className="text-sm font-bold text-amber-400">Account & Lists</span>
