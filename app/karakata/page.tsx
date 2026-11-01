@@ -86,8 +86,15 @@ export default function Market() {
     (async () => {
       try {
         const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-        const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name)");
-        const live = (data || []).filter((l: any) => !l.status || l.status === "active");
+           // ✅ Fetch seller status along with shop_name
+   const { data } = await sb.from("kara_listings").select("*, sellers:seller_id(shop_name, status)");
+   
+   // ✅ STRICT FILTER: ONLY show real, approved, active listings
+   const live = (data || []).filter((l: any) => 
+     !l.is_demo &&                  // Must NOT be a demo/placeholder
+     l.status === "active" &&       // Listing must be explicitly active
+     l.sellers?.status === "approved" // Seller must be approved by Admin
+   );
         const seen = new Set<string>();
         const uniq = live.filter((l: any) => {
           const k = String(l.title || "").toLowerCase() + "|" + String(l.seller_id || 0);
