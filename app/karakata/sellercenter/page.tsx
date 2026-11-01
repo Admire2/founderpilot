@@ -11,7 +11,8 @@ const OCC = ["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Fe
 
 export default function SellerCenter() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  // ✅ UPDATED: Allow step to be a number or a status string
+  const [step, setStep] = useState<number | 'pending_review' | 'rejected'>(1);
   const [loading, setLoading] = useState(true);
   const [stripeSuccess, setStripeSuccess] = useState(false);
   
@@ -34,16 +35,12 @@ export default function SellerCenter() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
-        // 1. Check for Stripe redirect success
         const params = new URLSearchParams(window.location.search);
         if (params.get('connect') === 'done') {
           setStripeSuccess(true);
         }
 
-        // 2. FIRST: Check if we explicitly saved the onboarding email
         let userEmail = localStorage.getItem("kara_seller_onboarding_email");
-        
-        // 3. FALLBACK: Get email from Supabase localStorage if not explicitly saved
         if (!userEmail) {
           try {
             for (let i = 0; i < localStorage.length; i++) {
@@ -59,32 +56,38 @@ export default function SellerCenter() {
           } catch (e) {}
         }
         
-        // If still no email, just show Step 1
         if (!userEmail) { 
           setLoading(false); 
           return; 
         }
 
-        // 4. Check if seller profile exists for this specific email
         const profileRes = await fetch(`/api/karakata/aje?action=report&email=${encodeURIComponent(userEmail)}`);
         const profileData = await profileRes.json();
 
         if (profileData.ok && profileData.seller) {
-          // Profile exists, populate fields with REAL database data
-          setShop(profileData.seller.shop_name || "");
-          setEmail(profileData.seller.email || userEmail);
-          setPhone(profileData.seller.phone || "");
-          setWa(profileData.seller.whatsapp || "");
-          setCity(profileData.seller.city || "");
-          setCountry(profileData.seller.country || "");
-          setCat(profileData.seller.category || CATS[0]);
-          setCraft(profileData.seller.craft || "");
+          // ✅ NEW: Check seller status before proceeding
+          const sellerStatus = profileData.seller.status || 'pending';
+          
+          if (sellerStatus === 'pending') {
+            setStep('pending_review');
+          } else if (sellerStatus === 'rejected') {
+            setStep('rejected');
+          } else if (sellerStatus === 'approved') {
+            // Profile exists and is approved, populate fields
+            setShop(profileData.seller.shop_name || "");
+            setEmail(profileData.seller.email || userEmail);
+            setPhone(profileData.seller.phone || "");
+            setWa(profileData.seller.whatsapp || "");
+            setCity(profileData.seller.city || "");
+            setCountry(profileData.seller.country || "");
+            setCat(profileData.seller.category || CATS[0]);
+            setCraft(profileData.seller.craft || "");
 
-          // 5. Check if they have any listings to determine the step
-          if (profileData.listings && profileData.listings.length > 0) {
-            setStep(3); // Has product, skip to Step 3
-          } else {
-            setStep(2); // Has profile but no product, go to Step 2
+            if (profileData.listings && profileData.listings.length > 0) {
+              setStep(3); 
+            } else {
+              setStep(2); 
+            }
           }
         }
       } catch (error) {
@@ -100,15 +103,32 @@ export default function SellerCenter() {
     if (!shop.trim() || !email.trim()) { setPMsg("Shop name and email are required."); return; }
     setPBusy(true); setPMsg("");
     try {
-      const r = await fetch("/api/karakata/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, shop_name: shop, category: cat, country, city, craft, phone, whatsapp: wa }) });
-      await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
-      const j = await r.json();
-      setPMsg(j.ok ? "Profile saved! Kara has queued your welcome email." : (j.error || "Failed."));
+      // ✅ UPDATED: Explicitly send is_demo: false and status: 'pending'
+      const r = await fetch("/api/karakata/apply", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          email, 
+          shop_name: shop, 
+          category: cat, 
+          country, 
+          city, 
+          craft, 
+          phone, 
+          whatsapp: wa,
+          is_demo: false,
+          status: 'pending'
+        }) 
+      });
       
-      // 👇 CRITICAL FIX: Explicitly remember the email for page reloads
+      await fetch("/api/karakata/aje", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "consent", email, consent_inventory: cInv, consent_funding: cFun, consent_bi: cBi }) });
+      
+      const j = await r.json();
+      setPMsg(j.ok ? "Profile submitted for admin review!" : (j.error || "Failed."));
+      
       if (j.ok) {
         localStorage.setItem("kara_seller_onboarding_email", email);
-        setTimeout(() => setStep(2), 1500); // AUTO-ADVANCE ON SUCCESS
+        setTimeout(() => setStep('pending_review'), 1500); // ✅ Redirect to pending screen on success
       }
     } catch (e) { setPMsg("Connection error."); }
     setPBusy(false);
@@ -124,10 +144,9 @@ export default function SellerCenter() {
       const j = await r.json();
       setLMsg(j.ok ? "Product LIVE on KaraKata Market!" : (j.error || "Failed."));
       
-      // 👇 CRITICAL FIX: Explicitly remember the email here too, just in case
       if (j.ok) {
         localStorage.setItem("kara_seller_onboarding_email", email);
-        setTimeout(() => setStep(3), 1500); // AUTO-ADVANCE ON SUCCESS
+        setTimeout(() => setStep(3), 1500); 
       }
     } catch (e) { setLMsg("Connection error."); }
     setLBusy(false);
@@ -146,7 +165,6 @@ export default function SellerCenter() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top Nav */}
       <div className="border-b border-slate-200 bg-white px-6 py-4 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => window.history.length > 1 ? router.back() : router.push('/karakata/build')} className="text-sm font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition">← Back</button>
         <div className="flex gap-3">
@@ -160,23 +178,61 @@ export default function SellerCenter() {
         <h1 className="text-3xl font-bold text-slate-900">🧑‍💼 Seller Onboarding</h1>
         <p className="mt-2 text-slate-600">Launch your store in 3 simple steps. No listing fees, AI-empowered.</p>
 
-        {/* Progress Bar */}
-        <div className="mt-8 flex items-center justify-between mb-2">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex flex-col items-center flex-1">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition ${step >= s ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-300 text-slate-400"}`}>
-                {step > s ? "✓" : s}
-              </div>
-              <p className={`mt-2 text-xs font-bold ${step >= s ? "text-emerald-700" : "text-slate-400"}`}>
-                {s === 1 ? "Shop Profile" : s === 2 ? "First Listing" : "Get Paid"}
-              </p>
+        {/* ✅ NEW: PENDING REVIEW STATE */}
+        {step === 'pending_review' && (
+          <div className="mt-8 bg-white rounded-2xl border border-amber-200 shadow-sm p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⏳</span>
             </div>
-          ))}
-        </div>
-        <div className="relative -mt-6 mb-8">
-          <div className="absolute top-5 left-0 w-full h-1 bg-slate-200 -z-10 rounded" />
-          <div className="absolute top-5 left-0 h-1 bg-emerald-600 transition-all duration-500 -z-10 rounded" style={{ width: `${((step - 1) / 2) * 100}%` }} />
-        </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Application Under Review</h2>
+            <p className="text-slate-600 mb-6 max-w-md mx-auto">
+              Thank you for applying to sell on KaraKata! Our admin team is currently reviewing your shop profile. 
+              We will notify you via email once your account is approved.
+            </p>
+            <button onClick={() => router.push('/karakata')} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+              Return to Marketplace
+            </button>
+          </div>
+        )}
+
+        {/* ✅ NEW: REJECTED STATE */}
+        {step === 'rejected' && (
+          <div className="mt-8 bg-white rounded-2xl border border-rose-200 shadow-sm p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">❌</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Application Not Approved</h2>
+            <p className="text-slate-600 mb-6 max-w-md mx-auto">
+              Unfortunately, your seller application did not meet our current marketplace guidelines. 
+              If you believe this is an error, please contact our support team.
+            </p>
+            <button onClick={() => router.push('/karakata')} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+              Return to Marketplace
+            </button>
+          </div>
+        )}
+
+        {/* PROGRESS BAR (Only show if step is 1, 2, or 3) */}
+        {typeof step === 'number' && (
+          <>
+            <div className="mt-8 flex items-center justify-between mb-2">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className="flex flex-col items-center flex-1">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition ${step >= s ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-300 text-slate-400"}`}>
+                    {step > s ? "✓" : s}
+                  </div>
+                  <p className={`mt-2 text-xs font-bold ${step >= s ? "text-emerald-700" : "text-slate-400"}`}>
+                    {s === 1 ? "Shop Profile" : s === 2 ? "First Listing" : "Get Paid"}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="relative -mt-6 mb-8">
+              <div className="absolute top-5 left-0 w-full h-1 bg-slate-200 -z-10 rounded" />
+              <div className="absolute top-5 left-0 h-1 bg-emerald-600 transition-all duration-500 -z-10 rounded" style={{ width: `${((step - 1) / 2) * 100}%` }} />
+            </div>
+          </>
+        )}
 
         {/* STEP 1: SHOP PROFILE */}
         {step === 1 && (
@@ -212,7 +268,7 @@ export default function SellerCenter() {
 
             <div className="mt-6 flex justify-end">
               <button onClick={saveProfile} disabled={pBusy} className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition flex items-center gap-2 shadow-sm">
-                {pBusy ? "Saving..." : "Save & Continue →"}
+                {pBusy ? "Saving..." : "Submit for Review →"}
               </button>
             </div>
             {pMsg && <p className="mt-3 text-center text-sm font-bold text-emerald-700">{pMsg}</p>}
@@ -312,7 +368,7 @@ export default function SellerCenter() {
 
             <div className="flex justify-between items-center">
               <button onClick={() => setStep(2)} className="text-slate-500 font-bold hover:text-slate-800 text-sm transition">← Back</button>
-              <Link href="/karakata/sellercenter" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
+              <Link href="/karakata/sellercenter/dashboard" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm">
                 Go to Seller Dashboard →
               </Link>
             </div>
@@ -324,4 +380,3 @@ export default function SellerCenter() {
     </main>
   );
 }
-
