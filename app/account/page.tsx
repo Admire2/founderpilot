@@ -24,12 +24,13 @@ export default function AccountPage() {
       
       setUser(session.user);
 
-      // Fetch user's orders
+      // ✅ QUOTA-FRIENDLY: Fetch ONLY the last 3 orders, select ONLY needed columns
       const { data: orderData } = await sb
         .from("kara_orders")
-        .select("*")
+        .select("id, total_amount, status, created_at, stripe_session_id")
         .eq("buyer_email", session.user.email)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(3);
       
       if (orderData) setOrders(orderData);
 
@@ -58,8 +59,8 @@ export default function AccountPage() {
     switch (status?.toLowerCase()) {
       case "escrow_active": return "bg-blue-100 text-blue-800";
       case "shipped": return "bg-purple-100 text-purple-800";
-      case "completed": return "bg-emerald-100 text-emerald-800";
-      case "canceled": return "bg-rose-100 text-rose-800";
+      case "completed": case "delivered": return "bg-emerald-100 text-emerald-800";
+      case "canceled": case "cancelled": return "bg-rose-100 text-rose-800";
       case "dispute_open": return "bg-orange-100 text-orange-800";
       default: return "bg-slate-100 text-slate-800";
     }
@@ -87,22 +88,29 @@ export default function AccountPage() {
               <p className="text-sm text-slate-500 text-center mb-4">{user?.email}</p>
               
               <div className="space-y-2">
+                {/* ✅ NEW: Direct link to the full Order History page */}
+                <Link href="/account/orders" className="block w-full text-center py-2.5 rounded-lg font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                  📦 View All Orders
+                </Link>
                 <Link href="/karakata/sellercenter" className={`block w-full text-center py-2.5 rounded-lg font-bold text-sm transition ${isSeller ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-amber-400 text-slate-900 hover:bg-amber-300"}`}>
                   {isSeller ? "🏪 Go to Seller Center" : "🚀 Become a Seller"}
                 </Link>
                 <Link href="/karakata/track" className="block w-full text-center py-2.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-                  📦 Track an Order
+                  📍 Track an Order
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* Right Main: Order History */}
+          {/* Right Main: Recent Order History Summary */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-slate-100">
-                <h2 className="text-xl font-bold text-slate-900">Order History</h2>
-                <p className="text-sm text-slate-500">View and track all your KaraKata purchases.</p>
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Recent Orders</h2>
+                  <p className="text-sm text-slate-500">Your latest KaraKata purchases.</p>
+                </div>
+                <Link href="/account/orders" className="text-sm font-bold text-emerald-700 hover:underline">View All →</Link>
               </div>
               
               <div className="divide-y divide-slate-100">
@@ -125,7 +133,7 @@ export default function AccountPage() {
                       </div>
                       <div className="flex items-center justify-between mt-4">
                         <p className="font-bold text-slate-900">${Number(order.total_amount).toFixed(2)}</p>
-                        <Link href={`/karakata/track?email=${encodeURIComponent(user.email)}&orderId=${order.stripe_session_id || ""}`} className="text-sm font-bold text-cyan-600 hover:underline">
+                        <Link href={`/karakata/track?orderId=${order.id}`} className="text-sm font-bold text-cyan-600 hover:underline">
                           View Details →
                         </Link>
                       </div>
