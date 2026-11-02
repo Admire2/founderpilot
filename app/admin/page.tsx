@@ -15,7 +15,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ✅ UPDATED: Added "sellers" to the activeTab type
   const [activeTab, setActiveTab] = useState<"credits" | "disputes" | "audit" | "sellers">("credits");
   
   const [creditsEmail, setCreditsEmail] = useState("");
@@ -35,7 +34,6 @@ export default function AdminPage() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
 
-  // ✅ NEW: State for Pending Sellers
   const [pendingSellers, setPendingSellers] = useState<any[]>([]);
   const [loadingSellers, setLoadingSellers] = useState(false);
   const [sellerMsg, setSellerMsg] = useState("");
@@ -85,16 +83,23 @@ export default function AdminPage() {
     setLoading(false);
   };
 
+  // ✅ THIS IS THE BULLETPROOF FIX THAT WAS MISSING:
   const start2FAEnrollment = async () => {
     setLoading(true); setErrorMsg("");
     try {
+      // 1. List all existing factors
       const { data: existingFactorsData } = await sb.auth.mfa.listFactors();
       const existingFactors = existingFactorsData?.factors || [];
+      
+      // 2. Destroy ANY stuck factors before creating a new one
       for (const factor of existingFactors) {
         await sb.auth.mfa.unenroll({ factorId: factor.id });
       }
+
+      // 3. Enroll the new factor with a specific name to prevent blank-name 422 errors
       const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "KaraKata Admin" });
       if (error) throw error;
+      
       setMfaFactorId(data.id);
       setQrCodeUrl(data.totp.qr_code);
       setTotpSecret(data.totp.secret);
@@ -179,7 +184,6 @@ export default function AdminPage() {
     setLoadingAudit(false);
   };
 
-  // ✅ NEW: Fetch pending sellers
   const fetchPendingSellers = async () => {
     setLoadingSellers(true);
     try {
@@ -197,10 +201,9 @@ export default function AdminPage() {
     setLoadingSellers(false);
   };
 
-  // ✅ NEW: Handle approve/reject action
   const handleSellerAction = async (sellerId: string, action: "approve" | "reject") => {
     const note = prompt(`Enter admin note for ${action}ing this seller:`);
-    if (note === null) return; // User cancelled
+    if (note === null) return;
 
     setSellerMsg("Processing...");
     try {
@@ -216,7 +219,7 @@ export default function AdminPage() {
       const j = await r.json();
       if (j.ok) {
         setSellerMsg(`✅ Seller ${action === "approve" ? "approved" : "rejected"} successfully!`);
-        fetchPendingSellers(); // Refresh the list
+        fetchPendingSellers();
       } else {
         setSellerMsg(`❌ ${j.error}`);
       }
@@ -322,7 +325,6 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab("credits")} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "credits" ? "border-b-2 border-amber-500 text-amber-600" : "text-slate-500 hover:text-slate-700"}`}>💳 Credits</button>
           <button onClick={() => { setActiveTab("disputes"); if (disputes.length === 0) fetchDisputes(); }} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "disputes" ? "border-b-2 border-rose-500 text-rose-600" : "text-slate-500 hover:text-slate-700"}`}>⚖️ Disputes</button>
           <button onClick={() => { setActiveTab("audit"); if (auditLogs.length === 0) fetchAuditLogs(); }} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "audit" ? "border-b-2 border-slate-800 text-slate-800" : "text-slate-500 hover:text-slate-700"}`}>📜 Audit Log</button>
-          {/* ✅ NEW TAB BUTTON */}
           <button onClick={() => { setActiveTab("sellers"); fetchPendingSellers(); }} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "sellers" ? "border-b-2 border-purple-500 text-purple-600" : "text-slate-500 hover:text-slate-700"}`}>🏪 Pending Sellers</button>
         </div>
 
@@ -486,7 +488,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ✅ NEW: PENDING SELLERS TAB CONTENT */}
         {activeTab === "sellers" && (
           <div>
             <div className="flex justify-between items-center mb-4">
