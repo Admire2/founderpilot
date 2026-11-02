@@ -15,7 +15,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"credits" | "disputes" | "audit">("credits");
+  // ✅ UPDATED: Added "sellers" to the activeTab type
+  const [activeTab, setActiveTab] = useState<"credits" | "disputes" | "audit" | "sellers">("credits");
   
   const [creditsEmail, setCreditsEmail] = useState("");
   const [creditsAmount, setCreditsAmount] = useState("");
@@ -33,6 +34,11 @@ export default function AdminPage() {
 
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
+
+  // ✅ NEW: State for Pending Sellers
+  const [pendingSellers, setPendingSellers] = useState<any[]>([]);
+  const [loadingSellers, setLoadingSellers] = useState(false);
+  const [sellerMsg, setSellerMsg] = useState("");
 
   useEffect(() => {
     const checkSession = async () => {
@@ -79,22 +85,16 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // ✅ BULLETPROOF FIX: Nuke ghost factors before enrolling
   const start2FAEnrollment = async () => {
     setLoading(true); setErrorMsg("");
     try {
       const { data: existingFactorsData } = await sb.auth.mfa.listFactors();
       const existingFactors = existingFactorsData?.factors || [];
-      
-      // Destroy any stuck factors
       for (const factor of existingFactors) {
         await sb.auth.mfa.unenroll({ factorId: factor.id });
       }
-
-      // Enroll new factor with a specific name to prevent blank-name 422 errors
       const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "KaraKata Admin" });
       if (error) throw error;
-      
       setMfaFactorId(data.id);
       setQrCodeUrl(data.totp.qr_code);
       setTotpSecret(data.totp.secret);
@@ -177,6 +177,52 @@ export default function AdminPage() {
       setAuditLogs(data || []);
     } catch (e) { console.error("Failed to fetch audit logs", e); }
     setLoadingAudit(false);
+  };
+
+  // ✅ NEW: Fetch pending sellers
+  const fetchPendingSellers = async () => {
+    setLoadingSellers(true);
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const r = await fetch("/api/admin/sellers/pending", { 
+        headers: { "Authorization": `Bearer ${session?.access_token}` } 
+      });
+      const j = await r.json();
+      if (j.ok) {
+        setPendingSellers(j.sellers || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch pending sellers", e);
+    }
+    setLoadingSellers(false);
+  };
+
+  // ✅ NEW: Handle approve/reject action
+  const handleSellerAction = async (sellerId: string, action: "approve" | "reject") => {
+    const note = prompt(`Enter admin note for ${action}ing this seller:`);
+    if (note === null) return; // User cancelled
+
+    setSellerMsg("Processing...");
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const r = await fetch("/api/admin/sellers/approve", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ seller_id: sellerId, action, admin_note: note })
+      });
+      const j = await r.json();
+      if (j.ok) {
+        setSellerMsg(`✅ Seller ${action === "approve" ? "approved" : "rejected"} successfully!`);
+        fetchPendingSellers(); // Refresh the list
+      } else {
+        setSellerMsg(`❌ ${j.error}`);
+      }
+    } catch (e) {
+      setSellerMsg("❌ Network error");
+    }
   };
 
   if (step === "login") {
@@ -276,6 +322,8 @@ export default function AdminPage() {
           <button onClick={() => setActiveTab("credits")} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "credits" ? "border-b-2 border-amber-500 text-amber-600" : "text-slate-500 hover:text-slate-700"}`}>💳 Credits</button>
           <button onClick={() => { setActiveTab("disputes"); if (disputes.length === 0) fetchDisputes(); }} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "disputes" ? "border-b-2 border-rose-500 text-rose-600" : "text-slate-500 hover:text-slate-700"}`}>⚖️ Disputes</button>
           <button onClick={() => { setActiveTab("audit"); if (auditLogs.length === 0) fetchAuditLogs(); }} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "audit" ? "border-b-2 border-slate-800 text-slate-800" : "text-slate-500 hover:text-slate-700"}`}>📜 Audit Log</button>
+          {/* ✅ NEW TAB BUTTON */}
+          <button onClick={() => { setActiveTab("sellers"); fetchPendingSellers(); }} className={`px-6 py-3 font-bold text-sm transition ${activeTab === "sellers" ? "border-b-2 border-purple-500 text-purple-600" : "text-slate-500 hover:text-slate-700"}`}>🏪 Pending Sellers</button>
         </div>
 
         {activeTab === "credits" && (
@@ -437,6 +485,73 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ✅ NEW: PENDING SELLERS TAB CONTENT */}
+        {activeTab === "sellers" && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-slate-900">Pending Seller Applications</h2>
+              <button onClick={fetchPendingSellers} disabled={loadingSellers} className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50 text-sm">
+                {loadingSellers ? "Refreshing..." : "🔄 Refresh"}
+              </button>
+            </div>
+            {sellerMsg && (
+              <div className={`mb-4 p-3 rounded-lg text-sm font-bold ${sellerMsg.startsWith("✅") ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
+                {sellerMsg}
+              </div>
+            )}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Shop Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Applied</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pendingSellers.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
+                          No pending seller applications 🎉
+                        </td>
+                      </tr>
+                    ) : (
+                      pendingSellers.map((seller) => (
+                        <tr key={seller.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-bold text-slate-900">{seller.shop_name}</td>
+                          <td className="px-4 py-3 text-xs text-slate-600">{seller.email}</td>
+                          <td className="px-4 py-3 text-xs text-slate-600">{seller.category || "N/A"}</td>
+                          <td className="px-4 py-3 text-xs text-slate-500">{new Date(seller.created_at).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSellerAction(seller.id, "approve")}
+                                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition"
+                              >
+                                ✅ Approve
+                              </button>
+                              <button
+                                onClick={() => handleSellerAction(seller.id, "reject")}
+                                className="text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition"
+                              >
+                                ❌ Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </main>
   );
