@@ -41,6 +41,22 @@ export default function SellerDashboard() {
         router.push("/account");
         return;
       }
+
+      // ✅ FOOLPROOF GUARD RAIL: Check seller status before rendering dashboard
+      if (sellerData.status === 'pending') {
+        // We set a temporary state to trigger the render, or just return the JSX directly
+        // Since we are in useEffect, we can't return JSX directly. We'll set a state or redirect.
+        // Better approach: set a state variable for status and handle it in the main render.
+        setSeller({ ...sellerData, _guard: 'pending' });
+        setLoading(false);
+        return;
+      }
+
+      if (sellerData.status === 'rejected') {
+        setSeller({ ...sellerData, _guard: 'rejected' });
+        setLoading(false);
+        return;
+      }
       
       setSeller(sellerData);
 
@@ -68,6 +84,49 @@ export default function SellerDashboard() {
   }, [router]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading Dashboard...</p></div>;
+
+  // ✅ RENDER GUARD RAILS
+  if (seller?._guard === 'pending') {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-amber-200 shadow-lg p-8 text-center max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">⏳</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Application Under Review</h2>
+          <p className="text-slate-600 mb-6 leading-relaxed">
+            Thank you for applying to sell on KaraKata! Our admin team is currently reviewing your shop profile to ensure marketplace quality. 
+            <br /><br />
+            We will notify you via email the moment your account is approved.
+          </p>
+          <Link href="/karakata" className="w-full block bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+            Return to Marketplace
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (seller?._guard === 'rejected') {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-rose-200 shadow-lg p-8 text-center max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">❌</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Application Not Approved</h2>
+          <p className="text-slate-600 mb-6 leading-relaxed">
+            Unfortunately, your seller application did not meet our current marketplace guidelines. 
+            <br /><br />
+            If you believe this is an error, please contact our support team.
+          </p>
+          <Link href="/karakata" className="w-full block bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+            Return to Marketplace
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
