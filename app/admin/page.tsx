@@ -47,7 +47,6 @@ export default function AdminPage() {
           const { data: factorsData } = await sb.auth.mfa.listFactors();
           const totpFactor = factorsData?.factors?.find((f: any) => f.factor_type === "totp" && f.status === "verified");
           
-          // ✅ FIXED: If verified factor exists, ask for 6-digit code. Do NOT skip to dashboard or create new one.
           if (totpFactor) {
             setStep("verify-2fa");
             setMfaFactorId(totpFactor.id);
@@ -85,6 +84,7 @@ export default function AdminPage() {
     setLoading(false);
   };
 
+  // ✅ FOOLPROOF FIX: Use a UNIQUE name with a timestamp so it NEVER conflicts!
   const start2FAEnrollment = async () => {
     setLoading(true); setErrorMsg("");
     try {
@@ -95,7 +95,8 @@ export default function AdminPage() {
         await sb.auth.mfa.unenroll({ factorId: factor.id });
       }
 
-      const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "KaraKata Admin" });
+      const uniqueName = `KaraKata Admin ${Date.now()}`;
+      const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: uniqueName });
       if (error) throw error;
       
       setMfaFactorId(data.id);
