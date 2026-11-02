@@ -46,9 +46,11 @@ export default function AdminPage() {
         if (profile?.role === "admin") {
           const { data: factorsData } = await sb.auth.mfa.listFactors();
           const totpFactor = factorsData?.factors?.find((f: any) => f.factor_type === "totp" && f.status === "verified");
+          
+          // ✅ FIXED: If verified factor exists, ask for 6-digit code. Do NOT skip to dashboard or create new one.
           if (totpFactor) {
-            setStep("dashboard");
-            fetchDisputes();
+            setStep("verify-2fa");
+            setMfaFactorId(totpFactor.id);
           } else {
             setStep("setup-2fa");
             start2FAEnrollment();
@@ -83,20 +85,16 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // ✅ THIS IS THE BULLETPROOF FIX:
   const start2FAEnrollment = async () => {
     setLoading(true); setErrorMsg("");
     try {
-      // 1. List all existing factors
       const { data: existingFactorsData } = await sb.auth.mfa.listFactors();
       const existingFactors = existingFactorsData?.factors || [];
       
-      // 2. Destroy ANY stuck factors before creating a new one
       for (const factor of existingFactors) {
         await sb.auth.mfa.unenroll({ factorId: factor.id });
       }
 
-      // 3. Enroll the new factor
       const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "KaraKata Admin" });
       if (error) throw error;
       
