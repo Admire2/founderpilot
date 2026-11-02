@@ -83,7 +83,7 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // ✅ THIS IS THE BULLETPROOF FIX THAT WAS MISSING:
+  // ✅ THIS IS THE BULLETPROOF FIX:
   const start2FAEnrollment = async () => {
     setLoading(true); setErrorMsg("");
     try {
@@ -96,7 +96,7 @@ export default function AdminPage() {
         await sb.auth.mfa.unenroll({ factorId: factor.id });
       }
 
-      // 3. Enroll the new factor with a specific name to prevent blank-name 422 errors
+      // 3. Enroll the new factor
       const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "KaraKata Admin" });
       if (error) throw error;
       
