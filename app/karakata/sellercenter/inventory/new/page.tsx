@@ -195,7 +195,6 @@ export default function AddProductPage() {
         const variantsData = await variantsRes.json();
         if (!variantsData.ok) {
           console.error("Failed to save variants:", variantsData.error);
-          // We still show success for the listing, but log the variant error
         }
 
         setMessage({ type: "success", text: "✅ Product and variants created successfully!" });
