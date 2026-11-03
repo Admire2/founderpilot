@@ -17,7 +17,7 @@ export default function AddProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [sellerId, setSellerId] = useState<string | number | null>(null);
-  const [sellerEmail, setSellerEmail] = useState(""); // ✅ NEW: Store email for API fallback
+  const [sellerEmail, setSellerEmail] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [title, setTitle] = useState("");
@@ -31,7 +31,8 @@ export default function AddProductPage() {
   const [videoUrl, setVideoUrl] = useState("");
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  const [variants, setVariants] = useState([{ size: "", color: "", price: "", stock: "", sku: "" }]);
+  // ✅ ADDED: material to the variant state
+  const [variants, setVariants] = useState([{ size: "", color: "", material: "", price: "", stock: "", sku: "" }]);
   const [weightLbs, setWeightLbs] = useState("1");
   const [domesticShipping, setDomesticShipping] = useState("10");
   const [internationalShipping, setInternationalShipping] = useState("25");
@@ -46,12 +47,11 @@ export default function AddProductPage() {
       
       setSellerEmail(session.user.email);
 
-      // ✅ PERMANENT FIX: Always grab the MOST RECENT seller profile for this email
       const { data: sellerData } = await sb
         .from("sellers")
         .select("id")
         .eq("email", session.user.email)
-        .order("created_at", { ascending: false }) // Grabs the newest store first!
+        .order("created_at", { ascending: false })
         .single();
         
       if (sellerData) {
@@ -106,21 +106,14 @@ export default function AddProductPage() {
       try {
         const { error } = await sb.storage
           .from("kara")
-          .upload(fileName, file, { 
-            upsert: true, 
-            cacheControl: "3600",
-            contentType: file.type 
-          });
+          .upload(fileName, file, { upsert: true, cacheControl: "3600", contentType: file.type });
 
         if (error) throw error;
 
         const { data: { publicUrl } } = sb.storage.from("kara").getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
       } catch (error: any) {
-        setMessage({ 
-          type: "error", 
-          text: `Failed to upload ${file.name}. Error: ${error.message}` 
-        });
+        setMessage({ type: "error", text: `Failed to upload ${file.name}. Error: ${error.message}` });
         setUploadingImages(false);
         return [];
       }
@@ -136,7 +129,7 @@ export default function AddProductPage() {
     setVariants(updated);
   };
 
-  const addVariantRow = () => setVariants([...variants, { size: "", color: "", price: "", stock: "", sku: "" }]);
+  const addVariantRow = () => setVariants([...variants, { size: "", color: "", material: "", price: "", stock: "", sku: "" }]);
   const removeVariantRow = (index: number) => setVariants(variants.filter((_, i) => i !== index));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,30 +158,49 @@ export default function AddProductPage() {
 
     try {
       const uploadedUrls = await uploadImagesToStorage();
-      
       if (uploadedUrls.length === 0) {
         setLoading(false);
         return;
       }
 
+      // 1. Create the main listing first
       const res = await fetch("/api/karakata/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           seller_id: sellerId,
-          seller_email: sellerEmail, // ✅ BULLETPROOF: Send email for API fallback lookup
+          seller_email: sellerEmail,
           title, description, category, condition, gender_use: genderUse,
-          images: uploadedUrls, video_url: videoUrl, variants: validVariants,
+          images: uploadedUrls, video_url: videoUrl,
           weight_lbs: weightLbs, domestic_shipping: domesticShipping, international_shipping: internationalShipping
         }),
       });
       
       const data = await res.json();
       
-      if (data.ok) {
-        setMessage({ type: "success", text: "✅ Product created successfully!" });
+      if (data.ok && (data.id || data.listing_id)) {
+        const newListingId = data.id || data.listing_id;
+
+        // 2. ✅ NEW: Save variants to the dedicated product_variants table
+        const variantsRes = await fetch("/api/karakata/variants", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            listing_id: newListingId,
+            seller_id: sellerId,
+            variants: validVariants
+          }),
+        });
+        
+        const variantsData = await variantsRes.json();
+        if (!variantsData.ok) {
+          console.error("Failed to save variants:", variantsData.error);
+          // We still show success for the listing, but log the variant error
+        }
+
+        setMessage({ type: "success", text: "✅ Product and variants created successfully!" });
         imagePreviews.forEach(url => URL.revokeObjectURL(url));
-        setTimeout(() => router.push("/karakata"), 1500);
+        setTimeout(() => router.push("/karakata/sellercenter/inventory"), 1500);
       } else {
         setMessage({ type: "error", text: data.error || "Failed to save product." });
       }
@@ -203,10 +215,10 @@ export default function AddProductPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <Link href="/karakata/sellercenter" className="text-sm font-bold text-emerald-700 hover:underline mb-6 inline-block">← Back to Seller Center</Link>
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Add New Product</h1>
-        <p className="text-slate-600 mb-8">Create a new listing with multiple images and size/color variants.</p>
+        <p className="text-slate-600 mb-8">Create a new listing with multiple images and size/color/material variants.</p>
 
         {message && (
           <div className={`mb-6 p-4 rounded-lg text-sm font-bold ${message.type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
@@ -289,19 +301,26 @@ export default function AddProductPage() {
           </section>
 
           <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">3. Variants (Size, Color, Price, Stock)</h2>
-            <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50">
-              <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-600 uppercase">
-                <div className="col-span-2">Size</div><div className="col-span-2">Color</div><div className="col-span-2">Price ($)</div><div className="col-span-2">Stock</div><div className="col-span-3">SKU</div><div className="col-span-1"></div>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">3. Variants (Size, Color, Material, Price, Stock)</h2>
+            <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50 overflow-x-auto">
+              <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-600 uppercase min-w-[600px]">
+                <div className="col-span-2">Size</div>
+                <div className="col-span-2">Color</div>
+                <div className="col-span-2">Material</div>
+                <div className="col-span-2">Price ($)</div>
+                <div className="col-span-2">Stock</div>
+                <div className="col-span-1">SKU</div>
+                <div className="col-span-1"></div>
               </div>
               {variants.map((v, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                <div key={idx} className="grid grid-cols-12 gap-2 items-center min-w-[600px]">
                   <input type="text" value={v.size} onChange={e => handleVariantChange(idx, "size", e.target.value)} placeholder="e.g., 42" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" />
                   <input type="text" value={v.color} onChange={e => handleVariantChange(idx, "color", e.target.value)} placeholder="e.g., Black" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" />
+                  <input type="text" value={v.material} onChange={e => handleVariantChange(idx, "material", e.target.value)} placeholder="e.g., Leather" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" />
                   <input type="number" step="0.01" value={v.price} onChange={e => handleVariantChange(idx, "price", e.target.value)} placeholder="50.00" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" required />
                   <input type="number" value={v.stock} onChange={e => handleVariantChange(idx, "stock", e.target.value)} placeholder="10" className="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" required />
-                  <input type="text" value={v.sku} onChange={e => handleVariantChange(idx, "sku", e.target.value)} placeholder="SKU-01" className="col-span-3 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" />
-                  <button type="button" onClick={() => removeVariantRow(idx)} className="col-span-1 text-red-500 hover:text-red-700 font-bold"></button>
+                  <input type="text" value={v.sku} onChange={e => handleVariantChange(idx, "sku", e.target.value)} placeholder="SKU-01" className="col-span-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 placeholder-slate-400" />
+                  <button type="button" onClick={() => removeVariantRow(idx)} className="col-span-1 text-red-500 hover:text-red-700 font-bold text-center text-lg">✕</button>
                 </div>
               ))}
               <button type="button" onClick={addVariantRow} className="text-sm font-bold text-purple-600 hover:underline mt-2">+ Add Another Variant</button>
@@ -309,7 +328,7 @@ export default function AddProductPage() {
           </section>
 
           <button type="submit" disabled={loading || uploadingImages} className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition disabled:opacity-50">
-            {loading ? "Saving Product..." : uploadingImages ? "Uploading Images..." : "Publish Product to Market"}
+            {loading ? "Saving Product & Variants..." : uploadingImages ? "Uploading Images..." : "Publish Product to Market"}
           </button>
         </form>
       </div>
