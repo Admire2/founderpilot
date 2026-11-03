@@ -12,41 +12,51 @@ export default function ProductDetailPage() {
   const id = params.id as string;
 
   const [product, setProduct] = useState<any>(null);
+  const [variantsData, setVariantsData] = useState<any[]>([]); // ✅ NEW: Dedicated variants state
   const [loading, setLoading] = useState(true);
-  const [buyerId, setBuyerId] = useState<string | null>(null); // ✅ NEW: Track logged-in buyer
+  const [buyerId, setBuyerId] = useState<string | null>(null);
   
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedMaterial, setSelectedMaterial] = useState<string>(""); // ✅ NEW
   const [activeVariant, setActiveVariant] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
   const [cartAdded, setCartAdded] = useState(false);
 
-  // ✅ NEW: Contact Seller Modal State
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
   const [sendingInquiry, setSendingInquiry] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
-      // ✅ NEW: Get buyer session
       const { data: { session } } = await sb.auth.getSession();
       if (session?.user) setBuyerId(session.user.id);
 
-      const { data, error } = await sb
+      // 1. Fetch the main listing
+      const { data: listingData, error: listingError } = await sb
         .from("kara_listings")
         .select("*, sellers:seller_id(shop_name, city, country)")
         .eq("id", Number(id))
         .single();
 
-      if (data) {
-        setProduct(data);
-        setMainImage(data.images?.[0] || data.image_url || "/placeholder.jpg");
+      if (listingData) {
+        setProduct(listingData);
+        setMainImage(listingData.images?.[0] || listingData.image_url || "/placeholder.jpg");
         
-        const variants = data.metadata?.variants || [];
-        if (variants.length > 0) {
-          setSelectedColor(variants[0].color);
-          setSelectedSize(variants[0].size);
-          setActiveVariant(variants[0]);
+        // 2. ✅ Fetch variants from the new dedicated table
+        const { data: variants } = await sb
+          .from("product_variants")
+          .select("*")
+          .eq("listing_id", Number(id));
+
+        const variantsList = variants || [];
+        setVariantsData(variantsList);
+        
+        if (variantsList.length > 0) {
+          setSelectedColor(variantsList[0].color || "");
+          setSelectedSize(variantsList[0].size || "");
+          setSelectedMaterial(variantsList[0].material || "");
+          setActiveVariant(variantsList[0]);
         }
       }
       setLoading(false);
@@ -54,40 +64,55 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [id]);
 
+  // ✅ Update active variant when selections change
   useEffect(() => {
-    if (!product?.metadata?.variants) return;
-    const variants = product.metadata.variants;
-    const match = variants.find(
-      (v: any) => v.color === selectedColor && v.size === selectedSize
+    if (variantsData.length === 0) return;
+    
+    const match = variantsData.find(
+      (v: any) => 
+        (v.color || "") === (selectedColor || "") && 
+        (v.size || "") === (selectedSize || "") && 
+        (v.material || "") === (selectedMaterial || "")
     );
-    setActiveVariant(match || variants[0]);
-  }, [selectedColor, selectedSize, product]);
+    
+    // Fallback to the first variant if exact match not found
+    setActiveVariant(match || variantsData[0]);
+  }, [selectedColor, selectedSize, selectedMaterial, variantsData]);
 
   const handleAddToCart = () => {
     if (!activeVariant || !product) return;
 
     try {
       const savedCart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
-      const existingIndex = savedCart.findIndex((c: any) => String(c.id) === String(product.id));
+      
+      // ✅ Check for existing item with the EXACT same variant details
+      const existingIndex = savedCart.findIndex((c: any) => 
+        String(c.listing_id) === String(product.id) && 
+        (c.variant?.color || "") === (activeVariant.color || "") &&
+        (c.variant?.size || "") === (activeVariant.size || "") &&
+        (c.variant?.material || "") === (activeVariant.material || "")
+      );
       
       const cartItem = {
         id: product.id,
         listing_id: product.id,
+        variant_id: activeVariant.id, // ✅ NEW: Link to specific variant
         title: product.title,
-        price_usd: Number(activeVariant.price),
-        price: Number(activeVariant.price),
+        price_usd: Number(activeVariant.price_usd),
+        price: Number(activeVariant.price_usd),
         image_url: mainImage,
         seller_id: product.seller_id,
         qty: 1,
         variant: {
           color: activeVariant.color,
           size: activeVariant.size,
+          material: activeVariant.material,
           sku: activeVariant.sku
         },
         it: { 
           title: product.title, 
-          price_usd: Number(activeVariant.price), 
-          price: Number(activeVariant.price), 
+          price_usd: Number(activeVariant.price_usd), 
+          price: Number(activeVariant.price_usd), 
           image_url: mainImage, 
           seller_id: product.seller_id 
         }
@@ -111,7 +136,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // ✅ NEW: Handle Contact Seller Inquiry
   const handleSendInquiry = async () => {
     if (!contactMessage.trim()) return;
     if (!buyerId) {
@@ -146,9 +170,10 @@ export default function ProductDetailPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading product...</p></div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="font-bold text-slate-600">Product not found.</p></div>;
 
-  const variants = product.metadata?.variants || [];
-  const availableColors = [...new Set(variants.map((v: any) => v.color))];
-  const availableSizes = [...new Set(variants.map((v: any) => v.size))];
+  // ✅ Derive available options from the new variantsData array
+  const availableColors = [...new Set(variantsData.map((v: any) => v.color).filter(Boolean))];
+  const availableSizes = [...new Set(variantsData.map((v: any) => v.size).filter(Boolean))];
+  const availableMaterials = [...new Set(variantsData.map((v: any) => v.material).filter(Boolean))];
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
@@ -193,86 +218,128 @@ export default function ProductDetailPage() {
               <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
                 <p className="text-sm text-purple-700 font-bold mb-1">Price</p>
                 <p className="text-4xl font-bold text-slate-900">
-                  ${activeVariant ? Number(activeVariant.price).toFixed(2) : Number(product.price_usd).toFixed(2)}
+                  ${activeVariant ? Number(activeVariant.price_usd).toFixed(2) : Number(product.price_usd || 0).toFixed(2)}
                 </p>
-                {activeVariant && Number(activeVariant.stock) < 5 && (
-                  <p className="text-sm text-red-600 font-bold mt-2">️ Only {activeVariant.stock} left in stock!</p>
+                {activeVariant && Number(activeVariant.stock_quantity) < 5 && Number(activeVariant.stock_quantity) > 0 && (
+                  <p className="text-sm text-red-600 font-bold mt-2">🔥 Only {activeVariant.stock_quantity} left in stock!</p>
                 )}
               </div>
 
-              {/* Variant Selectors */}
+              {/* ✅ Variant Selectors */}
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-bold text-slate-700 mb-2">Color: <span className="text-slate-900">{selectedColor}</span></p>
-                  <div className="flex flex-wrap gap-2">
-                    {availableColors.map((color: string) => (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
-                          selectedColor === color 
-                            ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600" 
-                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-                        }`}
-                      >
-                        {color}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-bold text-slate-700 mb-2">Size: <span className="text-slate-900">{selectedSize}</span></p>
-                  <div className="flex flex-wrap gap-2">
-                    {availableSizes.map((size: string) => {
-                      const isAvailable = variants.some((v: any) => v.color === selectedColor && v.size === size && Number(v.stock) > 0);
-                      return (
+                {/* Color Selector */}
+                {availableColors.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-slate-700 mb-2">Color: <span className="text-slate-900">{selectedColor || "Any"}</span></p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableColors.map((color: string) => (
                         <button
-                          key={size}
-                          disabled={!isAvailable}
-                          onClick={() => isAvailable && setSelectedSize(size)}
+                          key={color}
+                          onClick={() => setSelectedColor(color)}
                           className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
-                            selectedSize === size && isAvailable
-                              ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
-                              : !isAvailable
-                              ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
+                            selectedColor === color 
+                              ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600" 
                               : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
                           }`}
                         >
-                          {size}
+                          {color}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Size Selector */}
+                {availableSizes.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-slate-700 mb-2">Size: <span className="text-slate-900">{selectedSize || "Any"}</span></p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableSizes.map((size: string) => {
+                        const isAvailable = variantsData.some((v: any) => 
+                          (v.color || "") === (selectedColor || "") && 
+                          v.size === size && 
+                          (v.material || "") === (selectedMaterial || "") &&
+                          Number(v.stock_quantity) > 0
+                        );
+                        return (
+                          <button
+                            key={size}
+                            disabled={!isAvailable}
+                            onClick={() => isAvailable && setSelectedSize(size)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
+                              selectedSize === size && isAvailable
+                                ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
+                                : !isAvailable
+                                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
+                                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ✅ NEW: Material Selector */}
+                {availableMaterials.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-slate-700 mb-2">Material: <span className="text-slate-900">{selectedMaterial || "Any"}</span></p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableMaterials.map((material: string) => {
+                        const isAvailable = variantsData.some((v: any) => 
+                          (v.color || "") === (selectedColor || "") && 
+                          (v.size || "") === (selectedSize || "") && 
+                          v.material === material &&
+                          Number(v.stock_quantity) > 0
+                        );
+                        return (
+                          <button
+                            key={material}
+                            disabled={!isAvailable}
+                            onClick={() => isAvailable && setSelectedMaterial(material)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
+                              selectedMaterial === material && isAvailable
+                                ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
+                                : !isAvailable
+                                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
+                                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                            }`}
+                          >
+                            {material}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                {/* Add to Cart Button */}
                 <button 
                   onClick={handleAddToCart}
-                  disabled={!activeVariant || Number(activeVariant.stock) === 0 || cartAdded}
+                  disabled={!activeVariant || Number(activeVariant.stock_quantity) === 0 || cartAdded}
                   className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                     cartAdded 
                       ? "bg-emerald-500 text-white shadow-emerald-200" 
                       : "bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200"
                   }`}
                 >
-                  {Number(activeVariant?.stock) === 0 
+                  {Number(activeVariant?.stock_quantity) === 0 
                     ? "Out of Stock" 
                     : cartAdded 
                       ? "✅ Added to Cart!" 
-                      : `Add to Cart - $${Number(activeVariant?.price).toFixed(2)}`
+                      : `Add to Cart - $${Number(activeVariant?.price_usd).toFixed(2)}`
                   }
                 </button>
 
-                {/* ✅ NEW: Contact Seller Button */}
                 <button 
                   onClick={() => setShowContactModal(true)}
                   className="w-full py-3 rounded-xl font-bold text-sm border-2 border-slate-200 text-slate-700 hover:border-purple-300 hover:text-purple-700 hover:bg-purple-50 transition flex items-center justify-center gap-2"
                 >
-                   Contact Seller with Questions
+                   💬 Contact Seller with Questions
                 </button>
               </div>
 
@@ -285,7 +352,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* ✅ NEW: CONTACT SELLER MODAL */}
+      {/* CONTACT SELLER MODAL */}
       {showContactModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
