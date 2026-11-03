@@ -19,6 +19,7 @@ export default function SellerDashboard() {
   const [seller, setSeller] = useState<any>(null);
   const [stats, setStats] = useState({ revenue: 0, activeOrders: 0, pendingShip: 0, products: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [lowStockVariants, setLowStockVariants] = useState<any[]>([]); // ✅ NEW: Low stock state
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,17 +37,12 @@ export default function SellerDashboard() {
         .order("created_at", { ascending: false })
         .single();
 
-      // ✅ ROLE GUARD: If no seller profile exists, this user is a buyer. Redirect to buyer hub.
       if (!sellerData) {
         router.push("/account");
         return;
       }
 
-      // ✅ FOOLPROOF GUARD RAIL: Check seller status before rendering dashboard
       if (sellerData.status === 'pending') {
-        // We set a temporary state to trigger the render, or just return the JSX directly
-        // Since we are in useEffect, we can't return JSX directly. We'll set a state or redirect.
-        // Better approach: set a state variable for status and handle it in the main render.
         setSeller({ ...sellerData, _guard: 'pending' });
         setLoading(false);
         return;
@@ -60,13 +56,14 @@ export default function SellerDashboard() {
       
       setSeller(sellerData);
 
+      // ✅ Fetch Orders and Listings
       const [ordersRes, listingsRes] = await Promise.all([
         sb.from("kara_orders").select("id, status, total_amount, created_at, buyer_email").eq("seller_id", sellerData.id).order("created_at", { ascending: false }),
-        sb.from("kara_listings").select("id").eq("seller_id", sellerData.id)
+        sb.from("kara_listings").select("id, title").eq("seller_id", sellerData.id)
       ]);
 
       const orders = ordersRes.data || [];
-      const products = listingsRes.data || [];
+      const listings = listingsRes.data || [];
 
       const revenue = orders
         .filter(o => o.status === "completed" || o.status === "delivered")
@@ -75,8 +72,29 @@ export default function SellerDashboard() {
       const activeOrders = orders.filter(o => ["escrow_active", "shipped", "dispute_open"].includes(o.status)).length;
       const pendingShip = orders.filter(o => o.status === "escrow_active").length;
 
-      setStats({ revenue, activeOrders, pendingShip, products: products.length });
+      setStats({ revenue, activeOrders, pendingShip, products: listings.length });
       setRecentOrders(orders.slice(0, 5));
+
+      // ✅ NEW: Fetch Low Stock Variants (stock_quantity <= 5)
+      const listingIds = listings.map((l: any) => l.id);
+      if (listingIds.length > 0) {
+        const { data: variants } = await sb
+          .from("product_variants")
+          .select("id, size, color, material, stock_quantity, sku, listing_id")
+          .in("listing_id", listingIds)
+          .lte("stock_quantity", 5)
+          .order("stock_quantity", { ascending: true })
+          .limit(5); // Top 5 most critical
+        
+        if (variants) {
+          const enrichedVariants = variants.map((v: any) => {
+            const listing = listings.find((l: any) => l.id === v.listing_id);
+            return { ...v, title: listing?.title || "Unknown Product" };
+          });
+          setLowStockVariants(enrichedVariants);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -85,7 +103,6 @@ export default function SellerDashboard() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading Dashboard...</p></div>;
 
-  // ✅ RENDER GUARD RAILS
   if (seller?._guard === 'pending') {
     return (
       <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -206,6 +223,46 @@ export default function SellerDashboard() {
             <p className="text-xs text-slate-400 mt-1">Add or manage listings →</p>
           </Link>
         </div>
+
+        {/* ✅ NEW: LOW STOCK ALERTS SECTION */}
+        {lowStockVariants.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">⚠️</span>
+              <h2 className="text-lg font-bold text-amber-900">Low Stock Alerts</h2>
+            </div>
+            <p className="text-sm text-amber-800 mb-4">The following variants have 5 or fewer units in stock. Consider restocking soon to avoid lost sales.</p>
+            <div className="bg-white rounded-lg border border-amber-200 overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-amber-100/50 border-b border-amber-200">
+                  <tr>
+                    <th className="px-4 py-3 font-bold text-amber-900">Product</th>
+                    <th className="px-4 py-3 font-bold text-amber-900">Variant Details</th>
+                    <th className="px-4 py-3 font-bold text-amber-900 text-right">Stock Left</th>
+                    <th className="px-4 py-3 font-bold text-amber-900 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-100">
+                  {lowStockVariants.map((variant) => (
+                    <tr key={variant.id} className="hover:bg-amber-50/50 transition">
+                      <td className="px-4 py-3 font-medium text-slate-900">{variant.title}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {variant.size && <span className="inline-block bg-slate-100 px-2 py-0.5 rounded text-xs mr-1 mb-1">Size: {variant.size}</span>}
+                        {variant.color && <span className="inline-block bg-slate-100 px-2 py-0.5 rounded text-xs mr-1 mb-1">Color: {variant.color}</span>}
+                        {variant.material && <span className="inline-block bg-slate-100 px-2 py-0.5 rounded text-xs mr-1 mb-1">Mat: {variant.material}</span>}
+                        {variant.sku && <span className="inline-block bg-slate-100 px-2 py-0.5 rounded text-xs mb-1">SKU: {variant.sku}</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-rose-600">{variant.stock_quantity}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href="/karakata/sellercenter/inventory/new" className="text-xs font-bold text-purple-600 hover:underline">Restock →</Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Recent Orders Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
