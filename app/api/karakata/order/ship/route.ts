@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!["escrow_active", "delivered", "pending_payment"].includes(order.status)) {
+    if (!["escrow_active", "delivered", "pending_payment", "placed", "paid"].includes(order.status)) {
       return NextResponse.json({
         ok: false,
         error: `Cannot ship an order with status: ${order.status}`,
@@ -81,7 +81,9 @@ export async function POST(req: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://founderpilot-theta.vercel.app";
-    const trackPageUrl = `${appUrl}/karakata/track?email=${encodeURIComponent(order.buyer_email || "")}&orderId=${order.stripe_session_id || ""}`;
+    
+    // ✅ UPDATED: Point to the new Amazon-style Order Detail Page
+    const orderDetailUrl = `${appUrl}/karakata/order/${order.id}?orderId=${order.id}&email=${encodeURIComponent(order.buyer_email || "")}`;
     const carrierUrl = (TRACKING_URLS[cleanCarrier] || "") + encodeURIComponent(cleanTracking);
 
     // 1. Email the buyer
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
                 <p><strong>Tracking Number:</strong> ${cleanTracking || "Local delivery - no tracking number"}</p>
               </div>
               ${carrierUrl ? `<p><a href="${carrierUrl}" style="background:#7c3aed;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;">Track with ${cleanCarrier.toUpperCase()}</a></p>` : ""}
-              <p><a href="${trackPageUrl}" style="color:#059669;font-weight:bold;">View your KaraKata order status →</a></p>
+              <p><a href="${orderDetailUrl}" style="color:#059669;font-weight:bold;">View your full order details & status →</a></p>
               <p style="background:#ecfdf5;padding:12px;border-radius:6px;font-size:13px;">🛡️ Your payment remains safely held in Smart Escrow. Once your item arrives, confirm receipt to release the funds to the seller.</p>
               <p style="color:#64748b;font-size:12px;">— The KaraKata Team</p>
             </div>
@@ -147,7 +149,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ✅ 3. NEW: Trigger EasyPost tracking sync (fire-and-forget, don't block response)
+    // ✅ 3. Trigger EasyPost tracking sync (fire-and-forget, don't block response)
     if (cleanCarrier !== "local-courier" && cleanTracking) {
       fetch(`${appUrl}/api/karakata/tracking/sync`, {
         method: "POST",
