@@ -57,7 +57,9 @@ export async function POST(req: NextRequest) {
       if (buyerEmail) {
         try {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://founderpilot-theta.vercel.app";
-          const trackUrl = `${appUrl}/karakata/track?email=${encodeURIComponent(buyerEmail)}&orderId=${session.id}`;
+          
+          // ✅ UPDATED: Point to the new Amazon-style Order Detail Page using the actual DB order_id
+          const orderDetailUrl = `${appUrl}/karakata/order/${orderId}?orderId=${orderId}&email=${encodeURIComponent(buyerEmail)}`;
 
           const emailHtml = `
             <!DOCTYPE html>
@@ -86,10 +88,10 @@ export async function POST(req: NextRequest) {
                   <p>Your funds will only be released to the seller after you confirm satisfactory delivery. 0% risk to you.</p>
                   <p style="background-color:#fef3c7;padding:10px;border-radius:6px;font-size:13px;"><strong>⏱️ Need to cancel?</strong> You have a 60-minute "Oops Window" to cancel with one click. After that, you can request cancellation before the seller ships.</p>
                   <div style="text-align: center;">
-                    <a href="${trackUrl}" class="track-btn">Track Your Order</a>
+                    <a href="${orderDetailUrl}" class="track-btn">View Your Order Details</a>
                   </div>
                   <div class="details">
-                    <p><strong>Transaction ID:</strong> ${session.id}</p>
+                    <p><strong>Order ID:</strong> ${orderId}</p>
                     <p><strong>Order Status:</strong> Payment Held in Escrow (Awaiting Shipment)</p>
                     <p><strong>Next Step:</strong> The seller is preparing your shipment.</p>
                   </div>
