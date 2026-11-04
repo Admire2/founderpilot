@@ -38,7 +38,7 @@ export default function Studio() {
   const parse = (t: string) => {
     const g = (p: string) => { const m = t.split("\n").find((l) => l.toUpperCase().indexOf(p + ":") === 0); return m ? m.slice(p.length + 1).trim() : ""; };
     
-    // ✅ FIX 1: If user provided a cost, use it as the default price. Otherwise, use AI's benchmark.
+    // ✅ If user provided a cost, use it as the default price. Otherwise, use AI's benchmark.
     const aiPrice = g("PRICE_USD");
     const finalPrice = (cost && !isNaN(Number(cost))) ? cost : aiPrice;
     
@@ -70,7 +70,7 @@ export default function Studio() {
           title: draft.title, 
           category: draft.category === "Other" ? customCategory : draft.category, 
           description: draft.desc, 
-          price_usd: draft.price, // ✅ FIX 2: This now sends the editable price (or your cost floor)
+          price_usd: draft.price, // ✅ This now sends the editable price (or your cost floor)
           lead_time_days: draft.lead, 
           image_url: img, 
           tags: draft.tags, 
@@ -98,7 +98,9 @@ export default function Studio() {
       </button>
       <WalletBar />
       <h1 className="text-3xl font-bold text-amber-300">🧑‍🍳 Seller Studio (AI Listing Generator)</h1>
-      <p className="mt-1 text-sm text-slate-400">AI writes your listing for you: title, description, tags, benchmarked price. 2 credits. Prefer to write it yourself for free? Use manual listing instead. New to KaraKata? Build your WHOLE storefront free with AI: <Link href="/karakata/build" className="text-amber-400 font-bold hover:underline">Build my store free →</Link></p>
+      
+      {/* ✅ UPDATED: Removed "2 credits" mention to reflect 100% Free listing */}
+      <p className="mt-1 text-sm text-slate-400">AI writes your listing for you: title, description, tags, benchmarked price. 100% Free. Prefer to write it yourself? Use manual listing instead. New to KaraKata? Build your WHOLE storefront free with AI: <Link href="/karakata/build" className="text-amber-400 font-bold hover:underline">Build my store free →</Link></p>
       
       <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
         <p className="text-sm font-bold text-amber-200">01 · YOUR PRODUCT, ROUGHLY</p>
@@ -139,7 +141,8 @@ export default function Studio() {
         <p className="mt-3 text-[11px] font-bold text-slate-300">Season / occasion</p>
         <select value={occ} onChange={(e) => setOcc(e.target.value)} className={"mt-1 " + inp}>{["Everyday", "Summer", "Winter", "Holiday", "School", "Wedding", "Festive"].map((o) => (<option key={o} className="bg-slate-900">{o}</option>))}</select>
         
-        <button onClick={build} disabled={busy} className="mt-4 w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{busy ? "AI is writing your listing..." : "Build My Listing (2 credits)"}</button>
+        {/* ✅ UPDATED: Button now says "Free" */}
+        <button onClick={build} disabled={busy} className="mt-4 w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50">{busy ? "AI is writing your listing..." : "Build My Listing (Free)"}</button>
         {msg && <p className="mt-2 text-xs font-bold text-emerald-300">{msg}</p>}
       </div>
 
@@ -150,7 +153,7 @@ export default function Studio() {
           
           <p className="mt-3 text-lg font-bold text-white">{draft.title}</p>
           
-          {/* ✅ FIX 3: EDITABLE PRICE FIELD. Seller has final say over the AI's benchmark. */}
+          {/* ✅ EDITABLE PRICE FIELD. Seller has final say over the AI's benchmark. */}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-emerald-300">$</span>
             <input 
