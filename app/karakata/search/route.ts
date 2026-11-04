@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const maxPrice = searchParams.get("maxPrice");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    // ✅ MINIMAL, SAFE QUERY: Only asks for columns we KNOW exist
+    // ✅ 100% SAFE QUERY: Only columns that DEFINITELY exist in your database
     let supabaseQuery = sb
       .from("kara_listings")
       .select(`
