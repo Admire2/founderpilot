@@ -171,6 +171,8 @@ export default function SellerCenter() {
           <Link href="/karakata/sellercenter/orders" className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 transition">Orders</Link>
           <Link href="/karakata/sellercenter/messages" className="rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-200 transition">Messages</Link>
           <Link href="/karakata/sellercenter/shipping" className="rounded-lg bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-200 transition">Shipping Profiles</Link>
+          {/* ✅ NEW: Added Earnings Link */}
+          <Link href="/karakata/sellercenter/earnings" className="rounded-lg bg-purple-100 px-4 py-2 text-sm font-bold text-purple-700 hover:bg-purple-200 transition">Earnings</Link>
         </div>
       </div>
 
