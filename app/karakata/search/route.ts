@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const maxPrice = searchParams.get("maxPrice");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    // Simplified, safe query to prevent 500 errors from missing columns
+    // ✅ MINIMAL, SAFE QUERY: Only asks for columns we KNOW exist
     let supabaseQuery = sb
       .from("kara_listings")
       .select(`
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
         seller_id, 
         status,
         is_demo,
-        sellers:seller_id(shop_name)
+        sellers:seller_id(shop_name, status)
       `)
       .eq("is_demo", false)
       .eq("status", "active")
@@ -54,12 +54,12 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error("Supabase search error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
     console.error("Search API crash:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: err.message || "Internal server error" }, { status: 500 });
   }
 }
