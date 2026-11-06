@@ -78,34 +78,37 @@ export default function Market() {
     }
   }, []);
 
-  // ✅ QUOTA-PROOF SERVER-SIDE FETCH
+  // ✅ QUOTA-PROOF SERVER-SIDE FETCH (FIXED)
   useEffect(() => {
     const fetchMarketplace = async () => {
       setLoading(true);
       try {
         const params = new URLSearchParams();
         if (term) params.append("q", term);
-        if (cat) params.append("cat", cat);
-        if (sub) params.append("sub", sub);
+        if (cat) params.append("category", cat); // ✅ FIXED: API expects "category", not "cat"
+        if (sub) params.append("subcategory", sub);
         if (minPrice) params.append("minPrice", minPrice);
         if (maxPrice) params.append("maxPrice", maxPrice);
         if (minRating > 0) params.append("minRating", String(minRating));
         params.append("sortBy", sortBy);
-        params.append("limit", "50"); // ✅ Hard limit to protect Supabase
+        params.append("limit", "50");
 
         const res = await fetch(`/api/karakata/search?${params.toString()}`);
         const data = await res.json();
         
-        if (data.ok) {
-          setItems(data.listings);
+        // ✅ FIXED: API returns { ok: true, data: [...] }, so we use data.data
+        if (data.ok && data.data) {
+          setItems(data.data);
+        } else {
+          setItems([]); // ✅ SAFE FALLBACK
         }
       } catch (e) {
         console.error("Failed to fetch marketplace:", e);
+        setItems([]); // ✅ SAFE FALLBACK
       }
       setLoading(false);
     };
 
-    // Debounce the fetch to avoid spamming the API while typing
     const timer = setTimeout(fetchMarketplace, 300);
     return () => clearTimeout(timer);
   }, [term, cat, sub, minPrice, maxPrice, minRating, sortBy]);
@@ -120,7 +123,8 @@ export default function Market() {
         String(l.id) +
         "&nologo=true";
 
-  const deals = items.filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
+  // ✅ SAFE FILTER: items is guaranteed to be an array now
+  const deals = (items || []).filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
   const add = (l: any) => {
