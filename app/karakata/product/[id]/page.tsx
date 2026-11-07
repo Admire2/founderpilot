@@ -12,13 +12,13 @@ export default function ProductDetailPage() {
   const id = params.id as string;
 
   const [product, setProduct] = useState<any>(null);
-  const [variantsData, setVariantsData] = useState<any[]>([]); // ✅ NEW: Dedicated variants state
+  const [variantsData, setVariantsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [buyerId, setBuyerId] = useState<string | null>(null);
   
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
-  const [selectedMaterial, setSelectedMaterial] = useState<string>(""); // ✅ NEW
+  const [selectedMaterial, setSelectedMaterial] = useState<string>("");
   const [activeVariant, setActiveVariant] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
   const [cartAdded, setCartAdded] = useState(false);
@@ -32,8 +32,7 @@ export default function ProductDetailPage() {
       const { data: { session } } = await sb.auth.getSession();
       if (session?.user) setBuyerId(session.user.id);
 
-      // 1. Fetch the main listing
-      const { data: listingData, error: listingError } = await sb
+      const { data: listingData } = await sb
         .from("kara_listings")
         .select("*, sellers:seller_id(shop_name, city, country)")
         .eq("id", Number(id))
@@ -43,7 +42,6 @@ export default function ProductDetailPage() {
         setProduct(listingData);
         setMainImage(listingData.images?.[0] || listingData.image_url || "/placeholder.jpg");
         
-        // 2. ✅ Fetch variants from the new dedicated table
         const { data: variants } = await sb
           .from("product_variants")
           .select("*")
@@ -64,7 +62,6 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [id]);
 
-  // ✅ Update active variant when selections change
   useEffect(() => {
     if (variantsData.length === 0) return;
     
@@ -75,44 +72,53 @@ export default function ProductDetailPage() {
         (v.material || "") === (selectedMaterial || "")
     );
     
-    // Fallback to the first variant if exact match not found
     setActiveVariant(match || variantsData[0]);
   }, [selectedColor, selectedSize, selectedMaterial, variantsData]);
 
+  // ✅ FALLBACK: If no variants exist, use the main product data as the "variant"
+  const currentVariant = activeVariant || {
+    id: product?.id,
+    color: "",
+    size: "",
+    material: "",
+    price_usd: product?.price_usd,
+    stock_quantity: product?.inventory_count ?? 10,
+    sku: "MAIN"
+  };
+
   const handleAddToCart = () => {
-    if (!activeVariant || !product) return;
+    if (!currentVariant || !product) return;
 
     try {
       const savedCart = JSON.parse(localStorage.getItem("kara_cart") || "[]");
       
-      // ✅ Check for existing item with the EXACT same variant details
       const existingIndex = savedCart.findIndex((c: any) => 
         String(c.listing_id) === String(product.id) && 
-        (c.variant?.color || "") === (activeVariant.color || "") &&
-        (c.variant?.size || "") === (activeVariant.size || "") &&
-        (c.variant?.material || "") === (activeVariant.material || "")
+        (c.variant?.color || "") === (currentVariant.color || "") &&
+        (c.variant?.size || "") === (currentVariant.size || "") &&
+        (c.variant?.material || "") === (currentVariant.material || "")
       );
       
       const cartItem = {
         id: product.id,
         listing_id: product.id,
-        variant_id: activeVariant.id, // ✅ NEW: Link to specific variant
+        variant_id: currentVariant.id,
         title: product.title,
-        price_usd: Number(activeVariant.price_usd),
-        price: Number(activeVariant.price_usd),
+        price_usd: Number(currentVariant.price_usd),
+        price: Number(currentVariant.price_usd),
         image_url: mainImage,
         seller_id: product.seller_id,
         qty: 1,
         variant: {
-          color: activeVariant.color,
-          size: activeVariant.size,
-          material: activeVariant.material,
-          sku: activeVariant.sku
+          color: currentVariant.color,
+          size: currentVariant.size,
+          material: currentVariant.material,
+          sku: currentVariant.sku
         },
         it: { 
           title: product.title, 
-          price_usd: Number(activeVariant.price_usd), 
-          price: Number(activeVariant.price_usd), 
+          price_usd: Number(currentVariant.price_usd), 
+          price: Number(currentVariant.price_usd), 
           image_url: mainImage, 
           seller_id: product.seller_id 
         }
@@ -170,7 +176,6 @@ export default function ProductDetailPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="animate-pulse font-bold text-slate-600">Loading product...</p></div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="font-bold text-slate-600">Product not found.</p></div>;
 
-  // ✅ Derive available options from the new variantsData array
   const availableColors = [...new Set(variantsData.map((v: any) => v.color).filter(Boolean))];
   const availableSizes = [...new Set(variantsData.map((v: any) => v.size).filter(Boolean))];
   const availableMaterials = [...new Set(variantsData.map((v: any) => v.material).filter(Boolean))];
@@ -183,7 +188,6 @@ export default function ProductDetailPage() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 md:p-10">
             
-            {/* Left: Image Gallery */}
             <div className="space-y-4">
               <div className="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
                 <img src={mainImage} alt={product.title} className="w-full h-full object-cover" />
@@ -203,7 +207,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Right: Product Details & Variants */}
             <div className="space-y-6">
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">{product.title}</h1>
@@ -218,120 +221,114 @@ export default function ProductDetailPage() {
               <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
                 <p className="text-sm text-purple-700 font-bold mb-1">Price</p>
                 <p className="text-4xl font-bold text-slate-900">
-                  ${activeVariant ? Number(activeVariant.price_usd).toFixed(2) : Number(product.price_usd || 0).toFixed(2)}
+                  ${Number(currentVariant.price_usd).toFixed(2)}
                 </p>
-                {activeVariant && Number(activeVariant.stock_quantity) < 5 && Number(activeVariant.stock_quantity) > 0 && (
-                  <p className="text-sm text-red-600 font-bold mt-2">🔥 Only {activeVariant.stock_quantity} left in stock!</p>
+                {Number(currentVariant.stock_quantity) < 5 && Number(currentVariant.stock_quantity) > 0 && (
+                  <p className="text-sm text-red-600 font-bold mt-2">🔥 Only {currentVariant.stock_quantity} left in stock!</p>
                 )}
               </div>
 
-              {/* ✅ Variant Selectors */}
-              <div className="space-y-4">
-                {/* Color Selector */}
-                {availableColors.length > 0 && (
-                  <div>
-                    <p className="text-sm font-bold text-slate-700 mb-2">Color: <span className="text-slate-900">{selectedColor || "Any"}</span></p>
-                    <div className="flex flex-wrap gap-2">
-                      {availableColors.map((color: string) => (
+              {availableColors.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-slate-700 mb-2">Color: <span className="text-slate-900">{selectedColor || "Any"}</span></p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableColors.map((color: string) => (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
+                          selectedColor === color 
+                            ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600" 
+                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {availableSizes.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-slate-700 mb-2">Size: <span className="text-slate-900">{selectedSize || "Any"}</span></p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map((size: string) => {
+                      const isAvailable = variantsData.some((v: any) => 
+                        (v.color || "") === (selectedColor || "") && 
+                        v.size === size && 
+                        (v.material || "") === (selectedMaterial || "") &&
+                        Number(v.stock_quantity) > 0
+                      );
+                      return (
                         <button
-                          key={color}
-                          onClick={() => setSelectedColor(color)}
+                          key={size}
+                          disabled={!isAvailable}
+                          onClick={() => isAvailable && setSelectedSize(size)}
                           className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
-                            selectedColor === color 
-                              ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600" 
+                            selectedSize === size && isAvailable
+                              ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
+                              : !isAvailable
+                              ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
                               : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
                           }`}
                         >
-                          {color}
+                          {size}
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Size Selector */}
-                {availableSizes.length > 0 && (
-                  <div>
-                    <p className="text-sm font-bold text-slate-700 mb-2">Size: <span className="text-slate-900">{selectedSize || "Any"}</span></p>
-                    <div className="flex flex-wrap gap-2">
-                      {availableSizes.map((size: string) => {
-                        const isAvailable = variantsData.some((v: any) => 
-                          (v.color || "") === (selectedColor || "") && 
-                          v.size === size && 
-                          (v.material || "") === (selectedMaterial || "") &&
-                          Number(v.stock_quantity) > 0
-                        );
-                        return (
-                          <button
-                            key={size}
-                            disabled={!isAvailable}
-                            onClick={() => isAvailable && setSelectedSize(size)}
-                            className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
-                              selectedSize === size && isAvailable
-                                ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
-                                : !isAvailable
-                                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
-                                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        );
-                      })}
-                    </div>
+              {availableMaterials.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-slate-700 mb-2">Material: <span className="text-slate-900">{selectedMaterial || "Any"}</span></p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableMaterials.map((material: string) => {
+                      const isAvailable = variantsData.some((v: any) => 
+                        (v.color || "") === (selectedColor || "") && 
+                        (v.size || "") === (selectedSize || "") && 
+                        v.material === material &&
+                        Number(v.stock_quantity) > 0
+                      );
+                      return (
+                        <button
+                          key={material}
+                          disabled={!isAvailable}
+                          onClick={() => isAvailable && setSelectedMaterial(material)}
+                          className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
+                            selectedMaterial === material && isAvailable
+                              ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
+                              : !isAvailable
+                              ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
+                              : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                          }`}
+                        >
+                          {material}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* ✅ NEW: Material Selector */}
-                {availableMaterials.length > 0 && (
-                  <div>
-                    <p className="text-sm font-bold text-slate-700 mb-2">Material: <span className="text-slate-900">{selectedMaterial || "Any"}</span></p>
-                    <div className="flex flex-wrap gap-2">
-                      {availableMaterials.map((material: string) => {
-                        const isAvailable = variantsData.some((v: any) => 
-                          (v.color || "") === (selectedColor || "") && 
-                          (v.size || "") === (selectedSize || "") && 
-                          v.material === material &&
-                          Number(v.stock_quantity) > 0
-                        );
-                        return (
-                          <button
-                            key={material}
-                            disabled={!isAvailable}
-                            onClick={() => isAvailable && setSelectedMaterial(material)}
-                            className={`px-4 py-2 rounded-lg border text-sm font-bold transition ${
-                              selectedMaterial === material && isAvailable
-                                ? "border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600"
-                                : !isAvailable
-                                ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed line-through"
-                                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-                            }`}
-                          >
-                            {material}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
               <div className="space-y-3">
+                {/* ✅ FIXED: Button now uses currentVariant and is never disabled unless truly out of stock */}
                 <button 
                   onClick={handleAddToCart}
-                  disabled={!activeVariant || Number(activeVariant.stock_quantity) === 0 || cartAdded}
+                  disabled={Number(currentVariant.stock_quantity) === 0 || cartAdded}
                   className={`w-full py-4 rounded-xl font-bold text-lg transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                     cartAdded 
                       ? "bg-emerald-500 text-white shadow-emerald-200" 
                       : "bg-purple-600 text-white hover:bg-purple-700 shadow-purple-200"
                   }`}
                 >
-                  {Number(activeVariant?.stock_quantity) === 0 
+                  {Number(currentVariant.stock_quantity) === 0 
                     ? "Out of Stock" 
                     : cartAdded 
                       ? "✅ Added to Cart!" 
-                      : `Add to Cart - $${Number(activeVariant?.price_usd).toFixed(2)}`
+                      : `Add to Cart - $${Number(currentVariant.price_usd).toFixed(2)}`
                   }
                 </button>
 
@@ -352,7 +349,6 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* CONTACT SELLER MODAL */}
       {showContactModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
