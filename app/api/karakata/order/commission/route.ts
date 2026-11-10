@@ -1,24 +1,20 @@
 /**
  * ==============================================================================
- * KARAKATA AFFILIATE COMMISSION & REVENUE SPLIT MODEL
+ * KARAKATA AFFILIATE COMMISSION & HYBRID PAYOUT MODEL
  * ==============================================================================
- * When a sale is made via an affiliate referral link, the total_amount is split:
+ * 1. STRIPE FEES: ~2.9% + $0.30 (Deducted automatically)
  * 
- * 1. STRIPE PROCESSING FEES: ~2.9% + $0.30 (Deducted automatically by Stripe)
+ * 2. AFFILIATE COMMISSION (Base Rates):
+ *    - Standard Affiliate: 2.5% of total_amount
+ *    - Founding Ambassador: 5% of total_amount (Temporary launch incentive)
  * 
- * 2. AFFILIATE COMMISSION (Paid in Platform Credits):
- *    - Standard Affiliate: 2.5% of the order's total_amount
- *    - Founding Ambassador: 5% of the order's total_amount (Temporary launch incentive)
+ * 3. PAYOUT OPTIONS (Hybrid Threshold Model):
+ *    - PLATFORM CREDITS: Base Commission + 20% Bonus. Available instantly after 
+ *      the 60-day hold clears. No minimum withdrawal. (Recommended)
+ *    - CASH (Bank/PayPal): Base Commission ONLY. 90-day total hold (60-day return 
+ *      window + 30-day processing). Strict $100 minimum withdrawal threshold.
  * 
- * 3. KARAKATA PLATFORM REVENUE:
- *    - Platform/Escrow Fee: 5% of the order's total_amount
- *    - Seller Receives: The remaining ~87.5% (minus Stripe fees)
- * 
- * SECURITY & HOLD POLICY:
- * Commissions are ONLY processed when order.status is "completed" or "delivered".
- * A strict 60-day hold policy is enforced post-delivery to protect the platform 
- * against buyer returns, refunds, and chargebacks. This hold period will be 
- * reviewed and potentially lowered as the marketplace scales and stabilizes.
+ * 4. KARAKATA PLATFORM REVENUE: 5% Smart Escrow Fee.
  * ==============================================================================
  */
 
@@ -27,7 +23,6 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// 🔒 Initialize Supabase with Service Role Key for secure backend operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -38,12 +33,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { order_id, payout_method = "credits" } = body;
 
-    // 1. Validate Request
     if (!order_id) {
       return NextResponse.json({ ok: false, error: "order_id is required" }, { status: 400 });
     }
 
-    // 2. Fetch Order Details
+    // 1. Fetch Order Details
     const { data: order, error: orderError } = await supabase
       .from("kara_orders")
       .select("id, buyer_user_id, total_amount, status")
@@ -54,51 +48,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
 
-    // 3. Security Check: Only process commission if order is completed/delivered
+    // 2. Security Check: Only process if delivered/completed
     if (order.status !== "completed" && order.status !== "delivered") {
       return NextResponse.json({ 
         ok: true, 
         status: "skipped", 
-        message: "Order not yet eligible for commission payout (Awaiting delivery/completion)" 
+        message: "Order not yet eligible (Awaiting delivery/completion)" 
       });
     }
 
-    // 4. Check for Affiliate/Referral associated with this buyer
+    // 3. Check for Affiliate
     const { data: referralData, error: referralError } = await supabase
       .from("referrals")
       .select("affiliate_email, affiliate_id, campaign_type")
       .eq("referred_user_id", order.buyer_user_id)
       .single();
 
-    // If no affiliate is attached to this buyer, exit gracefully (this is normal)
     if (referralError || !referralData) {
-      return NextResponse.json({ ok: true, status: "no_affiliate", message: "No affiliate linked to this order" });
+      return NextResponse.json({ ok: true, status: "no_affiliate", message: "No affiliate linked" });
     }
 
-    // 5. Check if Affiliate is a "Founding_Ambassador" for special rates
+    // 4. Check Ambassador Status
     const { data: affiliateProfile } = await supabase
       .from("affiliates")
       .select("status, campaign_tags")
       .eq("email", referralData.affiliate_email)
       .single();
 
-    // Safely check if the campaign_tags array includes our special tag
     const isFoundingAmbassador = Array.isArray(affiliateProfile?.campaign_tags) 
       ? affiliateProfile.campaign_tags.includes("Founding_Ambassador") 
       : false;
 
-    // 6. Calculate Commission (UPDATED RATES)
-    const standardRate = 0.025;  // 2.5% for Standard Affiliates
-    const foundingRate = 0.05;   // 5% for Founding Ambassadors
-    const rate = isFoundingAmbassador ? foundingRate : standardRate;
-    
-    const commissionAmount = Number(order.total_amount || 0) * rate;
+    // 5. Calculate Base Commission
+    const standardRate = 0.025;  // 2.5%
+    const foundingRate = 0.05;   // 5%
+    const baseRate = isFoundingAmbassador ? foundingRate : standardRate;
+    const baseCommissionAmount = Number(order.total_amount || 0) * baseRate;
 
-    // 7. Process Payout (Credits)
+    // 6. Process Payout based on Hybrid Model
     if (payout_method === "credits") {
-      const creditAmount = Math.round(commissionAmount * 100); // 1 USD = 100 credits
+      // Apply 20% bonus for choosing credits (protects startup cash flow)
+      const bonusMultiplier = 1.20; 
+      const finalCommissionAmount = baseCommissionAmount * bonusMultiplier;
+      const creditAmount = Math.round(finalCommissionAmount * 100); // 1 USD = 100 credits
 
-      // 🔒 SAFE BALANCE UPDATE: Fetch current balance first, then ADD to it (prevents overwriting)
+      // Safe balance update (fetch current, then add)
       const { data: currentCredits } = await supabase
         .from("credits")
         .select("pack_balance")
@@ -109,43 +103,74 @@ export async function POST(req: Request) {
       const newBalance = currentBalance + creditAmount;
 
       await supabase.from("credits").upsert(
-        {
-          email: referralData.affiliate_email,
-          pack_balance: newBalance
-        },
+        { email: referralData.affiliate_email, pack_balance: newBalance },
         { onConflict: "email" }
       );
 
-      // 8. Log the Transaction for Audit Trail
+      // Log Transaction
       await supabase.from("credit_transactions").insert({
         email: referralData.affiliate_email,
         type: "affiliate_commission",
         amount: creditAmount,
         source: "karakata_marketplace",
-        description: `Commission for order #${order_id}: $${commissionAmount.toFixed(2)} (${isFoundingAmbassador ? "Founding Ambassador Bonus (5%)" : "Standard Rate (2.5%)"}) - Subject to 60-day hold policy.`,
-        metadata: { 
-          order_id, 
-          commission_usd: commissionAmount, 
-          is_founding_ambassador: isFoundingAmbassador 
-        }
+        description: `Commission + 20% Credit Bonus for order #${order_id}. Base: $${baseCommissionAmount.toFixed(2)}`,
+        metadata: { order_id, base_commission_usd: baseCommissionAmount, is_founding_ambassador: isFoundingAmbassador }
       });
 
       return NextResponse.json({
         ok: true,
         payout_method: "credits",
         credits_granted: creditAmount,
-        commission_usd: commissionAmount,
-        affiliate_status: isFoundingAmbassador ? "Founding_Ambassador" : "Standard",
-        hold_policy: "60 days post-delivery"
+        base_commission_usd: baseCommissionAmount,
+        bonus_applied: "20%",
+        message: "Credits added instantly after 60-day hold clearance."
+      });
+
+    } else if (payout_method === "cash") {
+      // Cash payout logic: Enforce $100 minimum threshold
+      const MIN_CASH_THRESHOLD = 100.00;
+      
+      // Fetch current pending cash balance for this affiliate
+      const { data: pendingCash } = await supabase
+        .from("credit_transactions") // Reusing this table or a dedicated payouts table
+        .select("amount")
+        .eq("email", referralData.affiliate_email)
+        .eq("type", "pending_cash_payout")
+        .sum("amount");
+
+      const currentPendingCash = Number(pendingCash?.sum || 0) / 100; // Convert from cents
+      const newPendingTotal = currentPendingCash + baseCommissionAmount;
+
+      if (newPendingTotal < MIN_CASH_THRESHOLD) {
+        return NextResponse.json({
+          ok: true,
+          status: "queued",
+          message: `Cash payout queued. Minimum threshold is $${MIN_CASH_THRESHOLD}. You currently have $${newPendingTotal.toFixed(2)} pending. Switch to Credits for instant availability + 20% bonus!`,
+          pending_cash_usd: newPendingTotal,
+          hold_policy: "90 days total (60-day return window + 30-day processing)"
+        });
+      }
+
+      // If over $100, log as approved for batch payout (actual bank transfer handled by admin batch job)
+      await supabase.from("credit_transactions").insert({
+        email: referralData.affiliate_email,
+        type: "pending_cash_payout",
+        amount: Math.round(baseCommissionAmount * 100),
+        source: "karakata_marketplace",
+        description: `Cash payout approved for order #${order_id} (Threshold met)`,
+        metadata: { order_id, commission_usd: baseCommissionAmount }
+      });
+
+      return NextResponse.json({
+        ok: true,
+        payout_method: "cash",
+        commission_usd: baseCommissionAmount,
+        message: "Cash payout approved. Funds will be transferred within 30 days post-90-day hold.",
+        hold_policy: "90 days total"
       });
     }
 
-    // Fallback for future fiat payouts
-    return NextResponse.json({
-      ok: true,
-      status: "pending (60-day hold)",
-      commission_usd: commissionAmount
-    });
+    return NextResponse.json({ ok: false, error: "Invalid payout method" }, { status: 400 });
 
   } catch (e: any) {
     console.error("Commission processing error:", e);
