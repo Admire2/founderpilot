@@ -7,12 +7,12 @@
  * 1. STRIPE PROCESSING FEES: ~2.9% + $0.30 (Deducted automatically by Stripe)
  * 
  * 2. AFFILIATE COMMISSION (Paid in Platform Credits):
- *    - Standard Affiliate: 5% of the order's total_amount
- *    - Founding Ambassador: 10% of the order's total_amount (Temporary launch incentive)
+ *    - Standard Affiliate: 2.5% of the order's total_amount
+ *    - Founding Ambassador: 5% of the order's total_amount (Temporary launch incentive)
  * 
  * 3. KARAKATA PLATFORM REVENUE:
  *    - Platform/Escrow Fee: 5% of the order's total_amount
- *    - Seller Receives: The remaining ~90% (minus Stripe fees)
+ *    - Seller Receives: The remaining ~87.5% (minus Stripe fees)
  * 
  * SECURITY & HOLD POLICY:
  * Commissions are ONLY processed when order.status is "completed" or "delivered".
@@ -55,7 +55,6 @@ export async function POST(req: Request) {
     }
 
     // 3. Security Check: Only process commission if order is completed/delivered
-    // This prevents payout on cancelled, refunded, or disputed orders.
     if (order.status !== "completed" && order.status !== "delivered") {
       return NextResponse.json({ 
         ok: true, 
@@ -88,9 +87,9 @@ export async function POST(req: Request) {
       ? affiliateProfile.campaign_tags.includes("Founding_Ambassador") 
       : false;
 
-    // 6. Calculate Commission
-    const standardRate = 0.05;  // 5% for Standard Affiliates
-    const foundingRate = 0.10;  // 10% for Founding Ambassadors
+    // 6. Calculate Commission (UPDATED RATES)
+    const standardRate = 0.025;  // 2.5% for Standard Affiliates
+    const foundingRate = 0.05;   // 5% for Founding Ambassadors
     const rate = isFoundingAmbassador ? foundingRate : standardRate;
     
     const commissionAmount = Number(order.total_amount || 0) * rate;
@@ -123,7 +122,7 @@ export async function POST(req: Request) {
         type: "affiliate_commission",
         amount: creditAmount,
         source: "karakata_marketplace",
-        description: `Commission for order #${order_id}: $${commissionAmount.toFixed(2)} (${isFoundingAmbassador ? "Founding Ambassador Bonus (10%)" : "Standard Rate (5%)"}) - Subject to 60-day hold policy.`,
+        description: `Commission for order #${order_id}: $${commissionAmount.toFixed(2)} (${isFoundingAmbassador ? "Founding Ambassador Bonus (5%)" : "Standard Rate (2.5%)"}) - Subject to 60-day hold policy.`,
         metadata: { 
           order_id, 
           commission_usd: commissionAmount, 
