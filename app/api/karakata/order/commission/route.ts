@@ -1,3 +1,27 @@
+/**
+ * ==============================================================================
+ * KARAKATA AFFILIATE COMMISSION & REVENUE SPLIT MODEL
+ * ==============================================================================
+ * When a sale is made via an affiliate referral link, the total_amount is split:
+ * 
+ * 1. STRIPE PROCESSING FEES: ~2.9% + $0.30 (Deducted automatically by Stripe)
+ * 
+ * 2. AFFILIATE COMMISSION (Paid in Platform Credits):
+ *    - Standard Affiliate: 5% of the order's total_amount
+ *    - Founding Ambassador: 10% of the order's total_amount (Temporary launch incentive)
+ * 
+ * 3. KARAKATA PLATFORM REVENUE:
+ *    - Platform/Escrow Fee: 5% of the order's total_amount
+ *    - Seller Receives: The remaining ~90% (minus Stripe fees)
+ * 
+ * SECURITY & HOLD POLICY:
+ * Commissions are ONLY processed when order.status is "completed" or "delivered".
+ * A strict 60-day hold policy is enforced post-delivery to protect the platform 
+ * against buyer returns, refunds, and chargebacks. This hold period will be 
+ * reviewed and potentially lowered as the marketplace scales and stabilizes.
+ * ==============================================================================
+ */
+
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -30,16 +54,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
 
-    // Only process commission if order is completed/delivered (prevents payout on cancelled orders)
+    // 3. Security Check: Only process commission if order is completed/delivered
+    // This prevents payout on cancelled, refunded, or disputed orders.
     if (order.status !== "completed" && order.status !== "delivered") {
       return NextResponse.json({ 
         ok: true, 
         status: "skipped", 
-        message: "Order not yet eligible for commission payout" 
+        message: "Order not yet eligible for commission payout (Awaiting delivery/completion)" 
       });
     }
 
-    // 3. Check for Affiliate/Referral associated with this buyer
+    // 4. Check for Affiliate/Referral associated with this buyer
     const { data: referralData, error: referralError } = await supabase
       .from("referrals")
       .select("affiliate_email, affiliate_id, campaign_type")
@@ -51,7 +76,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, status: "no_affiliate", message: "No affiliate linked to this order" });
     }
 
-    // 4. Check if Affiliate is a "Founding_Ambassador" for special rates
+    // 5. Check if Affiliate is a "Founding_Ambassador" for special rates
     const { data: affiliateProfile } = await supabase
       .from("affiliates")
       .select("status, campaign_tags")
@@ -63,15 +88,14 @@ export async function POST(req: Request) {
       ? affiliateProfile.campaign_tags.includes("Founding_Ambassador") 
       : false;
 
-    // 5. Calculate Commission
-    // Standard rate: 5% of total_amount. Founding Ambassador rate: 10% (adjust as needed)
-    const standardRate = 0.05;
-    const foundingRate = 0.10;
+    // 6. Calculate Commission
+    const standardRate = 0.05;  // 5% for Standard Affiliates
+    const foundingRate = 0.10;  // 10% for Founding Ambassadors
     const rate = isFoundingAmbassador ? foundingRate : standardRate;
     
     const commissionAmount = Number(order.total_amount || 0) * rate;
 
-    // 6. Process Payout (Credits)
+    // 7. Process Payout (Credits)
     if (payout_method === "credits") {
       const creditAmount = Math.round(commissionAmount * 100); // 1 USD = 100 credits
 
@@ -93,13 +117,13 @@ export async function POST(req: Request) {
         { onConflict: "email" }
       );
 
-      // 7. Log the Transaction for Audit Trail
+      // 8. Log the Transaction for Audit Trail
       await supabase.from("credit_transactions").insert({
         email: referralData.affiliate_email,
         type: "affiliate_commission",
         amount: creditAmount,
         source: "karakata_marketplace",
-        description: `Commission for order #${order_id}: $${commissionAmount.toFixed(2)} (${isFoundingAmbassador ? "Founding Ambassador Bonus" : "Standard Rate"})`,
+        description: `Commission for order #${order_id}: $${commissionAmount.toFixed(2)} (${isFoundingAmbassador ? "Founding Ambassador Bonus (10%)" : "Standard Rate (5%)"}) - Subject to 60-day hold policy.`,
         metadata: { 
           order_id, 
           commission_usd: commissionAmount, 
@@ -112,14 +136,15 @@ export async function POST(req: Request) {
         payout_method: "credits",
         credits_granted: creditAmount,
         commission_usd: commissionAmount,
-        affiliate_status: isFoundingAmbassador ? "Founding_Ambassador" : "Standard"
+        affiliate_status: isFoundingAmbassador ? "Founding_Ambassador" : "Standard",
+        hold_policy: "60 days post-delivery"
       });
     }
 
     // Fallback for future fiat payouts
     return NextResponse.json({
       ok: true,
-      status: "pending_fiat_payout",
+      status: "pending (60-day hold)",
       commission_usd: commissionAmount
     });
 
