@@ -92,7 +92,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ✅ WALLET PLACEHOLDER COMPLETELY REMOVED */}
+      {/* ✅ FAKE WALLET PLACEHOLDER COMPLETELY REMOVED */}
     </aside>
   );
 }
