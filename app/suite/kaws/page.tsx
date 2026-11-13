@@ -1,29 +1,70 @@
+import Link from "next/link";
+
 export default function KAWSPage() {
   return (
-    <div style={{ padding: "40px" }}>
-      <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "16px" }}>
-        ?? KAWS - KaraKata AI Web Services
-      </h1>
-      <p style={{ fontSize: "18px", color: "#94a3b8", marginBottom: "32px" }}>
-        Advanced AI-powered web services and tools
-      </p>
-      
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px" }}>
-        {/* Real Estate Service */}
-        <div style={{ padding: "24px", background: "#1e293b", borderRadius: "12px", border: "1px solid #334155" }}>
-          <h3 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "8px" }}>?? Real Estate AI</h3>
-          <p style={{ color: "#94a3b8", marginBottom: "16px" }}>Property valuation, market analysis, and investment insights</p>
-          <button style={{ padding: "8px 16px", background: "#0891b2", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>
-            Open Service
-          </button>
+    <main className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
+      <div className="max-w-5xl mx-auto space-y-12">
+        
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900">
+            KAWS - KaraKata AI Web Services
+          </h1>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Advanced AI-powered enterprise tools and services to power your business, built for the African ecosystem and beyond.
+          </p>
         </div>
 
-        {/* Add more KAWS services here */}
-        <div style={{ padding: "24px", background: "#1e293b", borderRadius: "12px", border: "1px solid #334155", opacity: 0.5 }}>
-          <h3 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "8px" }}>?? More Services Coming Soon</h3>
-          <p style={{ color: "#94a3b8" }}>Additional AI web services will be added here</p>
+        {/* Services Grid */}
+        <div className="grid md:grid-cols-2 gap-8">
+          
+          {/* Kara Office */}
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Kara Office</h2>
+            <p className="text-slate-600 mb-4">
+              A fully white-labeled, AI-enhanced enterprise office suite. Seamlessly create, edit, and collaborate on documents, spreadsheets, and presentations.
+            </p>
+            <ul className="space-y-2 text-sm text-slate-500 mb-6">
+              <li className="flex gap-2"><span className="text-green-500">✓</span> AI Document Summarization</li>
+              <li className="flex gap-2"><span className="text-green-500">✓</span> Smart Spreadsheet Analytics</li>
+              <li className="flex gap-2"><span className="text-green-500">✓</span> Offline & Cloud Sync</li>
+            </ul>
+            <button className="w-full py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
+              Open Kara Office
+            </button>
+          </div>
+
+          {/* Kara Services */}
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Kara Services</h2>
+            <p className="text-slate-600 mb-4">
+              Enterprise-grade AI automation and data services. From workflow optimization to predictive analytics, scale your operations effortlessly.
+            </p>
+            <ul className="space-y-2 text-sm text-slate-500 mb-6">
+              <li className="flex gap-2"><span className="text-green-500">✓</span> Admire Intelligence Analytics</li>
+              <li className="flex gap-2"><span className="text-green-500">✓</span> Automated Workflow Agents</li>
+              <li className="flex gap-2"><span className="text-green-500">✓</span> Custom API Integrations</li>
+            </ul>
+            <button className="w-full py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
+              Explore Kara Services
+            </button>
+          </div>
+
         </div>
+
+        {/* Coming Soon Section */}
+        <div className="bg-slate-100 p-8 rounded-2xl border border-dashed border-slate-300 text-center">
+          <h3 className="text-xl font-bold text-slate-700 mb-2">More Services Coming Soon</h3>
+          <p className="text-slate-500">Additional AI web services, including specialized industry tools, will be added to the KAWS ecosystem shortly.</p>
+        </div>
+
       </div>
-    </div>
+    </main>
   );
 }
