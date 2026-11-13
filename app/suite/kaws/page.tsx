@@ -32,9 +32,10 @@ export default function KAWSPage() {
               <li className="flex gap-2"><span className="text-green-500">✓</span> Smart Spreadsheet Analytics</li>
               <li className="flex gap-2"><span className="text-green-500">✓</span> Offline & Cloud Sync</li>
             </ul>
-            <button className="w-full py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
+            {/* ✅ WIRED TO YOUR EXISTING OFFICE SUITE */}
+            <Link href="/suite/office" className="block w-full py-3 text-center bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
               Open Kara Office
-            </button>
+            </Link>
           </div>
 
           {/* Kara Services */}
@@ -51,9 +52,10 @@ export default function KAWSPage() {
               <li className="flex gap-2"><span className="text-green-500">✓</span> Automated Workflow Agents</li>
               <li className="flex gap-2"><span className="text-green-500">✓</span> Custom API Integrations</li>
             </ul>
-            <button className="w-full py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
+            {/* ✅ WIRED TO YOUR EXISTING BUSINESS SUITE */}
+            <Link href="/suite/business" className="block w-full py-3 text-center bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
               Explore Kara Services
-            </button>
+            </Link>
           </div>
 
         </div>
