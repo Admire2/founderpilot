@@ -9,6 +9,7 @@ const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// 🔒 THE VAULT: Only these emails can see the Admire Intelligence link
 const AUTHORIZED_ADMIN_EMAILS = [
   "greatmind20@gmail.com", 
   "akandejoseph1@gmail.com" 
