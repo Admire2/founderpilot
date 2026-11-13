@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -9,13 +9,11 @@ const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// 🔒 THE VAULT: Only these emails can even SEE the Admire Intelligence link
 const AUTHORIZED_ADMIN_EMAILS = [
   "greatmind20@gmail.com", 
-  "akandejoseph1@gmail.com" // Add your other top-level executive emails here
+  "akandejoseph1@gmail.com" 
 ];
 
-// SVG Icon Components
 const CartIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>);
 const StoreIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 7h20"/><path d="M4 7v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7a5 5 0 0 1 5-5h10a5 5 0 0 1 5 5"/></svg>);
 const UsersIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
@@ -25,12 +23,12 @@ const HospitalIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" h
 const GlobeIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>);
 const RocketIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>);
 const StarIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>);
+const TrendingUpIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>);
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // Check user auth status on mount
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await sb.auth.getSession();
@@ -43,10 +41,10 @@ export default function Sidebar() {
     checkAuth();
   }, []);
   
-  // Base navigation items visible to everyone
   const baseNavItems = [
     { href: "/karakata", label: "KaraKata Market", Icon: CartIcon, iconColor: "text-amber-500", activeColor: "bg-amber-500", title: "Shopping Cart" },
     { href: "/karakata/sellercenter/dashboard", label: "Seller Center", Icon: StoreIcon, iconColor: "text-emerald-500", activeColor: "bg-emerald-600", title: "Manage your store" },
+    { href: "/affiliate/dashboard", label: "Affiliate Dashboard", Icon: TrendingUpIcon, iconColor: "text-green-500", activeColor: "bg-green-600", title: "Track Earnings & Links" }, 
     { href: "/karakata/sellers", label: "Browse Sellers", Icon: UsersIcon, iconColor: "text-indigo-500", activeColor: "bg-indigo-600", title: "Discover sellers" },
     { href: "/suite/business", label: "Business Suite", Icon: BriefcaseIcon, iconColor: "text-cyan-500", activeColor: "bg-cyan-600", title: "Business Tools" },
     { href: "/suite/engineering", label: "Engineering Suite", Icon: WrenchIcon, iconColor: "text-yellow-400", activeColor: "bg-yellow-500", title: "Engineering Tools" },
@@ -55,7 +53,6 @@ export default function Sidebar() {
     { href: "/karakata/build", label: "Build Store", Icon: RocketIcon, iconColor: "text-purple-500", activeColor: "bg-purple-600", title: "Build Your Store" },
   ];
 
-  // 🔒 CONDITIONAL RENDERING: Only add the secret link if the user is authorized
   const navItems = isAuthorized 
     ? [
         ...baseNavItems,
@@ -92,13 +89,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="mt-auto pt-4 border-t border-slate-800">
-        <div className="bg-slate-800 rounded-lg p-4">
-          <p className="text-xs text-slate-400 mb-1">Wallet Balance</p>
-          <p className="text-lg font-bold text-emerald-400">20 Credits</p>
-        </div>
-      </div>
     </aside>
   );
 }
