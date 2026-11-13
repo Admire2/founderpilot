@@ -78,14 +78,13 @@ export default function Market() {
     }
   }, []);
 
-  // ✅ QUOTA-PROOF SERVER-SIDE FETCH (FIXED)
   useEffect(() => {
     const fetchMarketplace = async () => {
       setLoading(true);
       try {
         const params = new URLSearchParams();
         if (term) params.append("q", term);
-        if (cat) params.append("category", cat); // ✅ FIXED: API expects "category", not "cat"
+        if (cat) params.append("category", cat);
         if (sub) params.append("subcategory", sub);
         if (minPrice) params.append("minPrice", minPrice);
         if (maxPrice) params.append("maxPrice", maxPrice);
@@ -96,15 +95,14 @@ export default function Market() {
         const res = await fetch(`/api/karakata/search?${params.toString()}`);
         const data = await res.json();
         
-        // ✅ FIXED: API returns { ok: true, data: [...] }, so we use data.data
         if (data.ok && data.data) {
           setItems(data.data);
         } else {
-          setItems([]); // ✅ SAFE FALLBACK
+          setItems([]);
         }
       } catch (e) {
         console.error("Failed to fetch marketplace:", e);
-        setItems([]); // ✅ SAFE FALLBACK
+        setItems([]);
       }
       setLoading(false);
     };
@@ -123,7 +121,6 @@ export default function Market() {
         String(l.id) +
         "&nologo=true";
 
-  // ✅ SAFE FILTER: items is guaranteed to be an array now
   const deals = (items || []).filter((l: any) => Number(l.compare_at_usd) > priceOf(l));
   const activeSubs = cat ? ((TAXONOMY.find((t: any) => t.name === cat) || { subs: [] }).subs as string[]) : [];
 
@@ -188,7 +185,6 @@ export default function Market() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Category Tabs */}
       <div className="border-b border-slate-200 bg-white sticky top-0 z-20 shadow-sm">
         <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
           <button onClick={() => { setCat(null); setSub(null); }} className={"whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-bold transition " + (!cat ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700")}>All</button>
@@ -198,7 +194,6 @@ export default function Market() {
         </div>
       </div>
 
-      {/* Subcategory Tabs */}
       {cat && activeSubs.length > 0 && (
         <div className="border-b border-slate-200 bg-slate-50">
           <div className="mx-auto flex max-w-7xl flex-wrap gap-2 px-4 py-2">
@@ -209,13 +204,13 @@ export default function Market() {
       )}
 
       <div className="mx-auto max-w-7xl px-4">
-        {/* Hero Banner */}
+        
+        {/* ✅ UPDATED HERO BANNER: Original Colors Restored */}
         <div className="mt-6 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 p-6 text-white shadow-lg">
-          <p className="text-xl font-bold">KaraKata Haul — Today only! Ends in <span className="font-mono bg-white/20 px-2 py-0.5 rounded">{left}</span></p>
-          <p className="text-sm mt-1 opacity-90">Escrow-protected payments · Verified-purchase reviews · Free AI storefront builder</p>
+          <p className="text-xl font-bold">KaraKata Marketplace: Phase 1 Seller Onboarding</p>
+          <p className="text-sm mt-1 opacity-90">Join the waitlist to secure your spot among the first 1,000 sovereign merchants.</p>
         </div>
 
-        {/* ADVANCED SEARCH & FILTER BAR */}
         <div className="mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
             <div className="relative w-full lg:w-1/3">
@@ -271,7 +266,6 @@ export default function Market() {
           </div>
         ) : (
           <>
-            {/* Deals Section */}
             {deals.length > 0 && (
               <section className="mt-8">
                 <h2 className="text-lg font-bold flex items-center gap-2">
@@ -315,7 +309,6 @@ export default function Market() {
               </section>
             )}
 
-            {/* Main Products Grid */}
             <section className="mt-8 mb-12">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h2 className="text-lg font-bold text-slate-900">
